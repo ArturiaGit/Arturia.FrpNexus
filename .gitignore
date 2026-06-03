@@ -1,0 +1,45 @@
+# Build outputs
+bin/
+obj/
+out/
+artifacts/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# .NET and NuGet
+project.assets.json
+project.nuget.cache
+*.nupkg
+*.snupkg
+*.user
+*.rsuser
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Avalonia generated assets and temporary files
+*.g.cs
+*.g.i.cs
+*.axaml.g.cs
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+~$*

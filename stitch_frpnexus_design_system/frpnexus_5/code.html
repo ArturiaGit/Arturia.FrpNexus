@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FrpNexus - 日志</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "status-info": "#2563EB",
+                        "on-error": "#ffffff",
+                        "status-warning": "#D97706",
+                        "on-tertiary": "#ffffff",
+                        "border-default": "#D8DEE6",
+                        "on-primary": "#ffffff",
+                        "background": "#f8f9fb",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "text-secondary": "#52606D",
+                        "text-primary": "#17202A",
+                        "status-error": "#DC2626",
+                        "secondary-container": "#d9dff5",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-fixed": "#dce2f7",
+                        "primary": "#004ac6",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-tint": "#0053db",
+                        "on-surface-variant": "#434655",
+                        "surface-dim": "#d8dadc",
+                        "surface": "#f8f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary": "#575e70",
+                        "on-tertiary-fixed-variant": "#434749",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#6a6e70",
+                        "on-primary-fixed": "#00174b",
+                        "on-tertiary-container": "#eef1f3",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-background": "#191c1e",
+                        "on-secondary-container": "#5c6274",
+                        "inverse-primary": "#b4c5ff",
+                        "on-secondary-fixed": "#141b2b",
+                        "tertiary": "#525658",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-white": "#FFFFFF",
+                        "surface-container": "#eceef0",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-surface": "#191c1e",
+                        "on-tertiary-fixed": "#181c1e",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f8f9fb",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "outline": "#737686",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#dbe1ff",
+                        "outline-variant": "#c3c6d7",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary-container": "#2563eb",
+                        "status-success": "#16A34A",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "error": "#ba1a1a",
+                        "status-neutral": "#64748B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "tight": "8px",
+                        "sidebar-width": "212px",
+                        "md": "12px",
+                        "xl": "20px",
+                        "page-margin": "24px",
+                        "topbar-height": "52px",
+                        "lg": "16px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "status-badge": ["Inter", "sans-serif"],
+                        "table-content": ["Inter", "sans-serif"],
+                        "page-title": ["Inter", "sans-serif"],
+                        "section-title": ["Inter", "sans-serif"],
+                        "helper-text": ["Inter", "sans-serif"],
+                        "group-label": ["Inter", "sans-serif"],
+                        "code-block": ["JetBrains Mono", "monospace"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "status-badge": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "table-content": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "page-title": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "section-title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "helper-text": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "group-label": ["14px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "code-block": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body": ["13px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        /* Custom scrollbar for terminal to match dark theme */
+        .terminal-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background text-text-primary font-body text-body min-h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="w-sidebar-width h-screen fixed left-0 top-0 border-r border-border-default bg-background flex flex-col py-page-margin z-50">
+<!-- Brand/Header -->
+<div class="px-lg mb-xl">
+<h1 class="font-section-title text-section-title text-text-primary">FrpNexus</h1>
+<p class="font-helper-text text-helper-text text-text-secondary mt-base">V2.4.0 Stable</p>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col flex-1 overflow-y-auto">
+<!-- 仪表盘 (Dashboard) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span>仪表盘</span>
+</a>
+<!-- 节点 (Nodes) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">dns</span>
+<span>节点</span>
+</a>
+<!-- 隧道 (Tunnels) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">rebase_edit</span>
+<span>隧道</span>
+</a>
+<!-- 配置 (Config) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">settings_applications</span>
+<span>配置</span>
+</a>
+<!-- 日志 (Logs) - ACTIVE -->
+<a class="flex items-center gap-md px-lg py-tight text-primary bg-secondary-container/50 border-l-[3px] border-primary active:opacity-80 transition-all duration-100" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<span class="font-medium">日志</span>
+</a>
+<!-- 设置 (Settings) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>设置</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="mt-auto px-lg">
+<div class="h-[1px] bg-border-default w-full mb-md"></div>
+<a class="flex items-center gap-md py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 rounded DEFAULT" href="#">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+<span>账户</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width flex-1 flex flex-col h-screen overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="h-topbar-height sticky top-0 z-40 border-b border-border-default shadow-sm bg-surface flex justify-between items-center px-page-margin shrink-0">
+<!-- Left: Breadcrumb/Title Area -->
+<div class="flex items-center gap-md">
+<span class="font-page-title text-page-title font-semibold text-text-primary">日志</span>
+</div>
+<!-- Right: Actions & Status -->
+<div class="flex items-center gap-xl">
+<div class="flex items-center gap-tight text-text-secondary">
+<span class="w-2 h-2 rounded-full bg-status-success"></span>
+<span class="font-status-badge text-status-badge">连接状态: 已就绪</span>
+</div>
+<div class="flex items-center gap-md text-text-secondary">
+<button class="hover:text-primary transition-opacity duration-200 cursor-pointer flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="hover:text-primary transition-opacity duration-200 cursor-pointer flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">lan</span>
+</button>
+<button class="hover:text-primary transition-opacity duration-200 cursor-pointer flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">cloud_done</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Page Content: Logs Console -->
+<div class="flex-1 p-page-margin flex flex-col gap-md overflow-hidden min-h-0">
+<!-- Toolbar: Filters & Actions -->
+<div class="flex flex-wrap items-center justify-between gap-md bg-surface p-tight border border-border-default rounded-lg shadow-sm shrink-0">
+<!-- Filters Left Side -->
+<div class="flex items-center gap-md flex-wrap">
+<!-- Search -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2 text-text-secondary text-[18px]">search</span>
+<input class="h-[32px] pl-[32px] pr-3 border border-border-default rounded bg-surface-white text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 text-table-content font-table-content placeholder:text-text-secondary/60" placeholder="搜索日志内容..." type="text"/>
+</div>
+<!-- Divider -->
+<div class="w-[1px] h-[24px] bg-border-default"></div>
+<!-- Node Filter -->
+<div class="flex items-center gap-tight">
+<label class="font-group-label text-group-label text-text-secondary whitespace-nowrap">节点:</label>
+<select class="h-[32px] pl-3 pr-8 border border-border-default rounded bg-surface-white text-text-primary text-table-content font-table-content focus:outline-none focus:border-primary appearance-none cursor-pointer">
+<option>全部节点 (All)</option>
+<option>US-West-01</option>
+<option>EU-Central-02</option>
+<option>AP-East-01</option>
+</select>
+</div>
+<!-- Process Filter -->
+<div class="flex items-center gap-tight">
+<label class="font-group-label text-group-label text-text-secondary whitespace-nowrap">进程:</label>
+<select class="h-[32px] pl-3 pr-8 border border-border-default rounded bg-surface-white text-text-primary text-table-content font-table-content focus:outline-none focus:border-primary appearance-none cursor-pointer">
+<option>全部进程</option>
+<option>frpc.exe</option>
+<option>nexus_daemon</option>
+</select>
+</div>
+<!-- Level Filter -->
+<div class="flex items-center gap-tight">
+<label class="font-group-label text-group-label text-text-secondary whitespace-nowrap">级别:</label>
+<select class="h-[32px] pl-3 pr-8 border border-border-default rounded bg-surface-white text-text-primary text-table-content font-table-content focus:outline-none focus:border-primary appearance-none cursor-pointer">
+<option>全部 (All)</option>
+<option>INFO</option>
+<option>WARN</option>
+<option>ERROR</option>
+<option>DEBUG</option>
+</select>
+</div>
+</div>
+<!-- Actions Right Side -->
+<div class="flex items-center gap-md">
+<!-- Auto Refresh Toggle -->
+<label class="flex items-center gap-tight cursor-pointer">
+<div class="relative">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="block bg-primary w-8 h-5 rounded-full transition-colors"></div>
+<div class="dot absolute left-[2px] top-[2px] bg-surface-white w-4 h-4 rounded-full transition-transform translate-x-[12px]"></div>
+</div>
+<span class="font-table-content text-table-content text-text-primary">自动刷新</span>
+</label>
+<div class="w-[1px] h-[24px] bg-border-default"></div>
+<button class="h-[32px] px-3 flex items-center gap-base border border-border-default bg-surface hover:bg-surface-container-low rounded text-text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span class="font-table-content text-table-content">复制</span>
+</button>
+<button class="h-[32px] px-3 flex items-center gap-base border border-border-default bg-surface hover:bg-error-container/30 hover:text-status-error hover:border-status-error/50 rounded text-text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+<span class="font-table-content text-table-content">清空</span>
+</button>
+</div>
+</div>
+<!-- Terminal Window -->
+<!-- Using on-secondary-fixed (#141b2b) for dark terminal background per strict token usage while achieving dark aesthetic -->
+<div class="flex-1 bg-on-secondary-fixed text-inverse-on-surface rounded-lg border border-outline/30 shadow-sm flex flex-col min-h-0 relative">
+<!-- Terminal Header Bar (Decorative) -->
+<div class="h-[28px] border-b border-outline/20 flex items-center px-md shrink-0 bg-on-secondary-fixed-variant/50">
+<div class="flex gap-[6px]">
+<div class="w-2.5 h-2.5 rounded-full bg-outline/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline/50"></div>
+</div>
+<div class="ml-4 flex gap-4 text-[11px] font-code-block text-outline-variant/70">
+<span>Terminal — FrpNexus Core</span>
+<span>[Connected: US-West-01]</span>
+</div>
+</div>
+<!-- Log Output Area -->
+<div class="flex-1 p-md overflow-y-auto terminal-scroll font-code-block text-code-block leading-[1.6]">
+<!-- Individual Log Lines -->
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:32:01.102</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">FrpNexus client daemon started successfully. Version: V2.4.0</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:32:01.150</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Reading configuration from C:\ProgramData\FrpNexus\config.ini</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:32:01.320</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Connecting to control server [us-west-01.frpnexus.com:7000]...</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:32:02.045</span>
+<span class="text-status-success w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Connection to control server established.</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:32:02.100</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Starting proxy [web_portal_8080]...</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:35:12.880</span>
+<span class="text-status-warning w-[60px] shrink-0">[WARN]</span>
+<span class="text-status-warning">Proxy [db_backup_sync] connection timeout. Retrying in 5 seconds...</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:35:17.882</span>
+<span class="text-status-warning w-[60px] shrink-0">[WARN]</span>
+<span class="text-status-warning">Proxy [db_backup_sync] connection timeout. Retrying in 10 seconds...</span>
+</div>
+<div class="flex bg-status-error/10 border-l-[3px] border-status-error hover:bg-status-error/20 py-[4px] px-1 rounded-r-sm my-1">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0 ml-[-3px] pl-[3px]">2023-10-27 14:35:28.105</span>
+<span class="text-status-error font-medium w-[60px] shrink-0">[ERROR]</span>
+<span class="text-error-container">Failed to establish proxy [db_backup_sync]. Reason: remote server closed connection unexpectedly. EOF.</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:36:00.001</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Heartbeat sent to control server. Latency: 42ms.</span>
+</div>
+<div class="flex hover:bg-white/5 py-[2px] px-1 rounded-sm">
+<span class="text-tertiary-fixed-dim w-[160px] shrink-0">2023-10-27 14:37:00.005</span>
+<span class="text-primary-fixed-dim w-[60px] shrink-0">[INFO]</span>
+<span class="text-inverse-on-surface">Heartbeat sent to control server. Latency: 45ms.</span>
+</div>
+<!-- Cursor indicator -->
+<div class="flex mt-2 items-center">
+<span class="w-[10px] h-[16px] bg-primary-fixed-dim animate-pulse inline-block"></span>
+</div>
+</div>
+<!-- Status Bar Footer -->
+<div class="h-[24px] border-t border-outline/20 bg-on-secondary-fixed flex items-center justify-between px-md shrink-0 text-[11px] font-code-block text-tertiary-fixed-dim rounded-b-lg">
+<span>File: frpc_client_daemon.log</span>
+<div class="flex gap-4">
+<span>Lines: 1,024</span>
+<span>Encoding: UTF-8</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple toggle switch logic for visual feedback
+        const toggleInput = document.querySelector('input[type="checkbox"]');
+        const toggleBg = toggleInput.nextElementSibling;
+        const toggleDot = toggleBg.nextElementSibling;
+
+        toggleInput.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                toggleBg.classList.replace('bg-surface-variant', 'bg-primary');
+                toggleDot.classList.replace('translate-x-0', 'translate-x-[12px]');
+            } else {
+                toggleBg.classList.replace('bg-primary', 'bg-surface-variant');
+                toggleDot.classList.replace('translate-x-[12px]', 'translate-x-0');
+            }
+        });
+    </script>
+</body></html>

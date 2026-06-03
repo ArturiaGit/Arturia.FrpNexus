@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FrpNexus - 隧道管理</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "status-info": "#2563EB",
+                        "on-error": "#ffffff",
+                        "status-warning": "#D97706",
+                        "on-tertiary": "#ffffff",
+                        "border-default": "#D8DEE6",
+                        "on-primary": "#ffffff",
+                        "background": "#f8f9fb",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "text-secondary": "#52606D",
+                        "text-primary": "#17202A",
+                        "status-error": "#DC2626",
+                        "secondary-container": "#d9dff5",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-fixed": "#dce2f7",
+                        "primary": "#004ac6",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-tint": "#0053db",
+                        "on-surface-variant": "#434655",
+                        "surface-dim": "#d8dadc",
+                        "surface": "#f8f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary": "#575e70",
+                        "on-tertiary-fixed-variant": "#434749",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#6a6e70",
+                        "on-primary-fixed": "#00174b",
+                        "on-tertiary-container": "#eef1f3",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-background": "#191c1e",
+                        "on-secondary-container": "#5c6274",
+                        "inverse-primary": "#b4c5ff",
+                        "on-secondary-fixed": "#141b2b",
+                        "tertiary": "#525658",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-white": "#FFFFFF",
+                        "surface-container": "#eceef0",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-surface": "#191c1e",
+                        "on-tertiary-fixed": "#181c1e",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f8f9fb",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "outline": "#737686",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#dbe1ff",
+                        "outline-variant": "#c3c6d7",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary-container": "#2563eb",
+                        "status-success": "#16A34A",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "error": "#ba1a1a",
+                        "status-neutral": "#64748B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "tight": "8px",
+                        "sidebar-width": "212px",
+                        "md": "12px",
+                        "xl": "20px",
+                        "page-margin": "24px",
+                        "topbar-height": "52px",
+                        "lg": "16px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "status-badge": ["inter"],
+                        "table-content": ["inter"],
+                        "page-title": ["inter"],
+                        "section-title": ["inter"],
+                        "helper-text": ["inter"],
+                        "group-label": ["inter"],
+                        "code-block": ["jetbrainsMono"],
+                        "body": ["inter"]
+                    },
+                    "fontSize": {
+                        "status-badge": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "table-content": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "page-title": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "section-title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "helper-text": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "group-label": ["14px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "code-block": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body": ["13px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-text-primary font-body text-body flex h-screen overflow-hidden antialiased">
+<!-- SideNavBar Component -->
+<nav class="w-sidebar-width h-screen fixed left-0 top-0 bg-background dark:bg-on-background border-r border-border-default dark:border-outline-variant flex flex-col py-page-margin z-50">
+<!-- Header -->
+<div class="px-page-margin mb-xl flex items-center gap-md cursor-default">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-section-title text-section-title">
+                F
+            </div>
+<div>
+<h1 class="font-section-title text-section-title text-text-primary dark:text-inverse-on-surface">FrpNexus</h1>
+<p class="font-helper-text text-helper-text text-text-secondary">V2.4.0 Stable</p>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex-1 flex flex-col w-full">
+<!-- Tab 0: 仪表盘 (Inactive) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="font-group-label text-group-label">仪表盘</span>
+</a>
+<!-- Tab 1: 节点 (Inactive) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">dns</span>
+<span class="font-group-label text-group-label">节点</span>
+</a>
+<!-- Tab 2: 隧道 (ACTIVE) -->
+<a class="flex items-center gap-md px-lg py-tight text-primary dark:text-primary-fixed-dim bg-secondary-container/50 dark:bg-on-secondary-fixed-variant/20 border-l-[3px] border-primary active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<span class="material-symbols-outlined text-[20px] font-medium" style="font-variation-settings: 'FILL' 1;">rebase_edit</span>
+<span class="font-group-label text-group-label">隧道</span>
+</a>
+<!-- Tab 3: 配置 (Inactive) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">settings_applications</span>
+<span class="font-group-label text-group-label">配置</span>
+</a>
+<!-- Tab 4: 日志 (Inactive) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+<span class="font-group-label text-group-label">日志</span>
+</a>
+<!-- Tab 5: 设置 (Inactive) -->
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-group-label text-group-label">设置</span>
+</a>
+</div>
+<!-- Footer -->
+<div class="mt-auto flex flex-col w-full">
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary dark:text-on-surface-variant hover:bg-surface-container dark:hover:bg-on-secondary-fixed-variant/10 active:opacity-80 transition-all duration-100 group w-full outline-none relative" href="#">
+<div class="w-[3px] h-full bg-transparent group-focus-visible:bg-border-default absolute left-0"></div>
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+<span class="font-group-label text-group-label">账户</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area wrapper -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden ml-sidebar-width bg-surface-container-low">
+<!-- TopAppBar Component -->
+<header class="h-topbar-height sticky top-0 z-40 bg-surface dark:bg-surface-dim border-b border-border-default dark:border-outline-variant shadow-sm flex justify-between items-center px-page-margin">
+<!-- Left: Context Title (Optional, keeping minimal per JSON structure hint) -->
+<div class="flex items-center">
+<h2 class="font-page-title text-page-title font-semibold text-text-primary dark:text-inverse-on-surface hidden">FrpNexus</h2> <!-- Hidden here as it's in sidebar, but kept for semantic alignment if needed in mobile view later -->
+<span class="font-section-title text-section-title text-text-primary">隧道管理</span>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-lg">
+<!-- Secondary Action Status -->
+<div class="flex items-center gap-base text-status-success font-helper-text text-helper-text bg-status-success/10 px-2 py-1 rounded-full border border-status-success/20">
+<span class="w-2 h-2 rounded-full bg-status-success block"></span>
+                    连接状态: 已就绪
+                </div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-tight text-text-secondary dark:text-on-surface-variant">
+<button class="w-8 h-8 rounded hover:bg-surface-variant dark:hover:bg-on-secondary-fixed-variant/10 hover:text-primary dark:hover:text-primary-fixed-dim cursor-pointer transition-colors duration-200 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="w-8 h-8 rounded hover:bg-surface-variant dark:hover:bg-on-secondary-fixed-variant/10 hover:text-primary dark:hover:text-primary-fixed-dim cursor-pointer transition-colors duration-200 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+<span class="material-symbols-outlined text-[20px]">lan</span>
+</button>
+<button class="w-8 h-8 rounded hover:bg-surface-variant dark:hover:bg-on-secondary-fixed-variant/10 hover:text-primary dark:hover:text-primary-fixed-dim cursor-pointer transition-colors duration-200 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+<span class="material-symbols-outlined text-[20px]">cloud_done</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Canvas (Page Content) -->
+<main class="flex-1 overflow-y-auto p-page-margin">
+<!-- Command Bar Area -->
+<div class="flex justify-between items-center mb-md">
+<!-- Search & Filters -->
+<div class="flex items-center gap-tight">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2 text-text-secondary text-[18px]">search</span>
+<input class="h-[34px] w-[240px] pl-8 pr-3 bg-surface border border-border-default rounded text-table-content font-table-content placeholder:text-text-secondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" placeholder="搜索隧道..." type="text"/>
+</div>
+<select class="h-[34px] pl-3 pr-8 py-0 bg-surface border border-border-default rounded text-table-content font-table-content focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer">
+<option value="all">所有协议</option>
+<option value="tcp">TCP</option>
+<option value="udp">UDP</option>
+<option value="http">HTTP</option>
+<option value="https">HTTPS</option>
+</select>
+</div>
+<!-- Primary Action -->
+<button class="h-[36px] px-lg bg-primary hover:bg-surface-tint text-on-primary font-group-label text-group-label rounded border border-transparent shadow-sm flex items-center gap-tight transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    新建隧道
+                </button>
+</div>
+<!-- Data Grid / List View -->
+<div class="bg-surface border border-border-default rounded shadow-sm overflow-hidden flex flex-col">
+<table class="w-full text-left border-collapse whitespace-nowrap">
+<thead>
+<tr class="h-[40px] border-b border-border-default bg-surface-container-lowest font-group-label text-group-label text-text-secondary">
+<th class="px-md font-medium w-12 text-center">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4 cursor-pointer" type="checkbox"/>
+</th>
+<th class="px-md font-medium">隧道名称</th>
+<th class="px-md font-medium">协议</th>
+<th class="px-md font-medium">关联节点</th>
+<th class="px-md font-medium">本地端口</th>
+<th class="px-md font-medium">远程端口/域名</th>
+<th class="px-md font-medium">状态</th>
+<th class="px-md font-medium text-right">操作</th>
+</tr>
+</thead>
+<tbody class="font-table-content text-table-content text-text-primary">
+<!-- Row 1: Active HTTP -->
+<tr class="h-[40px] border-b border-border-default last:border-none hover:bg-surface-container-low transition-colors group">
+<td class="px-md text-center">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-md font-medium">web-dev-portal</td>
+<td class="px-md text-text-secondary">
+<span class="px-2 py-0.5 rounded bg-surface-variant text-text-secondary font-code-block text-code-block text-[11px] uppercase border border-border-default/50">HTTP</span>
+</td>
+<td class="px-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-text-secondary">dns</span>
+                                    Node-Alpha-HK
+                                </div>
+</td>
+<td class="px-md font-code-block text-code-block">8080</td>
+<td class="px-md font-code-block text-code-block text-text-secondary">dev.example.com</td>
+<td class="px-md">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-status-success/10 text-status-success font-status-badge text-status-badge border border-status-success/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success mr-1.5"></span>
+                                    运行中
+                                </span>
+</td>
+<td class="px-md text-right">
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-primary inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary" title="编辑">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-status-error inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-status-error" title="停止">
+<span class="material-symbols-outlined text-[16px]">stop_circle</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Active TCP -->
+<tr class="h-[40px] border-b border-border-default last:border-none hover:bg-surface-container-low transition-colors group">
+<td class="px-md text-center">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-md font-medium">ssh-bastion</td>
+<td class="px-md text-text-secondary">
+<span class="px-2 py-0.5 rounded bg-surface-variant text-text-secondary font-code-block text-code-block text-[11px] uppercase border border-border-default/50">TCP</span>
+</td>
+<td class="px-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-text-secondary">dns</span>
+                                    Node-Beta-SG
+                                </div>
+</td>
+<td class="px-md font-code-block text-code-block">22</td>
+<td class="px-md font-code-block text-code-block text-text-secondary">60022</td>
+<td class="px-md">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-status-success/10 text-status-success font-status-badge text-status-badge border border-status-success/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success mr-1.5"></span>
+                                    运行中
+                                </span>
+</td>
+<td class="px-md text-right">
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-primary inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary" title="编辑">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-status-error inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-status-error" title="停止">
+<span class="material-symbols-outlined text-[16px]">stop_circle</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Inactive TCP -->
+<tr class="h-[40px] border-b border-border-default last:border-none hover:bg-surface-container-low transition-colors group">
+<td class="px-md text-center">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-md font-medium text-text-secondary">database-test</td>
+<td class="px-md text-text-secondary">
+<span class="px-2 py-0.5 rounded bg-surface-variant text-text-secondary font-code-block text-code-block text-[11px] uppercase border border-border-default/50 opacity-70">TCP</span>
+</td>
+<td class="px-md text-text-secondary opacity-70">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-text-secondary">dns</span>
+                                    Node-Alpha-HK
+                                </div>
+</td>
+<td class="px-md font-code-block text-code-block text-text-secondary opacity-70">3306</td>
+<td class="px-md font-code-block text-code-block text-text-secondary opacity-70">63306</td>
+<td class="px-md">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-surface-variant text-text-secondary font-status-badge text-status-badge border border-border-default">
+<span class="w-1.5 h-1.5 rounded-full bg-text-secondary mr-1.5"></span>
+                                    已停止
+                                </span>
+</td>
+<td class="px-md text-right">
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-primary inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary" title="编辑">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-status-success inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-status-success" title="启动">
+<span class="material-symbols-outlined text-[16px]">play_circle</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Error UDP -->
+<tr class="h-[40px] border-b border-border-default last:border-none hover:bg-surface-container-low transition-colors group">
+<td class="px-md text-center">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4 cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-md font-medium text-status-error">udp-game-server</td>
+<td class="px-md text-text-secondary">
+<span class="px-2 py-0.5 rounded bg-surface-variant text-text-secondary font-code-block text-code-block text-[11px] uppercase border border-border-default/50">UDP</span>
+</td>
+<td class="px-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-text-secondary">dns</span>
+                                    Node-Gamma-JP
+                                </div>
+</td>
+<td class="px-md font-code-block text-code-block">7777</td>
+<td class="px-md font-code-block text-code-block text-text-secondary">7777</td>
+<td class="px-md">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-status-error/10 text-status-error font-status-badge text-status-badge border border-status-error/20" title="端口被占用">
+<span class="material-symbols-outlined text-[12px] mr-1">warning</span>
+                                    异常
+                                </span>
+</td>
+<td class="px-md text-right">
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-primary inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary" title="编辑">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary hover:text-status-warning inline-flex items-center justify-center transition-colors outline-none focus-visible:ring-1 focus-visible:ring-status-warning" title="重启">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination Footer (Minimal WinUI style) -->
+<div class="h-[40px] border-t border-border-default bg-surface-container-lowest flex items-center justify-between px-md">
+<span class="font-helper-text text-helper-text text-text-secondary">共 4 条记录</span>
+<div class="flex items-center gap-tight">
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary flex items-center justify-center outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="font-helper-text text-helper-text text-text-primary px-2">1 / 1</span>
+<button class="w-7 h-7 rounded hover:bg-surface-variant text-text-secondary flex items-center justify-center outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

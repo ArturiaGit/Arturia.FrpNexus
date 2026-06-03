@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FrpNexus - 仪表盘</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "status-info": "#2563EB",
+                        "on-error": "#ffffff",
+                        "status-warning": "#D97706",
+                        "on-tertiary": "#ffffff",
+                        "border-default": "#D8DEE6",
+                        "on-primary": "#ffffff",
+                        "background": "#f8f9fb",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "text-secondary": "#52606D",
+                        "text-primary": "#17202A",
+                        "status-error": "#DC2626",
+                        "secondary-container": "#d9dff5",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-fixed": "#dce2f7",
+                        "primary": "#004ac6",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-tint": "#0053db",
+                        "on-surface-variant": "#434655",
+                        "surface-dim": "#d8dadc",
+                        "surface": "#f8f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary": "#575e70",
+                        "on-tertiary-fixed-variant": "#434749",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#6a6e70",
+                        "on-primary-fixed": "#00174b",
+                        "on-tertiary-container": "#eef1f3",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-background": "#191c1e",
+                        "on-secondary-container": "#5c6274",
+                        "inverse-primary": "#b4c5ff",
+                        "on-secondary-fixed": "#141b2b",
+                        "tertiary": "#525658",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-white": "#FFFFFF",
+                        "surface-container": "#eceef0",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-surface": "#191c1e",
+                        "on-tertiary-fixed": "#181c1e",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f8f9fb",
+                        "on-primary-container": "#eeefff",
+                        "error-container": "#ffdad6",
+                        "outline": "#737686",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#dbe1ff",
+                        "outline-variant": "#c3c6d7",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary-container": "#2563eb",
+                        "status-success": "#16A34A",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "error": "#ba1a1a",
+                        "status-neutral": "#64748B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "tight": "8px",
+                        "sidebar-width": "212px",
+                        "md": "12px",
+                        "xl": "20px",
+                        "page-margin": "24px",
+                        "topbar-height": "52px",
+                        "lg": "16px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "status-badge": ["inter", "sans-serif"],
+                        "table-content": ["inter", "sans-serif"],
+                        "page-title": ["inter", "sans-serif"],
+                        "section-title": ["inter", "sans-serif"],
+                        "helper-text": ["inter", "sans-serif"],
+                        "group-label": ["inter", "sans-serif"],
+                        "code-block": ["jetbrainsMono", "monospace"],
+                        "body": ["inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "status-badge": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "table-content": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "page-title": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "section-title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "helper-text": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "group-label": ["14px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "code-block": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body": ["13px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background font-body text-body text-text-primary min-h-screen overflow-x-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface w-sidebar-width h-screen fixed left-0 top-0 border-r border-border-default flex flex-col py-page-margin z-50 shadow-sm">
+<!-- Header -->
+<div class="px-lg mb-xl flex items-center gap-md">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary shadow-sm">
+<span class="material-symbols-outlined" style="font-size: 18px;">hub</span>
+</div>
+<div>
+<div class="font-section-title text-section-title text-text-primary">FrpNexus</div>
+<div class="font-helper-text text-helper-text text-text-secondary">V2.4.0 Stable</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 flex flex-col gap-base">
+<!-- Active Item: 仪表盘 -->
+<a class="flex items-center gap-md px-lg py-tight text-primary bg-secondary-container/50 border-l-[3px] border-primary transition-all duration-100" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-group-label text-group-label">仪表盘</span>
+</a>
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">dns</span>
+<span class="font-group-label text-group-label">节点</span>
+</a>
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">rebase_edit</span>
+<span class="font-group-label text-group-label">隧道</span>
+</a>
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings_applications</span>
+<span class="font-group-label text-group-label">配置</span>
+</a>
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">terminal</span>
+<span class="font-group-label text-group-label">日志</span>
+</a>
+<a class="flex items-center gap-md px-lg py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings</span>
+<span class="font-group-label text-group-label">设置</span>
+</a>
+</div>
+<!-- Footer -->
+<div class="mt-auto px-lg pt-md border-t border-border-default">
+<a class="flex items-center gap-md py-tight text-text-secondary hover:bg-surface-container transition-colors duration-200 px-tight rounded" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">account_circle</span>
+<span class="font-group-label text-group-label">账户</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface h-topbar-height sticky top-0 z-40 border-b border-border-default flex justify-between items-center px-page-margin ml-sidebar-width shadow-sm">
+<div class="flex items-center gap-md">
+<div class="font-page-title text-page-title font-semibold text-text-primary">仪表盘概览</div>
+</div>
+<div class="flex items-center gap-xl">
+<div class="font-status-badge text-status-badge bg-status-success/10 text-status-success px-2 py-1 rounded border border-status-success/20 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-success"></span>
+                连接状态: 已就绪
+            </div>
+<div class="flex items-center gap-md">
+<button class="text-text-secondary hover:text-primary transition-opacity duration-200 cursor-pointer w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container">
+<span class="material-symbols-outlined" style="font-size: 20px;">notifications</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-opacity duration-200 cursor-pointer w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container">
+<span class="material-symbols-outlined" style="font-size: 20px;">lan</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-opacity duration-200 cursor-pointer w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container">
+<span class="material-symbols-outlined" style="font-size: 20px;">cloud_done</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-sidebar-width p-page-margin max-w-[1400px]">
+<!-- Grid System -->
+<div class="grid grid-cols-12 gap-md">
+<!-- 1. Status Overview Tiles (Row 1) -->
+<div class="col-span-12 grid grid-cols-4 gap-md mb-tight">
+<!-- Tile 1 -->
+<div class="bg-surface border border-border-default rounded-lg p-lg shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">dns</span>
+</div>
+<div>
+<div class="font-helper-text text-helper-text text-text-secondary mb-1">节点总数</div>
+<div class="font-page-title text-page-title text-text-primary">24</div>
+</div>
+</div>
+<!-- Tile 2 -->
+<div class="bg-surface border border-border-default rounded-lg p-lg shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-status-success/10 flex items-center justify-center text-status-success">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<div class="font-helper-text text-helper-text text-text-secondary mb-1">在线节点</div>
+<div class="font-page-title text-page-title text-text-primary">22</div>
+</div>
+</div>
+<!-- Tile 3 -->
+<div class="bg-surface border border-border-default rounded-lg p-lg shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-status-info/10 flex items-center justify-center text-status-info">
+<span class="material-symbols-outlined">memory</span>
+</div>
+<div>
+<div class="font-helper-text text-helper-text text-text-secondary mb-1">运行中进程</div>
+<div class="font-page-title text-page-title text-text-primary">15</div>
+</div>
+</div>
+<!-- Tile 4 -->
+<div class="bg-surface border border-border-default rounded-lg p-lg shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">rebase_edit</span>
+</div>
+<div>
+<div class="font-helper-text text-helper-text text-text-secondary mb-1">活跃隧道</div>
+<div class="font-page-title text-page-title text-text-primary">48</div>
+</div>
+</div>
+</div>
+<!-- Row 2 -->
+<!-- Quick Actions -->
+<div class="col-span-4 bg-surface border border-border-default rounded-lg p-lg shadow-sm">
+<h2 class="font-section-title text-section-title text-text-primary mb-md">快速操作</h2>
+<div class="flex flex-col gap-tight">
+<button class="bg-primary hover:bg-surface-tint text-on-primary rounded h-[36px] flex items-center justify-center gap-tight px-lg border border-transparent transition-colors shadow-sm w-full font-group-label text-group-label">
+<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+                        添加新节点
+                    </button>
+<button class="bg-transparent hover:bg-surface-container text-text-primary rounded h-[32px] flex items-center justify-center gap-tight px-lg border border-border-default transition-colors w-full font-group-label text-group-label mt-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">route</span>
+                        创建内网穿透隧道
+                    </button>
+<button class="bg-transparent hover:bg-surface-container text-text-primary rounded h-[32px] flex items-center justify-center gap-tight px-lg border border-border-default transition-colors w-full font-group-label text-group-label">
+<span class="material-symbols-outlined" style="font-size: 18px;">autorenew</span>
+                        重载全局配置
+                    </button>
+</div>
+</div>
+<!-- Recent Node Status Table -->
+<div class="col-span-8 bg-surface border border-border-default rounded-lg p-lg shadow-sm flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-section-title text-section-title text-text-primary">近期节点状态</h2>
+<a class="text-primary hover:underline font-helper-text text-helper-text" href="#">查看全部</a>
+</div>
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border-default">
+<th class="font-helper-text text-helper-text text-text-secondary pb-tight font-normal w-[30%]">节点名称</th>
+<th class="font-helper-text text-helper-text text-text-secondary pb-tight font-normal w-[20%]">IP 地址</th>
+<th class="font-helper-text text-helper-text text-text-secondary pb-tight font-normal w-[25%]">运行时间</th>
+<th class="font-helper-text text-helper-text text-text-secondary pb-tight font-normal w-[25%]">状态</th>
+</tr>
+</thead>
+<tbody class="font-table-content text-table-content text-text-primary">
+<tr class="border-b border-border-default/50 h-[40px] hover:bg-surface-container-low transition-colors">
+<td class="font-medium">shanghai-prod-1</td>
+<td>192.168.1.101</td>
+<td>14 天 2 小时</td>
+<td><span class="font-status-badge text-status-badge bg-status-success/10 text-status-success px-2 py-1 rounded border border-status-success/20 inline-block">运行中</span></td>
+</tr>
+<tr class="border-b border-border-default/50 h-[40px] hover:bg-surface-container-low transition-colors">
+<td class="font-medium">beijing-dev-db</td>
+<td>10.0.0.55</td>
+<td>3 天 5 小时</td>
+<td><span class="font-status-badge text-status-badge bg-status-success/10 text-status-success px-2 py-1 rounded border border-status-success/20 inline-block">运行中</span></td>
+</tr>
+<tr class="border-b border-border-default/50 h-[40px] hover:bg-surface-container-low transition-colors">
+<td class="font-medium text-text-secondary">guangzhou-test-edge</td>
+<td class="text-text-secondary">172.16.0.12</td>
+<td class="text-text-secondary">-</td>
+<td><span class="font-status-badge text-status-badge bg-surface-variant text-text-secondary px-2 py-1 rounded border border-border-default inline-block">已离线</span></td>
+</tr>
+<tr class="h-[40px] hover:bg-surface-container-low transition-colors">
+<td class="font-medium">hangzhou-storage</td>
+<td>192.168.2.200</td>
+<td>45 天 12 小时</td>
+<td><span class="font-status-badge text-status-badge bg-status-warning/10 text-status-warning px-2 py-1 rounded border border-status-warning/20 inline-block">负载较高</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Row 3 -->
+<!-- Recent Errors -->
+<div class="col-span-6 bg-surface border border-status-error/30 rounded-lg p-lg shadow-sm">
+<div class="flex items-center gap-2 mb-md">
+<span class="material-symbols-outlined text-status-error" style="font-size: 20px;">error</span>
+<h2 class="font-section-title text-section-title text-text-primary">最近错误</h2>
+</div>
+<div class="flex flex-col gap-tight">
+<div class="bg-error-container/10 border-l-[3px] border-status-error p-tight rounded-r flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="font-group-label text-group-label text-status-error">授权失败</span>
+<span class="font-helper-text text-helper-text text-text-secondary">10:45 AM</span>
+</div>
+<div class="font-body text-body text-text-secondary">节点 'guangzhou-test-edge' 尝试连接被拒绝 (Token mismatch)。</div>
+</div>
+<div class="bg-error-container/10 border-l-[3px] border-status-error p-tight rounded-r flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="font-group-label text-group-label text-status-error">端口冲突</span>
+<span class="font-helper-text text-helper-text text-text-secondary">09:12 AM</span>
+</div>
+<div class="font-body text-body text-text-secondary">隧道 'web-admin-ui' 尝试绑定的远程端口 8080 已被占用。</div>
+</div>
+<div class="bg-error-container/10 border-l-[3px] border-status-error p-tight rounded-r flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="font-group-label text-group-label text-status-error">连接超时</span>
+<span class="font-helper-text text-helper-text text-text-secondary">昨天 23:30</span>
+</div>
+<div class="font-body text-body text-text-secondary">FRP 服务端与节点 'backup-server-01' 的控制连接断开。</div>
+</div>
+</div>
+</div>
+<!-- Terminal Monospace Log -->
+<div class="col-span-6 bg-[#0B1117] rounded-lg p-lg shadow-sm flex flex-col border border-border-default/20">
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-section-title text-section-title text-[#eff1f3]">系统日志输出</h2>
+<span class="flex items-center gap-1 font-status-badge text-status-badge text-[#16A34A] bg-[#16A34A]/10 px-2 py-0.5 rounded">
+<span class="w-1.5 h-1.5 rounded-full bg-[#16A34A] animate-pulse"></span>
+                        实时
+                    </span>
+</div>
+<div class="flex-1 font-code-block text-code-block text-[#c9d1d9] overflow-y-auto h-[180px] flex flex-col gap-1">
+<div class="flex gap-2"><span class="text-text-secondary">[09:55:01]</span><span class="text-status-info">[INFO]</span> <span>frps tcp listen on 0.0.0.0:7000</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[09:55:01]</span><span class="text-status-info">[INFO]</span> <span>frps admin server listen on 127.0.0.1:7400</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[10:12:33]</span><span class="text-status-info">[INFO]</span> <span>[client: a1b2c3d4] client login info: ip [192.168.1.101:54321]</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[10:12:33]</span><span class="text-status-success">[OK]</span> <span>client [shanghai-prod-1] login success</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[10:15:42]</span><span class="text-status-info">[INFO]</span> <span>[client: a1b2c3d4] [ssh-dev] proxy added: [tcp]</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[10:45:00]</span><span class="text-status-warning">[WARN]</span> <span>[client: e5f6g7h8] token is unverified</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[10:45:00]</span><span class="text-status-error">[ERR]</span> <span>client [guangzhou-test-edge] login failed</span></div>
+<div class="flex gap-2"><span class="text-text-secondary">[11:02:15]</span><span class="text-status-info">[INFO]</span> <span>[client: z9y8x7w6] [web-test] proxy added: [http] custom_domains: [test.example.com]</span></div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
