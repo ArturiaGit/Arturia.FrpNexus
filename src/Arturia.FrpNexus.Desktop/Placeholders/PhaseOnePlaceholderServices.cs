@@ -89,16 +89,26 @@ public sealed class PhaseOneSshConnectionService : ISshConnectionService
 
 public sealed class PhaseOneRemoteFileTransferService : IRemoteFileTransferService
 {
-    public Task UploadFrpBinaryAsync(string nodeName, string localPath, string remotePath, CancellationToken cancellationToken = default)
+    public Task<RemoteFileTransferResult> UploadFrpBinaryAsync(RemoteFileUploadRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return Task.FromResult(new RemoteFileTransferResult(
+            request.Node.Name,
+            request.RemotePath,
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            "SFTP 文件上传占位服务尚未接入。"));
     }
 
-    public Task UploadConfigurationAsync(string nodeName, string tomlContent, string remotePath, CancellationToken cancellationToken = default)
+    public Task<RemoteFileTransferResult> UploadConfigurationAsync(RemoteConfigurationUploadRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return Task.FromResult(new RemoteFileTransferResult(
+            request.Node.Name,
+            request.RemotePath,
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            "SFTP 配置上传占位服务尚未接入。"));
     }
 }
 

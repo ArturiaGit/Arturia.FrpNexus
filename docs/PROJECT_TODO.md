@@ -361,7 +361,7 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Confirm Phase 3 entry gate in `docs/PHASE_3_PLAN.md`.
 - [x] Review and approve `docs/CREDENTIAL_STRATEGY.md` before real SSH work.
 - [x] Implement SSH connection testing service.
-- [ ] Implement SFTP upload service.
+- [x] Implement SFTP upload service.
 - [ ] Implement FRP release download and binary selection.
 - [ ] Implement remote start, stop, and restart.
 - [ ] Implement remote process status detection.
@@ -369,7 +369,7 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Add deployment records.
 - [x] Add runtime records.
 - [ ] Improve diagnostics and recoverable error states.
-- [ ] Add integration-style tests around controlled service boundaries where feasible.
+- [x] Add integration-style tests around controlled service boundaries where feasible.
 
 ### Phase 3 First Iteration Todo
 
