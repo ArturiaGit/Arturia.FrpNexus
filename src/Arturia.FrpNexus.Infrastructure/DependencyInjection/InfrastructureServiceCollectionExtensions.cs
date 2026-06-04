@@ -33,6 +33,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IFrpReleaseCachePathProvider, FrpReleaseCachePathProvider>();
         services.AddSingleton<IFrpReleaseClient, GitHubFrpReleaseClient>();
         services.AddSingleton<IFrpReleaseService, FrpReleaseService>();
+        services.AddSingleton<IRemoteCommandAdapter, SshRemoteCommandAdapter>();
+        services.AddSingleton<IRemoteRuntimeService, RemoteRuntimeService>();
         services.AddSingleton<HttpClient>();
 
         return services;

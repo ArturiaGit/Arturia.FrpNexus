@@ -166,6 +166,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<SshConnectionService>(serviceProvider.GetRequiredService<ISshConnectionService>());
         Assert.IsType<RemoteFileTransferService>(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
         Assert.IsType<FrpReleaseService>(serviceProvider.GetRequiredService<IFrpReleaseService>());
+        Assert.IsType<RemoteRuntimeService>(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
     }
 
     [Fact]
@@ -219,7 +220,11 @@ public sealed class MainWindowViewModelTests
 
     private static RuntimePageViewModel CreateRuntimePageViewModel()
     {
-        return new RuntimePageViewModel(new FakeRuntimeRecordService(), new FakeDeploymentRecordService());
+        return new RuntimePageViewModel(
+            new FakeRuntimeRecordService(),
+            new FakeDeploymentRecordService(),
+            new FakeNodeManagementService(),
+            new FakeRemoteRuntimeService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
@@ -436,6 +441,44 @@ public sealed class MainWindowViewModelTests
         {
             _records.RemoveAll(record => record.StepName == stepName);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
+    {
+        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<RuntimeProcess> processes =
+            [
+                new("frpc-web", request.Node.Name, "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")
+            ];
+
+            return Task.FromResult(processes);
+        }
+
+        public Task<RemoteRuntimeCommandResult> StartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            return CreateResult(request, FrpNexusStatus.Running, "远程启动命令执行完成。");
+        }
+
+        public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            return CreateResult(request, FrpNexusStatus.Stopped, "远程停止命令执行完成。");
+        }
+
+        public Task<RemoteRuntimeCommandResult> RestartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            return CreateResult(request, FrpNexusStatus.Running, "远程重启命令执行完成。");
+        }
+
+        private static Task<RemoteRuntimeCommandResult> CreateResult(RemoteRuntimeCommandRequest request, FrpNexusStatus status, string message)
+        {
+            return Task.FromResult(new RemoteRuntimeCommandResult(
+                request.Node.Name,
+                request.ProcessName,
+                status,
+                DateTimeOffset.UtcNow,
+                message));
         }
     }
 }

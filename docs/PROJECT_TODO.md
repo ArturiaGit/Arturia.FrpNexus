@@ -363,8 +363,8 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Implement SSH connection testing service.
 - [x] Implement SFTP upload service.
 - [x] Implement FRP release download and binary selection.
-- [ ] Implement remote start, stop, and restart.
-- [ ] Implement remote process status detection.
+- [x] Implement remote start, stop, and restart.
+- [x] Implement remote process status detection.
 - [ ] Implement remote log reading and streaming.
 - [x] Add deployment records.
 - [x] Add runtime records.

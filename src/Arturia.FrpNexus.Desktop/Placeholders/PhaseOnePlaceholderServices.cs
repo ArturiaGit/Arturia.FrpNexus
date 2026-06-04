@@ -155,33 +155,43 @@ public sealed class PhaseOneTomlConfigurationService : ITomlConfigurationService
 
 public sealed class PhaseOneRemoteRuntimeService : IRemoteRuntimeService
 {
-    public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(string nodeName, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<RuntimeProcess> processes =
         [
-            new("frpc-web", nodeName, "frpc", FrpNexusStatus.Running, "1842", "02:14:33", "0.0.0.0:7000"),
-            new("frpc-nas", nodeName, "frpc", FrpNexusStatus.Stopped, "-", "-", "-")
+            new("frpc-web", request.Node.Name, "frpc", FrpNexusStatus.Running, "1842", "02:14:33", "0.0.0.0:7000"),
+            new("frpc-nas", request.Node.Name, "frpc", FrpNexusStatus.Stopped, "-", "-", "-")
         ];
         return Task.FromResult(processes);
     }
 
-    public Task StartAsync(string nodeName, string processName, CancellationToken cancellationToken = default)
+    public Task<RemoteRuntimeCommandResult> StartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return CreatePlaceholderResult(request, "远程启动占位服务尚未接入。");
     }
 
-    public Task StopAsync(string nodeName, string processName, CancellationToken cancellationToken = default)
+    public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return CreatePlaceholderResult(request, "远程停止占位服务尚未接入。");
     }
 
-    public Task RestartAsync(string nodeName, string processName, CancellationToken cancellationToken = default)
+    public Task<RemoteRuntimeCommandResult> RestartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return CreatePlaceholderResult(request, "远程重启占位服务尚未接入。");
+    }
+
+    private static Task<RemoteRuntimeCommandResult> CreatePlaceholderResult(RemoteRuntimeCommandRequest request, string message)
+    {
+        return Task.FromResult(new RemoteRuntimeCommandResult(
+            request.Node.Name,
+            request.ProcessName,
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            message));
     }
 }
 

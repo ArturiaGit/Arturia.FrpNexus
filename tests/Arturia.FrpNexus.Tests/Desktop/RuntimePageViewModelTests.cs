@@ -13,7 +13,7 @@ public sealed class RuntimePageViewModelTests
         [
             new("frpc-test", "本地测试节点", "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")
         ]);
-        var viewModel = new RuntimePageViewModel(service, new FakeDeploymentRecordService([]));
+        var viewModel = CreateViewModel(service, new FakeDeploymentRecordService([]));
 
         await viewModel.LoadRuntimeProcessesAsync();
 
@@ -26,7 +26,7 @@ public sealed class RuntimePageViewModelTests
     public async Task LoadRuntimeProcessesAsync_ShouldSeedSafeSampleProcessesWhenDatabaseIsEmpty()
     {
         var service = new FakeRuntimeRecordService([]);
-        var viewModel = new RuntimePageViewModel(service, new FakeDeploymentRecordService([]));
+        var viewModel = CreateViewModel(service, new FakeDeploymentRecordService([]));
 
         await viewModel.LoadRuntimeProcessesAsync();
 
@@ -45,7 +45,7 @@ public sealed class RuntimePageViewModelTests
         [
             new("生成 TOML", "本地测试节点", "已生成本地 TOML 配置", FrpNexusStatus.Ready, DateTimeOffset.UtcNow)
         ]);
-        var viewModel = new RuntimePageViewModel(new FakeRuntimeRecordService([]), deploymentService);
+        var viewModel = CreateViewModel(new FakeRuntimeRecordService([]), deploymentService);
 
         await viewModel.LoadDeploymentRecordsAsync();
 
@@ -58,7 +58,7 @@ public sealed class RuntimePageViewModelTests
     public async Task LoadDeploymentRecordsAsync_ShouldSeedSafeSampleStepsWhenDatabaseIsEmpty()
     {
         var deploymentService = new FakeDeploymentRecordService([]);
-        var viewModel = new RuntimePageViewModel(new FakeRuntimeRecordService([]), deploymentService);
+        var viewModel = CreateViewModel(new FakeRuntimeRecordService([]), deploymentService);
 
         await viewModel.LoadDeploymentRecordsAsync();
 
@@ -67,6 +67,59 @@ public sealed class RuntimePageViewModelTests
         Assert.DoesNotContain(deploymentService.SavedRecords, record => record.Description.Contains("密码", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(deploymentService.SavedRecords, record => record.Description.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(deploymentService.SavedRecords, record => record.Description.Contains("私钥内容", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task RefreshRemoteProcessesCommand_ShouldLoadRemoteProcessesAndClearSecret()
+    {
+        var remoteRuntimeService = new FakeRemoteRuntimeService();
+        var viewModel = CreateViewModel(
+            new FakeRuntimeRecordService([new("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Stopped, "-", "-", "-")]),
+            new FakeDeploymentRecordService([]),
+            remoteRuntimeService);
+        await viewModel.LoadRuntimeProcessesAsync();
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.RefreshRemoteProcessesCommand.ExecuteAsync(null);
+
+        Assert.Equal("已刷新远程进程状态。", viewModel.StatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.Contains(viewModel.Processes, process => process.Status == FrpNexusStatus.Running);
+        Assert.NotNull(remoteRuntimeService.LastQueryRequest);
+    }
+
+    [Fact]
+    public async Task StartSelectedProcessCommand_ShouldRunRemoteCommandAndClearSecret()
+    {
+        var remoteRuntimeService = new FakeRemoteRuntimeService();
+        var viewModel = CreateViewModel(
+            new FakeRuntimeRecordService([new("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Stopped, "-", "-", "-")]),
+            new FakeDeploymentRecordService([]),
+            remoteRuntimeService);
+        await viewModel.LoadRuntimeProcessesAsync();
+        viewModel.SelectedProcess = viewModel.Processes.Single();
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+        viewModel.RemoteCommandText = "nohup /opt/frp/frpc -c /etc/frp/frpc.toml &";
+
+        await viewModel.StartSelectedProcessCommand.ExecuteAsync(null);
+
+        Assert.Equal("远程启动命令执行完成。", viewModel.StatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.NotNull(remoteRuntimeService.LastCommandRequest);
+        Assert.Equal("frpc-web", remoteRuntimeService.LastCommandRequest.ProcessName);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", viewModel.StatusText, StringComparison.Ordinal);
+    }
+
+    private static RuntimePageViewModel CreateViewModel(
+        IRuntimeRecordService runtimeRecordService,
+        IDeploymentRecordService deploymentRecordService,
+        IRemoteRuntimeService? remoteRuntimeService = null)
+    {
+        return new RuntimePageViewModel(
+            runtimeRecordService,
+            deploymentRecordService,
+            new FakeNodeManagementService(),
+            remoteRuntimeService ?? new FakeRemoteRuntimeService());
     }
 
     private sealed class FakeRuntimeRecordService(IReadOnlyList<RuntimeProcess> processes) : IRuntimeRecordService
@@ -126,6 +179,89 @@ public sealed class RuntimePageViewModelTests
         {
             _records.RemoveAll(record => record.StepName == stepName);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeNodeManagementService : INodeManagementService
+    {
+        private readonly List<NodeProfile> _nodes =
+        [
+            new("Web-Server-HK", "203.0.113.10", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "-", "/etc/frp/frpc.toml"),
+            new("本地测试节点", "203.0.113.11", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "-", "/etc/frp/frpc.toml")
+        ];
+
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<NodeProfile>>(_nodes);
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_nodes.FirstOrDefault(node => node.Name == nodeName));
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            _nodes.RemoveAll(item => item.Name == node.Name);
+            _nodes.Add(node);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            _nodes.RemoveAll(node => node.Name == nodeName);
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateConnectionTestResultAsync(string nodeName, FrpNexusStatus status, DateTimeOffset testedAt, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
+    {
+        public RemoteRuntimeQueryRequest? LastQueryRequest { get; private set; }
+
+        public RemoteRuntimeCommandRequest? LastCommandRequest { get; private set; }
+
+        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
+        {
+            LastQueryRequest = request;
+            IReadOnlyList<RuntimeProcess> processes =
+            [
+                new("frpc-web", request.Node.Name, "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")
+            ];
+
+            return Task.FromResult(processes);
+        }
+
+        public Task<RemoteRuntimeCommandResult> StartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            LastCommandRequest = request;
+            return CreateResult(request, FrpNexusStatus.Running, "远程启动命令执行完成。");
+        }
+
+        public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            LastCommandRequest = request;
+            return CreateResult(request, FrpNexusStatus.Stopped, "远程停止命令执行完成。");
+        }
+
+        public Task<RemoteRuntimeCommandResult> RestartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            LastCommandRequest = request;
+            return CreateResult(request, FrpNexusStatus.Running, "远程重启命令执行完成。");
+        }
+
+        private static Task<RemoteRuntimeCommandResult> CreateResult(RemoteRuntimeCommandRequest request, FrpNexusStatus status, string message)
+        {
+            return Task.FromResult(new RemoteRuntimeCommandResult(
+                request.Node.Name,
+                request.ProcessName,
+                status,
+                DateTimeOffset.UtcNow,
+                message));
         }
     }
 }

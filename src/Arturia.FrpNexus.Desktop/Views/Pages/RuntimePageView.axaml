@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.RuntimePageView"
              x:DataType="pages:RuntimePageViewModel">
     <Grid RowDefinitions="Auto,*" RowSpacing="16">
@@ -34,12 +35,18 @@
                             Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <Button Classes="primary" Content="启动" />
-                    <Button Classes="secondary" Content="停止" />
-                    <Button Classes="secondary" Content="重启" />
+                    <Button Classes="primary"
+                            Content="启动"
+                            Command="{Binding StartSelectedProcessCommand}" />
+                    <Button Classes="secondary"
+                            Content="停止"
+                            Command="{Binding StopSelectedProcessCommand}" />
+                    <Button Classes="secondary"
+                            Content="重启"
+                            Command="{Binding RestartSelectedProcessCommand}" />
                     <Button Classes="secondary"
                             Content="刷新"
-                            Command="{Binding LoadRuntimeProcessesCommand}" />
+                            Command="{Binding RefreshRemoteProcessesCommand}" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -91,16 +98,45 @@
                 </Grid>
             </Border>
             <Border Grid.Column="1" Classes="panel" Padding="16">
-                <StackPanel Spacing="12">
-                    <TextBlock Classes="section-title" Text="部署步骤占位" />
-                    <ItemsControl ItemsSource="{Binding DeploymentSteps}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <controls:RuntimeStepControl />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                <ScrollViewer>
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="section-title" Text="远程运行控制" />
+                        <TextBlock Classes="helper"
+                                   TextWrapping="Wrap"
+                                   Text="凭据仅用于本次远程命令。密码、私钥内容和 passphrase 不会写入 SQLite。" />
+                        <ComboBox SelectedItem="{Binding SelectedSshAuthenticationMode}">
+                            <sys:String>SessionPassword</sys:String>
+                            <sys:String>PrivateKey</sys:String>
+                            <sys:String>SshAgent</sys:String>
+                        </ComboBox>
+                        <TextBox Classes="code"
+                                 PlaceholderText="私钥文件路径"
+                                 Text="{Binding SshPrivateKeyPath}" />
+                        <TextBox PasswordChar="*"
+                                 PlaceholderText="会话密码，仅本次使用"
+                                 Text="{Binding SshSessionPassword}" />
+                        <TextBox PasswordChar="*"
+                                 PlaceholderText="私钥 passphrase，仅本次使用"
+                                 Text="{Binding SshPrivateKeyPassphrase}" />
+                        <TextBlock Classes="helper" Text="远程命令" />
+                        <TextBox Classes="code"
+                                 AcceptsReturn="True"
+                                 MinHeight="72"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding RemoteCommandText}" />
+
+                        <Border Classes="settings-divider" />
+
+                        <TextBlock Classes="section-title" Text="部署步骤" />
+                        <ItemsControl ItemsSource="{Binding DeploymentSteps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:RuntimeStepControl />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Grid>

@@ -24,7 +24,6 @@ public static class DesktopCompositionRoot
         services.AddSingleton<MainWindowViewModel>();
 
         services.AddSingleton<ITomlConfigurationService, TomlConfigurationService>();
-        services.AddSingleton<IRemoteRuntimeService, PhaseOneRemoteRuntimeService>();
         services.AddSingleton<IRemoteLogService, PhaseOneRemoteLogService>();
 
         services.AddTransient<DashboardPageViewModel>();
