@@ -278,6 +278,19 @@ Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 2 Sixth Iteration Todo
+
+- [x] Add local create, edit, and delete commands for Nodes page.
+- [x] Keep node CRUD limited to SQLite local records through `INodeManagementService`.
+- [x] Add a MVVM-friendly inline editor panel for local node records.
+- [x] Validate required node fields and SSH port range before saving.
+- [x] Require local delete confirmation before removing a node record.
+- [x] Keep SSH connection testing, SFTP upload, FRP download, and remote process actions out of this iteration.
+- [x] Keep SSH passwords, tokens, and private key contents out of node form and persistence models.
+- [x] Add ViewModel tests for create, edit, delete, validation, and sensitive-field boundaries.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 3 Route Todo
 
 Phase 3 should focus on runtime operations and diagnostics.

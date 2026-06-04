@@ -38,6 +38,118 @@ public sealed class NodesPageViewModelTests
         Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("私钥内容", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task SaveNodeCommand_ShouldCreateNodeAndRefreshList()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service);
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "北京-边缘节点";
+        viewModel.FormHost = "203.0.113.20";
+        viewModel.FormSshPort = "2222";
+        viewModel.FormUserName = "deploy";
+        viewModel.FormAuthentication = "密钥 (ID_RSA_BJ)";
+        viewModel.FormOperatingSystem = "Debian 12";
+        viewModel.FormFrpVersion = "v0.61.1";
+        viewModel.FormConfigPath = "/opt/frp/frpc.toml";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        Assert.Contains(viewModel.Nodes, node => node.Name == "北京-边缘节点" && node.SshPort == 2222);
+        Assert.Equal("北京-边缘节点", viewModel.SelectedNode?.Name);
+        Assert.False(viewModel.IsEditorOpen);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldUpdateExistingNode()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("上海-生产节点", "203.0.113.21", 22, "deploy", "密钥 (ID_RSA_SH)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "2h", "/etc/frp/frpc.toml")
+        ]);
+        var viewModel = new NodesPageViewModel(service);
+        await viewModel.LoadNodesAsync();
+
+        viewModel.SelectedNode = viewModel.Nodes.Single();
+        viewModel.StartEditSelectedNodeCommand.Execute(null);
+        viewModel.FormHost = "203.0.113.88";
+        viewModel.FormSshPort = "22022";
+        viewModel.FormConfigPath = "/opt/frpnexus/frpc.toml";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var node = Assert.Single(viewModel.Nodes);
+        Assert.Equal("203.0.113.88", node.Host);
+        Assert.Equal(22022, node.SshPort);
+        Assert.Equal("/opt/frpnexus/frpc.toml", node.ConfigPath);
+    }
+
+    [Fact]
+    public async Task DeleteSelectedNodeCommand_ShouldRequireConfirmationAndDelete()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("待删除节点", "203.0.113.30", 22, "deploy", "密钥 (LOCAL_KEY)", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
+        ]);
+        var viewModel = new NodesPageViewModel(service);
+        await viewModel.LoadNodesAsync();
+        viewModel.SelectedNode = viewModel.Nodes.Single();
+
+        await viewModel.DeleteSelectedNodeCommand.ExecuteAsync(null);
+
+        Assert.Single(viewModel.Nodes);
+        Assert.Equal("确认删除", viewModel.DeleteButtonText);
+
+        await viewModel.DeleteSelectedNodeCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(viewModel.Nodes, node => node.Name == "待删除节点");
+        Assert.Equal("删除", viewModel.DeleteButtonText);
+    }
+
+    [Theory]
+    [InlineData("", "203.0.113.40", "deploy", "22", "节点名称不能为空。")]
+    [InlineData("测试节点", "", "deploy", "22", "Host 不能为空。")]
+    [InlineData("测试节点", "203.0.113.40", "", "22", "用户名不能为空。")]
+    [InlineData("测试节点", "203.0.113.40", "deploy", "70000", "SSH 端口必须是 1 到 65535 之间的数字。")]
+    public async Task SaveNodeCommand_ShouldRejectInvalidForm(string name, string host, string userName, string port, string expectedError)
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service);
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = name;
+        viewModel.FormHost = host;
+        viewModel.FormUserName = userName;
+        viewModel.FormSshPort = port;
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        Assert.Equal(expectedError, viewModel.FormErrorText);
+        Assert.DoesNotContain(viewModel.Nodes, node => string.IsNullOrWhiteSpace(node.Name));
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldNotIntroduceSensitiveCredentialFields()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service);
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "安全边界节点";
+        viewModel.FormHost = "203.0.113.50";
+        viewModel.FormUserName = "deploy";
+        viewModel.FormSshPort = "22";
+        viewModel.FormAuthentication = "密钥 (ID_RSA_SAFE)";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var saved = Assert.Single(service.SavedNodes.Where(node => node.Name == "安全边界节点"));
+        Assert.Equal("密钥 (ID_RSA_SAFE)", saved.Authentication);
+        Assert.DoesNotContain("密码", saved.Authentication, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Token", saved.Authentication, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("私钥内容", saved.Authentication, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class FakeNodeManagementService(IReadOnlyList<NodeProfile> nodes) : INodeManagementService
     {
         private readonly List<NodeProfile> _nodes = [.. nodes];

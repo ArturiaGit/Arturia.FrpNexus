@@ -3,6 +3,7 @@
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.NodesPageView"
+             x:Name="Root"
              x:DataType="pages:NodesPageViewModel">
     <Grid ColumnDefinitions="*,320"
           ColumnSpacing="16">
@@ -14,8 +15,12 @@
                         <StackPanel Orientation="Horizontal"
                                     Spacing="12"
                                     VerticalAlignment="Center">
-                            <Button Classes="primary" Content="添加节点" />
-                            <Button Classes="secondary" Content="刷新列表" />
+                            <Button Classes="primary"
+                                    Content="添加节点"
+                                    Command="{Binding StartCreateNodeCommand}" />
+                            <Button Classes="secondary"
+                                    Content="刷新列表"
+                                    Command="{Binding LoadNodesCommand}" />
                         </StackPanel>
                         <TextBox DockPanel.Dock="Right"
                                  Width="260"
@@ -23,8 +28,10 @@
                                  PlaceholderText="搜索节点 IP 或名称..." />
                     </DockPanel>
                 </Border>
+
                 <DataGrid Grid.Row="1"
                           ItemsSource="{Binding Nodes}"
+                          SelectedItem="{Binding SelectedNode}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True">
                     <DataGrid.Columns>
@@ -45,8 +52,18 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="版本" Binding="{Binding FrpVersion}" Width="*" />
+                        <DataGridTemplateColumn Header="操作" Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Classes="secondary compact"
+                                            Content="编辑"
+                                            Command="{Binding #Root.DataContext.StartEditSelectedNodeCommand}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
+
                 <DockPanel Grid.Row="2"
                            Height="40"
                            Background="{StaticResource Brush.SurfaceSubtle}">
@@ -64,7 +81,8 @@
         </Border>
 
         <Border Grid.Column="1"
-                Classes="panel">
+                Classes="panel"
+                IsVisible="{Binding !IsEditorOpen}">
             <Grid RowDefinitions="Auto,*">
                 <Border Padding="16"
                         Background="{StaticResource Brush.SurfaceSubtle}"
@@ -77,6 +95,7 @@
                                    Text="{Binding SelectedNode.OperatingSystem}" />
                     </StackPanel>
                 </Border>
+
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Margin="16"
                                 Spacing="18">
@@ -89,6 +108,24 @@
                             <Button Grid.Column="1" Classes="secondary" HorizontalAlignment="Stretch" Content="上传核心" />
                             <Button Grid.Row="1" Grid.ColumnSpan="2" Classes="secondary" Content="重启 FRP 进程" />
                         </Grid>
+
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <Button Classes="secondary"
+                                    Content="编辑节点"
+                                    Command="{Binding StartEditSelectedNodeCommand}" />
+                            <Button Classes="secondary"
+                                    Foreground="{StaticResource Brush.Error}"
+                                    Content="{Binding DeleteButtonText}"
+                                    Command="{Binding DeleteSelectedNodeCommand}" />
+                        </StackPanel>
+
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource Brush.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding FormErrorText}" />
+
                         <Border Classes="subtle-panel" Padding="12">
                             <StackPanel Classes="info-section">
                                 <TextBlock Classes="group-label" Text="SSH 连接信息" />
@@ -105,6 +142,7 @@
                                                              Value="{Binding SelectedNode.Authentication}" />
                             </StackPanel>
                         </Border>
+
                         <Border Classes="subtle-panel" Padding="12">
                             <StackPanel Classes="info-section">
                                 <TextBlock Classes="group-label" Text="FRP 详情" />
@@ -130,6 +168,92 @@
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+        </Border>
+
+        <Border Grid.Column="1"
+                Classes="panel"
+                IsVisible="{Binding IsEditorOpen}">
+            <ScrollViewer>
+                <StackPanel Margin="16"
+                            Spacing="12">
+                    <TextBlock Classes="section-title"
+                               Text="{Binding EditorTitle}" />
+                    <TextBlock Classes="helper"
+                               Text="仅保存本地 SQLite 节点记录，不执行 SSH 测试、SFTP 上传或 FRP 操作。" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="节点名称" />
+                        <TextBox Text="{Binding FormName}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="Host" />
+                        <TextBox Classes="code"
+                                 Text="{Binding FormHost}" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,96"
+                          ColumnSpacing="8">
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="用户名" />
+                            <TextBox Classes="code"
+                                     Text="{Binding FormUserName}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Spacing="6">
+                            <TextBlock Classes="helper" Text="SSH 端口" />
+                            <TextBox Classes="code"
+                                     Text="{Binding FormSshPort}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="认证描述" />
+                        <TextBox Text="{Binding FormAuthentication}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="操作系统" />
+                        <TextBox Text="{Binding FormOperatingSystem}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="FRP 版本" />
+                        <TextBox Classes="code"
+                                 Text="{Binding FormFrpVersion}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="helper" Text="配置路径" />
+                        <TextBox Classes="code"
+                                 Text="{Binding FormConfigPath}" />
+                    </StackPanel>
+
+                    <TextBlock Classes="helper"
+                               Foreground="{StaticResource Brush.Error}"
+                               TextWrapping="Wrap"
+                               Text="{Binding FormErrorText}" />
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Spacing="8">
+                        <Button Classes="secondary"
+                                Content="取消"
+                                Command="{Binding CancelEditCommand}" />
+                        <Button Classes="primary"
+                                Content="保存"
+                                Command="{Binding SaveNodeCommand}" />
+                    </StackPanel>
+
+                    <Border Classes="settings-divider" />
+
+                    <Button Classes="secondary"
+                            HorizontalAlignment="Right"
+                            Foreground="{StaticResource Brush.Error}"
+                            Content="{Binding DeleteButtonText}"
+                            Command="{Binding DeleteSelectedNodeCommand}" />
+                </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

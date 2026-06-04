@@ -6,18 +6,57 @@ using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class NodesPageViewModel : PageViewModel
 {
     private readonly INodeManagementService _nodeManagementService;
+    private bool _isDeleteConfirmationPending;
+    private string? _editingOriginalName;
 
     [ObservableProperty]
     private NodeProfile? _selectedNode;
 
     [ObservableProperty]
     private string _nodeCountText = "共 0 个节点";
+
+    [ObservableProperty]
+    private bool _isEditorOpen;
+
+    [ObservableProperty]
+    private string _editorTitle = "节点详情";
+
+    [ObservableProperty]
+    private string _formName = string.Empty;
+
+    [ObservableProperty]
+    private string _formHost = string.Empty;
+
+    [ObservableProperty]
+    private string _formSshPort = "22";
+
+    [ObservableProperty]
+    private string _formUserName = string.Empty;
+
+    [ObservableProperty]
+    private string _formAuthentication = "密钥 (LOCAL_KEY)";
+
+    [ObservableProperty]
+    private string _formOperatingSystem = "Ubuntu 22.04 LTS";
+
+    [ObservableProperty]
+    private string _formFrpVersion = "v0.61.1";
+
+    [ObservableProperty]
+    private string _formConfigPath = "/etc/frp/frpc.toml";
+
+    [ObservableProperty]
+    private string _formErrorText = string.Empty;
+
+    [ObservableProperty]
+    private string _deleteButtonText = "删除";
 
     public NodesPageViewModel(INodeManagementService nodeManagementService)
         : base("节点管理", "管理远程 Linux 节点并为 SSH/SFTP 工作流预留入口")
@@ -30,6 +69,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     public ObservableCollection<NodeProfile> Nodes { get; }
 
+    [RelayCommand]
     public async Task LoadNodesAsync(CancellationToken cancellationToken = default)
     {
         var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
@@ -54,6 +94,111 @@ public sealed partial class NodesPageViewModel : PageViewModel
         NodeCountText = $"共 {Nodes.Count} 个节点";
     }
 
+    [RelayCommand]
+    private void StartCreateNode()
+    {
+        _editingOriginalName = null;
+        ResetDeleteConfirmation();
+        EditorTitle = "添加节点";
+        FormName = string.Empty;
+        FormHost = string.Empty;
+        FormSshPort = "22";
+        FormUserName = "deploy";
+        FormAuthentication = "密钥 (LOCAL_KEY)";
+        FormOperatingSystem = "Ubuntu 22.04 LTS";
+        FormFrpVersion = "v0.61.1";
+        FormConfigPath = "/etc/frp/frpc.toml";
+        FormErrorText = string.Empty;
+        IsEditorOpen = true;
+    }
+
+    [RelayCommand]
+    private void StartEditSelectedNode()
+    {
+        if (SelectedNode is null)
+        {
+            FormErrorText = "请先选择一个节点。";
+            return;
+        }
+
+        _editingOriginalName = SelectedNode.Name;
+        ResetDeleteConfirmation();
+        EditorTitle = "编辑节点";
+        FormName = SelectedNode.Name;
+        FormHost = SelectedNode.Host;
+        FormSshPort = SelectedNode.SshPort.ToString();
+        FormUserName = SelectedNode.UserName;
+        FormAuthentication = SelectedNode.Authentication;
+        FormOperatingSystem = SelectedNode.OperatingSystem;
+        FormFrpVersion = SelectedNode.FrpVersion;
+        FormConfigPath = SelectedNode.ConfigPath;
+        FormErrorText = string.Empty;
+        IsEditorOpen = true;
+    }
+
+    [RelayCommand]
+    private async Task SaveNodeAsync()
+    {
+        ResetDeleteConfirmation();
+
+        if (!TryCreateNode(out var node))
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_editingOriginalName)
+            && !string.Equals(_editingOriginalName, node.Name, System.StringComparison.OrdinalIgnoreCase))
+        {
+            await _nodeManagementService.DeleteNodeAsync(_editingOriginalName);
+        }
+
+        await _nodeManagementService.SaveNodeAsync(node);
+        await LoadNodesAsync();
+
+        SelectedNode = Nodes.FirstOrDefault(item => item.Name == node.Name);
+        IsEditorOpen = false;
+        FormErrorText = string.Empty;
+        _editingOriginalName = null;
+    }
+
+    [RelayCommand]
+    private void CancelEdit()
+    {
+        ResetDeleteConfirmation();
+        IsEditorOpen = false;
+        FormErrorText = string.Empty;
+        _editingOriginalName = null;
+    }
+
+    [RelayCommand]
+    private async Task DeleteSelectedNodeAsync()
+    {
+        if (SelectedNode is null)
+        {
+            FormErrorText = "请先选择一个节点。";
+            return;
+        }
+
+        if (!_isDeleteConfirmationPending)
+        {
+            _isDeleteConfirmationPending = true;
+            DeleteButtonText = "确认删除";
+            FormErrorText = $"将删除本地节点记录 `{SelectedNode.Name}`，再次点击确认。";
+            return;
+        }
+
+        await _nodeManagementService.DeleteNodeAsync(SelectedNode.Name);
+        ResetDeleteConfirmation();
+        await LoadNodesAsync();
+        IsEditorOpen = false;
+        FormErrorText = string.Empty;
+    }
+
+    partial void OnSelectedNodeChanged(NodeProfile? value)
+    {
+        ResetDeleteConfirmation();
+    }
+
     private static IReadOnlyList<NodeProfile> CreateSeedNodes()
     {
         return
@@ -62,5 +207,55 @@ public sealed partial class NodesPageViewModel : PageViewModel
             new("DB-Node-SH", "47.101.44.112", 22, "deploy", "密钥 (ID_RSA_SH)", "Debian 12", FrpNexusStatus.Online, FrpNexusStatus.Stopped, "v0.51.3", "-", "/opt/frp/frpc.toml"),
             new("Edge-Router-BJ", "123.56.77.89", 2222, "root", "密钥 (ID_RSA_BJ)", "Ubuntu 20.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "-", "-", "/etc/frp/frpc.toml")
         ];
+    }
+
+    private bool TryCreateNode(out NodeProfile node)
+    {
+        node = new NodeProfile(string.Empty, string.Empty, 22, string.Empty, string.Empty, string.Empty, FrpNexusStatus.Offline, FrpNexusStatus.Stopped, string.Empty, "-", string.Empty);
+
+        if (string.IsNullOrWhiteSpace(FormName))
+        {
+            FormErrorText = "节点名称不能为空。";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(FormHost))
+        {
+            FormErrorText = "Host 不能为空。";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(FormUserName))
+        {
+            FormErrorText = "用户名不能为空。";
+            return false;
+        }
+
+        if (!int.TryParse(FormSshPort, out var sshPort) || sshPort is < 1 or > 65535)
+        {
+            FormErrorText = "SSH 端口必须是 1 到 65535 之间的数字。";
+            return false;
+        }
+
+        node = new NodeProfile(
+            FormName.Trim(),
+            FormHost.Trim(),
+            sshPort,
+            FormUserName.Trim(),
+            string.IsNullOrWhiteSpace(FormAuthentication) ? "密钥描述未设置" : FormAuthentication.Trim(),
+            string.IsNullOrWhiteSpace(FormOperatingSystem) ? "Linux" : FormOperatingSystem.Trim(),
+            FrpNexusStatus.Offline,
+            FrpNexusStatus.Stopped,
+            string.IsNullOrWhiteSpace(FormFrpVersion) ? "-" : FormFrpVersion.Trim(),
+            "-",
+            string.IsNullOrWhiteSpace(FormConfigPath) ? "/etc/frp/frpc.toml" : FormConfigPath.Trim());
+
+        return true;
+    }
+
+    private void ResetDeleteConfirmation()
+    {
+        _isDeleteConfirmationPending = false;
+        DeleteButtonText = "删除";
     }
 }
