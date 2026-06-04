@@ -373,7 +373,7 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 
 ### Phase 3 First Iteration Todo
 
-- [ ] Commit Phase 2 local persistence closure before starting remote work.
+- [x] Commit Phase 2 local persistence closure before starting remote work.
 - [ ] Update `docs/CURRENT_PHASE.md` to Phase 3 after explicit user confirmation.
 - [ ] Confirm Phase 3 entry gate from `docs/PHASE_3_PLAN.md`.
 - [ ] Review and approve `docs/CREDENTIAL_STRATEGY.md`.
