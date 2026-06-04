@@ -406,7 +406,7 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Add release packaging.
 - [x] Add update strategy if needed.
 - [ ] Improve accessibility and keyboard navigation.
-- [ ] Improve import/export and backup workflows.
+- [x] Improve import/export and backup workflows.
 - [ ] Consider legacy INI import/export only after TOML MVP is stable.
 - [ ] Evaluate optional themes only after the default WinUI 3 / Fluent style is stable.
 
@@ -432,6 +432,18 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Convert Configurations page load, save, generation, and validation failures into recoverable Chinese status text.
 - [x] Keep session-only passwords and passphrases cleared after failed remote actions.
 - [x] Add ViewModel tests for recoverable local persistence and remote operation failures.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 4 Third Iteration Todo
+
+- [x] Add `ILocalDataPortabilityService` for safe local export, import, and backup-oriented workflows.
+- [x] Export safe settings, nodes, tunnels, configuration versions, runtime records, and deployment records.
+- [x] Keep SSH passwords, tokens, private key contents, passphrases, local logs, and FRP caches out of exported data.
+- [x] Import local data with conservative upsert behavior instead of deleting records missing from the import file.
+- [x] Store portability implementation in Infrastructure and access it through an Application interface.
+- [x] Register portability service through Infrastructure DI.
+- [x] Add tests for export snapshot contents, JSON round trip, import upsert behavior, and sensitive-field boundaries.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 

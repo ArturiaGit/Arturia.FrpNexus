@@ -4,6 +4,7 @@ using Arturia.FrpNexus.Infrastructure.Deployments;
 using Arturia.FrpNexus.Infrastructure.Logs;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Persistence;
+using Arturia.FrpNexus.Infrastructure.Portability;
 using Arturia.FrpNexus.Infrastructure.Releases;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Arturia.FrpNexus.Infrastructure.Settings;
@@ -27,6 +28,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IConfigurationVersionService, SqliteConfigurationVersionService>();
         services.AddSingleton<IRuntimeRecordService, SqliteRuntimeRecordService>();
         services.AddSingleton<IDeploymentRecordService, SqliteDeploymentRecordService>();
+        services.AddSingleton<ILocalDataPortabilityService, LocalDataPortabilityService>();
         services.AddSingleton<ISshClientAdapter, SshNetClientAdapter>();
         services.AddSingleton<ISshConnectionService, SshConnectionService>();
         services.AddSingleton<ISftpClientAdapter, SshNetSftpClientAdapter>();
