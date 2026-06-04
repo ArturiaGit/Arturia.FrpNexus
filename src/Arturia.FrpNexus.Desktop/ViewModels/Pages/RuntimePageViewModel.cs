@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -70,7 +71,22 @@ public sealed partial class RuntimePageViewModel : PageViewModel
     [RelayCommand]
     public async Task LoadRuntimeProcessesAsync(CancellationToken cancellationToken = default)
     {
-        var processes = await _runtimeRecordService.ListRuntimeProcessesAsync(cancellationToken);
+        IReadOnlyList<RuntimeProcess> processes;
+        try
+        {
+            processes = await _runtimeRecordService.ListRuntimeProcessesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "运行记录加载已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            ProcessCountText = "运行记录加载失败";
+            StatusText = ViewModelErrorText.ForUser("运行记录加载", ex);
+            return;
+        }
 
         if (processes.Count == 0)
         {
@@ -78,7 +94,21 @@ public sealed partial class RuntimePageViewModel : PageViewModel
 
             foreach (var process in processes)
             {
-                await _runtimeRecordService.SaveRuntimeProcessAsync(process, cancellationToken);
+                try
+                {
+                    await _runtimeRecordService.SaveRuntimeProcessAsync(process, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    StatusText = "运行样例写入已取消。";
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ProcessCountText = "运行记录加载失败";
+                    StatusText = ViewModelErrorText.ForUser("运行样例写入", ex);
+                    return;
+                }
             }
         }
 
@@ -126,6 +156,10 @@ public sealed partial class RuntimePageViewModel : PageViewModel
         {
             StatusText = "远程刷新已取消。";
         }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser("远程进程刷新", ex);
+        }
         finally
         {
             ClearSessionSecrets();
@@ -154,7 +188,21 @@ public sealed partial class RuntimePageViewModel : PageViewModel
     [RelayCommand]
     public async Task LoadDeploymentRecordsAsync(CancellationToken cancellationToken = default)
     {
-        var records = await _deploymentRecordService.ListDeploymentRecordsAsync(cancellationToken);
+        IReadOnlyList<DeploymentRecord> records;
+        try
+        {
+            records = await _deploymentRecordService.ListDeploymentRecordsAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "部署步骤加载已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser("部署步骤加载", ex);
+            return;
+        }
 
         if (records.Count == 0)
         {
@@ -162,7 +210,20 @@ public sealed partial class RuntimePageViewModel : PageViewModel
 
             foreach (var record in records)
             {
-                await _deploymentRecordService.SaveDeploymentRecordAsync(record, cancellationToken);
+                try
+                {
+                    await _deploymentRecordService.SaveDeploymentRecordAsync(record, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    StatusText = "部署步骤样例写入已取消。";
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    StatusText = ViewModelErrorText.ForUser("部署步骤样例写入", ex);
+                    return;
+                }
             }
         }
 
@@ -245,6 +306,10 @@ public sealed partial class RuntimePageViewModel : PageViewModel
         catch (OperationCanceledException)
         {
             StatusText = $"远程{action}已取消。";
+        }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser($"远程{action}", ex);
         }
         finally
         {

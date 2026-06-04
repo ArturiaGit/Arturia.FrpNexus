@@ -190,6 +190,39 @@ public sealed class NodesPageViewModelTests
         Assert.Null(sshService.LastRequest);
     }
 
+    [Fact]
+    public async Task LoadNodesAsync_ShouldReportRecoverableFailure()
+    {
+        var viewModel = new NodesPageViewModel(
+            new FailingNodeManagementService("节点数据库不可用"),
+            new FakeSshConnectionService());
+
+        await viewModel.LoadNodesAsync();
+
+        Assert.Equal("节点加载失败", viewModel.NodeCountText);
+        Assert.Equal("节点列表加载失败，请检查输入、网络或本地数据状态后重试。", viewModel.ConnectionTestStatusText);
+        Assert.Empty(viewModel.Nodes);
+    }
+
+    [Fact]
+    public async Task TestSelectedNodeConnectionCommand_ShouldReportFailureAndClearSecret()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("连接失败节点", "203.0.113.61", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
+        ]);
+        var viewModel = new NodesPageViewModel(service, new FailingSshConnectionService());
+        await viewModel.LoadNodesAsync();
+        viewModel.SelectedSshAuthenticationMode = "SessionPassword";
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.TestSelectedNodeConnectionCommand.ExecuteAsync(null);
+
+        Assert.Equal("SSH 连接测试失败，请检查输入、网络或本地数据状态后重试。", viewModel.ConnectionTestStatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.False(viewModel.IsTestingConnection);
+    }
+
     private sealed class FakeNodeManagementService(IReadOnlyList<NodeProfile> nodes) : INodeManagementService
     {
         private readonly List<NodeProfile> _nodes = [.. nodes];
@@ -252,6 +285,46 @@ public sealed class NodesPageViewModelTests
                 FrpNexusStatus.Online,
                 DateTimeOffset.UtcNow,
                 "SSH 连接测试成功。"));
+        }
+    }
+
+    private sealed class FailingNodeManagementService(string message) : INodeManagementService
+    {
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        public Task UpdateConnectionTestResultAsync(
+            string nodeName,
+            FrpNexusStatus status,
+            DateTimeOffset testedAt,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    private sealed class FailingSshConnectionService : ISshConnectionService
+    {
+        public Task<SshConnectionTestResult> TestConnectionAsync(SshConnectionTestRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("SSH 握手失败");
         }
     }
 }

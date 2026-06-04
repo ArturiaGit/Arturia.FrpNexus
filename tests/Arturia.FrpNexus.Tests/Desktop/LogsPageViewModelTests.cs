@@ -40,6 +40,33 @@ public sealed class LogsPageViewModelTests
         Assert.Null(remoteLogService.LastRequest);
     }
 
+    [Fact]
+    public async Task ReadRemoteLogsCommand_ShouldReportFailureAndClearSecret()
+    {
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), new FailingRemoteLogService());
+        viewModel.SelectedNodeName = "Web-Server-HK";
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.ReadRemoteLogsCommand.ExecuteAsync(null);
+
+        Assert.Equal("远程日志读取失败，请检查输入、网络或本地数据状态后重试。", viewModel.StatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.False(viewModel.IsReadingRemoteLogs);
+    }
+
+    [Fact]
+    public async Task ReadRemoteLogsCommand_ShouldReportNodeLookupFailure()
+    {
+        var viewModel = new LogsPageViewModel(new FailingNodeManagementService(), new FakeRemoteLogService());
+        viewModel.SelectedNodeName = "Web-Server-HK";
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.ReadRemoteLogsCommand.ExecuteAsync(null);
+
+        Assert.Equal("节点资料读取失败，请检查输入、网络或本地数据状态后重试。", viewModel.StatusText);
+        Assert.Equal("SESSION_PASSWORD_PLACEHOLDER", viewModel.SshSessionPassword);
+    }
+
     private sealed class FakeNodeManagementService : INodeManagementService
     {
         private readonly NodeProfile _node = new(
@@ -103,6 +130,51 @@ public sealed class LogsPageViewModelTests
             {
                 yield return log;
             }
+        }
+    }
+
+    private sealed class FailingNodeManagementService : INodeManagementService
+    {
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+
+        public Task UpdateConnectionTestResultAsync(string nodeName, FrpNexusStatus status, DateTimeOffset testedAt, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+    }
+
+    private sealed class FailingRemoteLogService : IRemoteLogService
+    {
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(RemoteLogReadRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("远程日志读取失败");
+        }
+
+        public async IAsyncEnumerable<LogEntry> StreamLogsAsync(RemoteLogReadRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("远程日志读取失败");
+            #pragma warning disable CS0162
+            yield break;
+            #pragma warning restore CS0162
         }
     }
 }

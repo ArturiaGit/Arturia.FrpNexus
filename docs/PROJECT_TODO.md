@@ -2,7 +2,7 @@
 
 This document turns the product plan, current phase, and Stitch UI direction into executable Todo items. It is a coordination document for Codex and the user, not a substitute for `docs/CURRENT_PHASE.md`.
 
-Current phase: `Phase 3: Remote Operations And Diagnostics`.
+Current phase: `Phase 4: Packaging, Reliability, And Product Polish`.
 
 ## Todo Status
 
@@ -403,12 +403,37 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 
 Phase 4 should refine packaging, reliability, and broader product polish.
 
-- [ ] Add release packaging.
-- [ ] Add update strategy if needed.
+- [x] Add release packaging.
+- [x] Add update strategy if needed.
 - [ ] Improve accessibility and keyboard navigation.
 - [ ] Improve import/export and backup workflows.
 - [ ] Consider legacy INI import/export only after TOML MVP is stable.
 - [ ] Evaluate optional themes only after the default WinUI 3 / Fluent style is stable.
+
+### Phase 4 First Iteration Todo
+
+- [x] Update `docs/CURRENT_PHASE.md` to Phase 4 after explicit user confirmation.
+- [x] Add `docs/PHASE_4_PLAN.md`.
+- [x] Add Desktop release metadata for `0.4.0-preview.1`.
+- [x] Add Windows x64 folder-based publish script.
+- [x] Document release packaging and manual upgrade flow in `docs/RELEASE_PACKAGING.md`.
+- [x] Keep installer, MSIX, automatic updates, and single-file publishing out of this iteration.
+- [x] Confirm release package excludes user SQLite data, logs, credentials, private keys, FRP caches, and tests.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+- [x] Run Windows x64 publish verification.
+
+### Phase 4 Second Iteration Todo
+
+- [x] Add shared ViewModel user-facing error text helper for recoverable failures.
+- [x] Convert Nodes page load, save, delete, and SSH test failures into Chinese status text.
+- [x] Convert Runtime page local load, deployment-step load, remote refresh, and remote command failures into Chinese status text.
+- [x] Convert Logs page node lookup and remote log read failures into Chinese status text.
+- [x] Convert Configurations page load, save, generation, and validation failures into recoverable Chinese status text.
+- [x] Keep session-only passwords and passphrases cleared after failed remote actions.
+- [x] Add ViewModel tests for recoverable local persistence and remote operation failures.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
 
 ## Current Phase Prohibited Items
 

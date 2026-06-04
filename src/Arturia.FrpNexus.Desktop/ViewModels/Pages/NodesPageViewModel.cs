@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -119,6 +120,10 @@ public sealed partial class NodesPageViewModel : PageViewModel
         {
             ConnectionTestStatusText = "SSH 连接测试已取消。";
         }
+        catch (Exception ex)
+        {
+            ConnectionTestStatusText = ViewModelErrorText.ForUser("SSH 连接测试", ex);
+        }
         finally
         {
             SshSessionPassword = string.Empty;
@@ -132,7 +137,22 @@ public sealed partial class NodesPageViewModel : PageViewModel
     [RelayCommand]
     public async Task LoadNodesAsync(CancellationToken cancellationToken = default)
     {
-        var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
+        IReadOnlyList<NodeProfile> nodes;
+        try
+        {
+            nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            ConnectionTestStatusText = "节点列表加载已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            NodeCountText = "节点加载失败";
+            ConnectionTestStatusText = ViewModelErrorText.ForUser("节点列表加载", ex);
+            return;
+        }
 
         if (nodes.Count == 0)
         {
@@ -140,7 +160,21 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
             foreach (var node in nodes)
             {
-                await _nodeManagementService.SaveNodeAsync(node, cancellationToken);
+                try
+                {
+                    await _nodeManagementService.SaveNodeAsync(node, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    ConnectionTestStatusText = "节点样例写入已取消。";
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    NodeCountText = "节点加载失败";
+                    ConnectionTestStatusText = ViewModelErrorText.ForUser("节点样例写入", ex);
+                    return;
+                }
             }
         }
 
@@ -206,19 +240,27 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(_editingOriginalName)
-            && !string.Equals(_editingOriginalName, node.Name, System.StringComparison.OrdinalIgnoreCase))
+        try
         {
-            await _nodeManagementService.DeleteNodeAsync(_editingOriginalName);
+            if (!string.IsNullOrWhiteSpace(_editingOriginalName)
+                && !string.Equals(_editingOriginalName, node.Name, System.StringComparison.OrdinalIgnoreCase))
+            {
+                await _nodeManagementService.DeleteNodeAsync(_editingOriginalName);
+            }
+
+            await _nodeManagementService.SaveNodeAsync(node);
+            await LoadNodesAsync();
+
+            SelectedNode = Nodes.FirstOrDefault(item => item.Name == node.Name);
+            IsEditorOpen = false;
+            FormErrorText = string.Empty;
+            _editingOriginalName = null;
         }
-
-        await _nodeManagementService.SaveNodeAsync(node);
-        await LoadNodesAsync();
-
-        SelectedNode = Nodes.FirstOrDefault(item => item.Name == node.Name);
-        IsEditorOpen = false;
-        FormErrorText = string.Empty;
-        _editingOriginalName = null;
+        catch (Exception ex)
+        {
+            FormErrorText = ViewModelErrorText.ForUser("节点保存", ex);
+            IsEditorOpen = true;
+        }
     }
 
     [RelayCommand]
@@ -247,11 +289,19 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return;
         }
 
-        await _nodeManagementService.DeleteNodeAsync(SelectedNode.Name);
-        ResetDeleteConfirmation();
-        await LoadNodesAsync();
-        IsEditorOpen = false;
-        FormErrorText = string.Empty;
+        try
+        {
+            await _nodeManagementService.DeleteNodeAsync(SelectedNode.Name);
+            ResetDeleteConfirmation();
+            await LoadNodesAsync();
+            IsEditorOpen = false;
+            FormErrorText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            FormErrorText = ViewModelErrorText.ForUser("节点删除", ex);
+            ResetDeleteConfirmation();
+        }
     }
 
     partial void OnSelectedNodeChanged(NodeProfile? value)

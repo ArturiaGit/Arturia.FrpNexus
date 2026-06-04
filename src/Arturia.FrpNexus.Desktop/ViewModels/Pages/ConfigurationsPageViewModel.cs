@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -73,7 +74,22 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
     [RelayCommand]
     public async Task LoadConfigurationsAsync(CancellationToken cancellationToken = default)
     {
-        var configurations = await _configurationVersionService.ListConfigurationsAsync(cancellationToken);
+        IReadOnlyList<ConfigurationVersion> configurations;
+        try
+        {
+            configurations = await _configurationVersionService.ListConfigurationsAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "本地配置加载已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            ConfigurationCountText = "配置加载失败";
+            StatusText = ViewModelErrorText.ForUser("本地配置加载", ex);
+            return;
+        }
 
         Configurations.Clear();
         foreach (var configuration in configurations)
@@ -110,6 +126,11 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
             ErrorText = ex.Message;
             StatusText = "TOML 生成失败。";
         }
+        catch (Exception ex)
+        {
+            ErrorText = ViewModelErrorText.ForUser("TOML 生成", ex);
+            StatusText = "TOML 生成失败。";
+        }
     }
 
     [RelayCommand]
@@ -128,24 +149,45 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
         try
         {
             await _tomlConfigurationService.ValidateAsync(TomlPreview);
-            var configuration = new ConfigurationVersion(
-                preview.ProxyName,
-                preview.Protocol,
-                preview.LocalAddress,
-                preview.LocalPort,
-                preview.RemoteEndpoint,
-                TomlPreview,
-                DateTimeOffset.UtcNow);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ErrorText = ex.Message;
+            StatusText = "保存配置失败。";
+            return;
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorText = "保存配置已取消。";
+            StatusText = "保存配置失败。";
+            return;
+        }
 
+        var configuration = new ConfigurationVersion(
+            preview.ProxyName,
+            preview.Protocol,
+            preview.LocalAddress,
+            preview.LocalPort,
+            preview.RemoteEndpoint,
+            TomlPreview,
+            DateTimeOffset.UtcNow);
+
+        try
+        {
             await _configurationVersionService.SaveConfigurationAsync(configuration);
             await LoadConfigurationsAsync();
             SelectedConfiguration = Configurations.FirstOrDefault(item => item.Name == configuration.Name);
             ErrorText = string.Empty;
             StatusText = $"已保存本地配置 `{configuration.Name}`。";
         }
-        catch (InvalidOperationException ex)
+        catch (OperationCanceledException)
         {
-            ErrorText = ex.Message;
+            ErrorText = "保存配置已取消。";
+            StatusText = "保存配置失败。";
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ViewModelErrorText.ForUser("保存配置", ex);
             StatusText = "保存配置失败。";
         }
     }
@@ -162,6 +204,16 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
         catch (InvalidOperationException ex)
         {
             ErrorText = ex.Message;
+            StatusText = "TOML 本地校验失败。";
+        }
+        catch (OperationCanceledException)
+        {
+            ErrorText = "TOML 本地校验已取消。";
+            StatusText = "TOML 本地校验失败。";
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ViewModelErrorText.ForUser("TOML 本地校验", ex);
             StatusText = "TOML 本地校验失败。";
         }
     }

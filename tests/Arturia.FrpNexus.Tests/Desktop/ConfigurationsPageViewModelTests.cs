@@ -121,6 +121,34 @@ public sealed class ConfigurationsPageViewModelTests
         Assert.Contains("remotePort = 60022", viewModel.TomlPreview);
     }
 
+    [Fact]
+    public async Task LoadConfigurationsAsync_ShouldReportRecoverableFailure()
+    {
+        var viewModel = CreateViewModel(new FailingConfigurationVersionService());
+
+        await viewModel.LoadConfigurationsCommand.ExecuteAsync(null);
+
+        Assert.Equal("配置加载失败", viewModel.ConfigurationCountText);
+        Assert.Equal("本地配置加载失败，请检查输入、网络或本地数据状态后重试。", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task SaveConfigurationCommand_ShouldReportRecoverableFailure()
+    {
+        var viewModel = CreateViewModel(new FailingConfigurationVersionService());
+        viewModel.ProxyName = "api_https";
+        viewModel.SelectedProtocol = TunnelProtocol.Https;
+        viewModel.LocalAddress = "127.0.0.1";
+        viewModel.LocalPort = "8443";
+        viewModel.RemoteEndpoint = "api.example.com";
+        viewModel.GenerateTomlCommand.Execute(null);
+
+        await viewModel.SaveConfigurationCommand.ExecuteAsync(null);
+
+        Assert.Equal("保存配置失败。", viewModel.StatusText);
+        Assert.Equal("保存配置失败，请检查输入、网络或本地数据状态后重试。", viewModel.ErrorText);
+    }
+
     private static ConfigurationsPageViewModel CreateViewModel()
     {
         return CreateViewModel(new FakeConfigurationVersionService([]));
@@ -157,6 +185,29 @@ public sealed class ConfigurationsPageViewModelTests
         {
             _configurations.RemoveAll(item => item.Name == name);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FailingConfigurationVersionService : IConfigurationVersionService
+    {
+        public Task<IReadOnlyList<ConfigurationVersion>> ListConfigurationsAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("配置数据库不可用");
+        }
+
+        public Task<ConfigurationVersion?> GetConfigurationAsync(string name, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("配置数据库不可用");
+        }
+
+        public Task SaveConfigurationAsync(ConfigurationVersion configuration, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("配置数据库不可用");
+        }
+
+        public Task DeleteConfigurationAsync(string name, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("配置数据库不可用");
         }
     }
 }

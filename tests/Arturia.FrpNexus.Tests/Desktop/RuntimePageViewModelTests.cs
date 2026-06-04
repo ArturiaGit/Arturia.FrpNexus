@@ -110,6 +110,35 @@ public sealed class RuntimePageViewModelTests
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", viewModel.StatusText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task LoadRuntimeProcessesAsync_ShouldReportRecoverableFailure()
+    {
+        var viewModel = CreateViewModel(new FailingRuntimeRecordService(), new FakeDeploymentRecordService([]));
+
+        await viewModel.LoadRuntimeProcessesAsync();
+
+        Assert.Equal("运行记录加载失败", viewModel.ProcessCountText);
+        Assert.Equal("运行记录加载失败，请检查输入、网络或本地数据状态后重试。", viewModel.StatusText);
+        Assert.Empty(viewModel.Processes);
+    }
+
+    [Fact]
+    public async Task RefreshRemoteProcessesCommand_ShouldReportFailureAndClearSecret()
+    {
+        var viewModel = CreateViewModel(
+            new FakeRuntimeRecordService([new("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Stopped, "-", "-", "-")]),
+            new FakeDeploymentRecordService([]),
+            new FailingRemoteRuntimeService());
+        await viewModel.LoadRuntimeProcessesAsync();
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.RefreshRemoteProcessesCommand.ExecuteAsync(null);
+
+        Assert.Equal("远程进程刷新失败，请检查输入、网络或本地数据状态后重试。", viewModel.StatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.False(viewModel.IsRemoteCommandRunning);
+    }
+
     private static RuntimePageViewModel CreateViewModel(
         IRuntimeRecordService runtimeRecordService,
         IDeploymentRecordService deploymentRecordService,
@@ -149,6 +178,29 @@ public sealed class RuntimePageViewModelTests
         {
             _processes.RemoveAll(process => process.Name == processName);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FailingRuntimeRecordService : IRuntimeRecordService
+    {
+        public Task<IReadOnlyList<RuntimeProcess>> ListRuntimeProcessesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("运行记录数据库不可用");
+        }
+
+        public Task<RuntimeProcess?> GetRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("运行记录数据库不可用");
+        }
+
+        public Task SaveRuntimeProcessAsync(RuntimeProcess process, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("运行记录数据库不可用");
+        }
+
+        public Task DeleteRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("运行记录数据库不可用");
         }
     }
 
@@ -262,6 +314,29 @@ public sealed class RuntimePageViewModelTests
                 status,
                 DateTimeOffset.UtcNow,
                 message));
+        }
+    }
+
+    private sealed class FailingRemoteRuntimeService : IRemoteRuntimeService
+    {
+        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("远程命令失败");
+        }
+
+        public Task<RemoteRuntimeCommandResult> StartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("远程命令失败");
+        }
+
+        public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("远程命令失败");
+        }
+
+        public Task<RemoteRuntimeCommandResult> RestartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("远程命令失败");
         }
     }
 }

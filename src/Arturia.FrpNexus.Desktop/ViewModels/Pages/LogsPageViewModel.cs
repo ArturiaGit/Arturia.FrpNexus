@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -86,6 +87,10 @@ public sealed partial class LogsPageViewModel : PageViewModel
         {
             StatusText = "远程日志读取已取消。";
         }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser("远程日志读取", ex);
+        }
         finally
         {
             ClearSessionSecrets();
@@ -102,7 +107,22 @@ public sealed partial class LogsPageViewModel : PageViewModel
 
     private async Task<RemoteLogReadRequest?> TryCreateRequestAsync(CancellationToken cancellationToken)
     {
-        var node = await _nodeManagementService.GetNodeAsync(SelectedNodeName, cancellationToken);
+        NodeProfile? node;
+        try
+        {
+            node = await _nodeManagementService.GetNodeAsync(SelectedNodeName, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "节点资料读取已取消。";
+            return null;
+        }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser("节点资料读取", ex);
+            return null;
+        }
+
         if (node is null)
         {
             StatusText = $"未找到节点 {SelectedNodeName}，请先在节点页保存节点资料。";

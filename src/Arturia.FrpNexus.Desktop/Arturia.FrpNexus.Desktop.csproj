@@ -5,6 +5,12 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Version>0.4.0-preview.1</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
+    <Product>FrpNexus</Product>
+    <Authors>Arturia</Authors>
+    <Description>FrpNexus desktop control console for FRP deployment and diagnostics.</Description>
   </PropertyGroup>
 
   <ItemGroup>
