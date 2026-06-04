@@ -197,15 +197,25 @@ public sealed class PhaseOneRemoteRuntimeService : IRemoteRuntimeService
 
 public sealed class PhaseOneRemoteLogService : IRemoteLogService
 {
-    public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(string nodeName, string processName, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(RemoteLogReadRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LogEntry> logs =
         [
-            new("2026-06-04 12:00:00", "INFO", nodeName, processName, "Phase 1 placeholder log entry.", FrpNexusStatus.Running),
-            new("2026-06-04 12:01:10", "WARN", nodeName, processName, "Placeholder warning for UI state verification.", FrpNexusStatus.Warning)
+            new("2026-06-04 12:00:00", "INFO", request.Node.Name, request.ProcessName, "Phase 1 placeholder log entry.", FrpNexusStatus.Running),
+            new("2026-06-04 12:01:10", "WARN", request.Node.Name, request.ProcessName, "Placeholder warning for UI state verification.", FrpNexusStatus.Warning)
         ];
         return Task.FromResult(logs);
+    }
+
+    public async IAsyncEnumerable<LogEntry> StreamLogsAsync(RemoteLogReadRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var logs = await ReadRecentLogsAsync(request, cancellationToken);
+        foreach (var log in logs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return log;
+        }
     }
 }
 

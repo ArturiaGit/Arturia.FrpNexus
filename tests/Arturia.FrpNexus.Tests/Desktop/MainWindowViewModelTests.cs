@@ -13,6 +13,7 @@ using Arturia.FrpNexus.Infrastructure.Settings;
 using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Arturia.FrpNexus.Infrastructure.Configurations;
 using Arturia.FrpNexus.Infrastructure.Deployments;
+using Arturia.FrpNexus.Infrastructure.Logs;
 using Arturia.FrpNexus.Infrastructure.Releases;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Arturia.FrpNexus.Infrastructure.Sftp;
@@ -130,7 +131,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<TunnelsPageView>(locator.Build(CreateTunnelsPageViewModel()));
         Assert.IsType<ConfigurationsPageView>(locator.Build(CreateConfigurationsPageViewModel()));
         Assert.IsType<RuntimePageView>(locator.Build(CreateRuntimePageViewModel()));
-        Assert.IsType<LogsPageView>(locator.Build(new LogsPageViewModel()));
+        Assert.IsType<LogsPageView>(locator.Build(CreateLogsPageViewModel()));
         Assert.IsType<SettingsPageView>(locator.Build(CreateSettingsPageViewModel()));
     }
 
@@ -167,6 +168,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<RemoteFileTransferService>(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
         Assert.IsType<FrpReleaseService>(serviceProvider.GetRequiredService<IFrpReleaseService>());
         Assert.IsType<RemoteRuntimeService>(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
+        Assert.IsType<RemoteLogService>(serviceProvider.GetRequiredService<IRemoteLogService>());
     }
 
     [Fact]
@@ -199,7 +201,7 @@ public sealed class MainWindowViewModelTests
             CreateTunnelsPageViewModel(),
             CreateConfigurationsPageViewModel(),
             CreateRuntimePageViewModel(),
-            new LogsPageViewModel(),
+            CreateLogsPageViewModel(),
             CreateSettingsPageViewModel());
     }
 
@@ -225,6 +227,11 @@ public sealed class MainWindowViewModelTests
             new FakeDeploymentRecordService(),
             new FakeNodeManagementService(),
             new FakeRemoteRuntimeService());
+    }
+
+    private static LogsPageViewModel CreateLogsPageViewModel()
+    {
+        return new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
@@ -479,6 +486,28 @@ public sealed class MainWindowViewModelTests
                 status,
                 DateTimeOffset.UtcNow,
                 message));
+        }
+    }
+
+    private sealed class FakeRemoteLogService : IRemoteLogService
+    {
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(RemoteLogReadRequest request, CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<LogEntry> logs =
+            [
+                new("2026-06-04 12:00:00.000", "INFO", request.Node.Name, request.ProcessName, "remote log", FrpNexusStatus.Ready)
+            ];
+
+            return Task.FromResult(logs);
+        }
+
+        public async IAsyncEnumerable<LogEntry> StreamLogsAsync(RemoteLogReadRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var logs = await ReadRecentLogsAsync(request, cancellationToken);
+            foreach (var log in logs)
+            {
+                yield return log;
+            }
         }
     }
 }

@@ -365,10 +365,10 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Implement FRP release download and binary selection.
 - [x] Implement remote start, stop, and restart.
 - [x] Implement remote process status detection.
-- [ ] Implement remote log reading and streaming.
+- [x] Implement remote log reading and streaming.
 - [x] Add deployment records.
 - [x] Add runtime records.
-- [ ] Improve diagnostics and recoverable error states.
+- [x] Improve diagnostics and recoverable error states.
 - [x] Add integration-style tests around controlled service boundaries where feasible.
 
 ### Phase 3 First Iteration Todo

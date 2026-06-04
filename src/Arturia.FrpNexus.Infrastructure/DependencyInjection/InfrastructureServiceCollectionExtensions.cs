@@ -1,6 +1,7 @@
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Infrastructure.Configurations;
 using Arturia.FrpNexus.Infrastructure.Deployments;
+using Arturia.FrpNexus.Infrastructure.Logs;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 using Arturia.FrpNexus.Infrastructure.Releases;
@@ -35,6 +36,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IFrpReleaseService, FrpReleaseService>();
         services.AddSingleton<IRemoteCommandAdapter, SshRemoteCommandAdapter>();
         services.AddSingleton<IRemoteRuntimeService, RemoteRuntimeService>();
+        services.AddSingleton<IRemoteLogService, RemoteLogService>();
         services.AddSingleton<HttpClient>();
 
         return services;

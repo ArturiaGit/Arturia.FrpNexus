@@ -2,23 +2,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.LogsPageView"
              x:DataType="pages:LogsPageViewModel">
     <Grid RowDefinitions="Auto,*" RowSpacing="12">
         <Border Classes="command-bar">
             <DockPanel LastChildFill="False">
                 <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <TextBox Width="250" PlaceholderText="搜索日志内容..." />
-                    <ComboBox Width="150" SelectedIndex="0">
-                        <ComboBoxItem Content="全部节点" />
-                        <ComboBoxItem Content="US-West-01" />
-                        <ComboBoxItem Content="DB-Node-SH" />
-                    </ComboBox>
-                    <ComboBox Width="130" SelectedIndex="0">
-                        <ComboBoxItem Content="全部进程" />
-                        <ComboBoxItem Content="frpc" />
-                        <ComboBoxItem Content="frps" />
-                    </ComboBox>
+                    <TextBox Width="180"
+                             PlaceholderText="节点名称"
+                             Text="{Binding SelectedNodeName}" />
+                    <TextBox Width="110"
+                             PlaceholderText="进程"
+                             Text="{Binding ProcessName}" />
+                    <TextBox Width="220"
+                             Classes="code"
+                             PlaceholderText="/tmp/frpnexus-frpc.log"
+                             Text="{Binding RemoteLogPath}" />
                     <ComboBox Width="120" SelectedIndex="0">
                         <ComboBoxItem Content="全部级别" />
                         <ComboBoxItem Content="INFO" />
@@ -29,18 +29,30 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <CheckBox IsChecked="True" VerticalAlignment="Center" Content="自动刷新" />
                     <Button Classes="secondary" Content="复制" />
-                    <Button Classes="secondary" Foreground="{StaticResource Brush.Error}" Content="清空" />
+                    <Button Classes="secondary"
+                            Content="读取远程日志"
+                            Command="{Binding ReadRemoteLogsCommand}" />
+                    <Button Classes="secondary"
+                            Foreground="{StaticResource Brush.Error}"
+                            Content="清空"
+                            Command="{Binding ClearLogsCommand}" />
                 </StackPanel>
             </DockPanel>
         </Border>
         <Border Grid.Row="1" Classes="terminal-panel">
             <Grid RowDefinitions="28,*,24">
                 <DockPanel Classes="terminal-header">
-                    <TextBlock Classes="code"
-                               Margin="12,0"
-                               VerticalAlignment="Center"
-                               Foreground="#94A3B8"
-                               Text="Terminal - FrpNexus Core   [Connected: US-West-01]" />
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="12,0"
+                                VerticalAlignment="Center">
+                        <TextBlock Classes="code"
+                                   Foreground="#94A3B8"
+                                   Text="Terminal - FrpNexus Core" />
+                        <TextBlock Classes="code"
+                                   Foreground="#94A3B8"
+                                   Text="{Binding StatusText}" />
+                    </StackPanel>
                 </DockPanel>
                 <ScrollViewer Grid.Row="1" Margin="12">
                     <ItemsControl ItemsSource="{Binding Logs}">
@@ -56,6 +68,34 @@
                     <TextBlock DockPanel.Dock="Right" Classes="code" Margin="12,0" VerticalAlignment="Center" Foreground="#94A3B8" Text="Lines: 1,024   Encoding: UTF-8" />
                 </DockPanel>
             </Grid>
+        </Border>
+        <Border Grid.Row="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Width="320"
+                Margin="0,40,16,0"
+                Padding="12"
+                Classes="subtle-panel">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="group-label" Text="远程日志凭据" />
+                <ComboBox SelectedItem="{Binding SelectedSshAuthenticationMode}">
+                    <sys:String>SessionPassword</sys:String>
+                    <sys:String>PrivateKey</sys:String>
+                    <sys:String>SshAgent</sys:String>
+                </ComboBox>
+                <TextBox Classes="code"
+                         PlaceholderText="私钥文件路径"
+                         Text="{Binding SshPrivateKeyPath}" />
+                <TextBox PasswordChar="*"
+                         PlaceholderText="会话密码，仅本次使用"
+                         Text="{Binding SshSessionPassword}" />
+                <TextBox PasswordChar="*"
+                         PlaceholderText="私钥 passphrase，仅本次使用"
+                         Text="{Binding SshPrivateKeyPassphrase}" />
+                <TextBlock Classes="helper"
+                           TextWrapping="Wrap"
+                           Text="凭据只用于本次读取，不保存到 SQLite。" />
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>
