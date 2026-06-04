@@ -390,6 +390,15 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 3 Closure Todo
+
+- [x] Document Phase 3 completed remote operations scope in `docs/PHASE_3_SUMMARY.md`.
+- [x] Document Phase 3 credential, logging, persistence, and remote-operation boundaries.
+- [x] Keep Phase 3 closure aligned with `docs/CURRENT_PHASE.md`.
+- [x] Keep Phase 4 transition pending explicit user confirmation.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 4 Route Todo
 
 Phase 4 should refine packaging, reliability, and broader product polish.
