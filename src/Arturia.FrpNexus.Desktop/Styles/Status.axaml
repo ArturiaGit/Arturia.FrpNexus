@@ -1,0 +1,92 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="Border.badge">
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Border.badge.success">
+        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#B7E4C7" />
+    </Style>
+
+    <Style Selector="Border.badge.warning">
+        <Setter Property="Background" Value="{StaticResource FrpStatusWarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#F8D49A" />
+    </Style>
+
+    <Style Selector="Border.badge.error">
+        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#F3B6B6" />
+    </Style>
+
+    <Style Selector="Border.badge.info">
+        <Setter Property="Background" Value="{StaticResource FrpStatusInfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#BFDBFE" />
+    </Style>
+
+    <Style Selector="Border.badge.neutral">
+        <Setter Property="Background" Value="{StaticResource FrpStatusNeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="16" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text.success">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusSuccessBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text.warning">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text.error">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text.info">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status-text.neutral">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusNeutralBrush}" />
+    </Style>
+
+    <Style Selector="Ellipse.status-dot.success">
+        <Setter Property="Fill" Value="{StaticResource FrpStatusSuccessBrush}" />
+    </Style>
+
+    <Style Selector="Ellipse.status-dot.warning">
+        <Setter Property="Fill" Value="{StaticResource FrpStatusWarningBrush}" />
+    </Style>
+
+    <Style Selector="Ellipse.status-dot.error">
+        <Setter Property="Fill" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
+    <Style Selector="Ellipse.status-dot.info">
+        <Setter Property="Fill" Value="{StaticResource FrpStatusInfoBrush}" />
+    </Style>
+
+    <Style Selector="Ellipse.status-dot.neutral">
+        <Setter Property="Fill" Value="{StaticResource FrpStatusNeutralBrush}" />
+    </Style>
+
+    <Style Selector="Border.protocol-badge">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="Padding" Value="8,2" />
+    </Style>
+
+    <Style Selector="TextBlock.protocol-text">
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+</Styles>

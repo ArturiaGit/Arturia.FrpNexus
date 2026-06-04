@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Pages.DashboardPageView"
+             x:DataType="pages:DashboardPageViewModel">
+    <ScrollViewer>
+        <Grid RowDefinitions="Auto,Auto,*"
+              RowSpacing="12">
+            <ItemsControl ItemsSource="{Binding Metrics}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:MetricTileControl Margin="0,0,12,0" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="320,*"
+                  ColumnSpacing="16">
+                <Border Classes="panel"
+                        Padding="16">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="section-title"
+                                   Text="快速操作" />
+                        <Button Classes="primary"
+                                Content="添加新节点" />
+                        <Button Classes="secondary"
+                                Content="创建内网穿透隧道" />
+                        <Button Classes="secondary"
+                                Content="重载全局配置" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Classes="panel"
+                        Padding="16"
+                        MinHeight="220">
+                    <Grid RowDefinitions="Auto,*">
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Classes="section-title"
+                                       Text="近期节点状态" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Classes="helper"
+                                       Foreground="{StaticResource Brush.Primary}"
+                                       Text="查看全部" />
+                        </DockPanel>
+                        <DataGrid Grid.Row="1"
+                                  ItemsSource="{Binding RecentNodes}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="节点名称" Binding="{Binding Name}" Width="2*" />
+                                <DataGridTextColumn Header="IP 地址" Binding="{Binding Host}" Width="*" />
+                                <DataGridTextColumn Header="运行时间" Binding="{Binding Uptime}" Width="*" />
+                                <DataGridTemplateColumn Header="状态" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <controls:StatusBadgeControl DataContext="{Binding ConnectionStatus}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="*,*"
+                  ColumnSpacing="16">
+                <Border Classes="panel"
+                        Padding="16">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="section-title"
+                                   Text="最近错误" />
+                        <ItemsControl ItemsSource="{Binding Incidents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8"
+                                            Classes="incident-row">
+                                        <StackPanel Spacing="2">
+                                            <DockPanel>
+                                                <TextBlock Classes="group-label"
+                                                           Foreground="{StaticResource Brush.Error}"
+                                                           Text="{Binding Title}" />
+                                                <TextBlock DockPanel.Dock="Right"
+                                                           Classes="helper"
+                                                           Text="{Binding Time}" />
+                                            </DockPanel>
+                                            <TextBlock Foreground="{StaticResource Brush.TextSecondary}"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding Message}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Classes="terminal-panel"
+                        Padding="16">
+                    <Grid RowDefinitions="Auto,*">
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Classes="section-title"
+                                       Foreground="#EFF1F3"
+                                       Text="系统日志输出" />
+                            <Border DockPanel.Dock="Right"
+                                    Classes="badge success">
+                                <TextBlock Classes="status-text success"
+                                           Text="实时" />
+                            </Border>
+                        </DockPanel>
+                        <ItemsControl Grid.Row="1"
+                                      ItemsSource="{Binding Logs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="8"
+                                                Margin="0,0,0,4">
+                                        <TextBlock Classes="code"
+                                                   Foreground="{StaticResource Brush.TextMuted}"
+                                                   Text="{Binding Timestamp}" />
+                                        <TextBlock Classes="code"
+                                                   Foreground="{StaticResource Brush.Info}"
+                                                   Text="{Binding Level}" />
+                                        <TextBlock Classes="code"
+                                                   Foreground="{StaticResource Brush.TerminalText}"
+                                                   Text="{Binding Message}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

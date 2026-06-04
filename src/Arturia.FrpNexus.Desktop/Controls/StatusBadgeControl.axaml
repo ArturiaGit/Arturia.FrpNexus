@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="using:Arturia.FrpNexus.Core.Models"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.StatusBadgeControl"
+             x:DataType="core:FrpNexusStatus">
+    <UserControl.Resources>
+        <converters:StatusTextConverter x:Key="StatusTextConverter" />
+        <converters:StatusClassesConverter x:Key="StatusClassesConverter" />
+    </UserControl.Resources>
+
+    <Border Classes="badge"
+            Classes.success="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=success}"
+            Classes.warning="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+            Classes.error="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+            Classes.neutral="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=neutral}"
+            Classes.info="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=info}">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="6">
+            <Ellipse Width="6"
+                     Height="6"
+                     VerticalAlignment="Center"
+                     Classes="status-dot"
+                     Classes.success="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=success}"
+                     Classes.warning="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+                     Classes.error="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+                     Classes.neutral="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=neutral}"
+                     Classes.info="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=info}" />
+            <TextBlock Classes="status-text"
+                       Classes.success="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=success}"
+                       Classes.warning="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+                       Classes.error="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+                       Classes.neutral="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=neutral}"
+                       Classes.info="{Binding Converter={StaticResource StatusClassesConverter}, ConverterParameter=info}"
+                       Text="{Binding Converter={StaticResource StatusTextConverter}}" />
+        </StackPanel>
+    </Border>
+</UserControl>

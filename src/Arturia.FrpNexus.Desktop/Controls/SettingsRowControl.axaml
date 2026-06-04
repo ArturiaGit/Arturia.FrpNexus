@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.SettingsRowControl"
+             x:DataType="controls:SettingsRowControl"
+             x:Name="Root">
+    <DockPanel LastChildFill="False"
+               Margin="16">
+        <StackPanel MaxWidth="420">
+            <TextBlock Classes="group-label"
+                       Text="{Binding #Root.Title}" />
+            <TextBlock Classes="helper"
+                       TextWrapping="Wrap"
+                       Text="{Binding #Root.Description}" />
+        </StackPanel>
+        <ContentControl DockPanel.Dock="Right"
+                        MinWidth="180"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Content="{Binding #Root.ValueContent}" />
+    </DockPanel>
+</UserControl>

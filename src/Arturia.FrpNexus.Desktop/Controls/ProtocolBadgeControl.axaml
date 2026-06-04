@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="using:Arturia.FrpNexus.Core.Models"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.ProtocolBadgeControl"
+             x:DataType="core:TunnelProtocol">
+    <UserControl.Resources>
+        <converters:TunnelProtocolTextConverter x:Key="TunnelProtocolTextConverter" />
+    </UserControl.Resources>
+
+    <Border Classes="protocol-badge">
+        <TextBlock Classes="code protocol-text"
+                   Text="{Binding Converter={StaticResource TunnelProtocolTextConverter}}" />
+    </Border>
+</UserControl>

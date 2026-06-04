@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="using:Arturia.FrpNexus.Core.Models"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.LogLineControl"
+             x:DataType="core:LogEntry">
+    <Border Classes="log-line"
+            Classes.warning="{Binding Status, Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+            Classes.error="{Binding Status, Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}">
+        <Grid ColumnDefinitions="170,70,110,90,*">
+            <TextBlock Classes="code-muted"
+                       Text="{Binding Timestamp}" />
+            <TextBlock Grid.Column="1"
+                       Classes="code log-level"
+                       Classes.warning="{Binding Status, Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+                       Classes.error="{Binding Status, Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+                       Text="{Binding Level}" />
+            <TextBlock Grid.Column="2"
+                       Classes="code"
+                       Foreground="{StaticResource Brush.TerminalText}"
+                       Text="{Binding NodeName}" />
+            <TextBlock Grid.Column="3"
+                       Classes="code"
+                       Foreground="{StaticResource Brush.TerminalText}"
+                       Text="{Binding ProcessName}" />
+            <TextBlock Grid.Column="4"
+                       Classes="code"
+                       Foreground="{StaticResource Brush.TerminalText}"
+                       TextWrapping="Wrap"
+                       Text="{Binding Message}" />
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,165 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="LineHeight" Value="20" />
+    </Style>
+
+    <Style Selector="TextBlock.page-title">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="LineHeight" Value="28" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.section-title">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="LineHeight" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.group-label">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="LineHeight" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.helper">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}" />
+    </Style>
+
+    <Style Selector="TextBlock.code">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Code}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+    </Style>
+
+    <Style Selector="Border.panel">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="0 1 2 0 #1419231F" />
+    </Style>
+
+    <Style Selector="Border.metric-tile">
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="MinHeight" Value="76" />
+    </Style>
+
+    <Style Selector="Border.subtle-panel">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+    </Style>
+
+    <Style Selector="Border.command-bar">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusPanel}" />
+        <Setter Property="Padding" Value="8" />
+    </Style>
+
+    <Style Selector="Border.incident-row">
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Background" Value="{StaticResource Brush.ErrorSoft}" />
+        <Setter Property="BorderBrush" Value="#F3B6B6" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="StackPanel.info-section">
+        <Setter Property="Spacing" Value="8" />
+    </Style>
+
+    <Style Selector="Border.settings-card">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="0 1 2 0 #14192314" />
+    </Style>
+
+    <Style Selector="Border.settings-divider">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.7" />
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.primary">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.secondary">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.icon-secondary">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.compact">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="10,0" />
+    </Style>
+
+    <Style Selector="TextBox, ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.code">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Code}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="DataGrid">
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="RowHeight" Value="40" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+    </Style>
+</Styles>

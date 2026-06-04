@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pageModels="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.MetricTileControl"
+             x:DataType="pageModels:MetricTileViewModel">
+    <Border Classes="panel metric-tile">
+        <Grid ColumnDefinitions="44,*"
+              ColumnSpacing="12">
+            <Border Width="44"
+                    Height="44"
+                    CornerRadius="8"
+                    Background="{StaticResource Brush.InfoSoft}">
+                <TextBlock Text="{Binding Icon}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource Brush.Primary}"
+                           FontSize="12"
+                           FontWeight="SemiBold" />
+            </Border>
+            <StackPanel Grid.Column="1"
+                        Spacing="2">
+                <TextBlock Classes="helper"
+                           Text="{Binding Label}" />
+                <TextBlock Classes="page-title"
+                           Text="{Binding Value}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

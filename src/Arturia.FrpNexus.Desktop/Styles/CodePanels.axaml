@@ -1,0 +1,55 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="Border.terminal-panel">
+        <Setter Property="Background" Value="{StaticResource FrpCodePanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpInverseSurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusPanel}" />
+    </Style>
+
+    <Style Selector="DockPanel.terminal-header">
+        <Setter Property="Background" Value="{StaticResource FrpTerminalSurfaceBrush}" />
+    </Style>
+
+    <Style Selector="DockPanel.terminal-footer">
+        <Setter Property="Background" Value="{StaticResource FrpCodePanelGutterBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.code-muted">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Code}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="Foreground" Value="{StaticResource FrpCodeMutedBrush}" />
+    </Style>
+
+    <Style Selector="Border.log-line">
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Border.log-line.warning">
+        <Setter Property="Background" Value="#24D97706" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+    </Style>
+
+    <Style Selector="Border.log-line.error">
+        <Setter Property="Background" Value="#24DC2626" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.log-level">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.log-level.warning">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.log-level.error">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+</Styles>

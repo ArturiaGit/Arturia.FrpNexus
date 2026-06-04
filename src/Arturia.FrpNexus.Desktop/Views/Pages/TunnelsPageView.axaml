@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Pages.TunnelsPageView"
+             x:DataType="pages:TunnelsPageViewModel">
+    <Grid RowDefinitions="Auto,*"
+          RowSpacing="12">
+        <Border Classes="command-bar">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+                    <TextBox Width="240"
+                             PlaceholderText="搜索隧道名称、节点或端点..." />
+                    <ComboBox Width="132"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="所有协议" />
+                        <ComboBoxItem Content="TCP" />
+                        <ComboBoxItem Content="UDP" />
+                        <ComboBoxItem Content="HTTP" />
+                        <ComboBoxItem Content="HTTPS" />
+                    </ComboBox>
+                    <ComboBox Width="132"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="所有状态" />
+                        <ComboBoxItem Content="运行中" />
+                        <ComboBoxItem Content="已停止" />
+                        <ComboBoxItem Content="异常" />
+                        <ComboBoxItem Content="警告" />
+                    </ComboBox>
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Classes="primary"
+                        VerticalAlignment="Center"
+                        Content="新建隧道" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" Classes="panel">
+            <Grid RowDefinitions="*,40">
+                <DataGrid ItemsSource="{Binding Tunnels}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="隧道名称" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTemplateColumn Header="协议" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <controls:ProtocolBadgeControl DataContext="{Binding Protocol}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="关联节点" Binding="{Binding NodeName}" Width="2*" />
+                        <DataGridTextColumn Header="本地端口" Binding="{Binding LocalPort}" Width="*" />
+                        <DataGridTextColumn Header="远程端口/域名" Binding="{Binding RemoteEndpoint}" Width="2*" />
+                        <DataGridTemplateColumn Header="状态" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <controls:StatusBadgeControl DataContext="{Binding Status}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
+                    <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="共 5 条记录" />
+                    <TextBlock DockPanel.Dock="Right" Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="1 / 1" />
+                </DockPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

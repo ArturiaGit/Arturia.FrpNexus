@@ -1,0 +1,158 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="using:Avalonia.Media">
+    <Color x:Key="FrpBackgroundColor">#F8F9FB</Color>
+    <Color x:Key="FrpSidebarBackgroundColor">#F8F9FB</Color>
+    <Color x:Key="FrpSurfaceColor">#F8F9FB</Color>
+    <Color x:Key="FrpSurfaceWhiteColor">#FFFFFF</Color>
+    <Color x:Key="FrpSurfaceLowColor">#F2F4F6</Color>
+    <Color x:Key="FrpSurfaceContainerColor">#ECEEF0</Color>
+    <Color x:Key="FrpSurfaceHighColor">#E6E8EA</Color>
+    <Color x:Key="FrpSurfaceVariantColor">#E0E3E5</Color>
+    <Color x:Key="FrpSurfaceDimColor">#D8DADC</Color>
+    <Color x:Key="FrpBorderDefaultColor">#D8DEE6</Color>
+    <Color x:Key="FrpOutlineColor">#737686</Color>
+    <Color x:Key="FrpOutlineVariantColor">#C3C6D7</Color>
+    <Color x:Key="FrpTextPrimaryColor">#17202A</Color>
+    <Color x:Key="FrpTextSecondaryColor">#52606D</Color>
+    <Color x:Key="FrpTextMutedColor">#434655</Color>
+    <Color x:Key="FrpTextStrongColor">#191C1E</Color>
+    <Color x:Key="FrpPrimaryColor">#004AC6</Color>
+    <Color x:Key="FrpPrimaryContainerColor">#2563EB</Color>
+    <Color x:Key="FrpPrimaryHoverColor">#0053DB</Color>
+    <Color x:Key="FrpOnPrimaryColor">#FFFFFF</Color>
+    <Color x:Key="FrpSelectionSubtleColor">#D9DFF5</Color>
+    <Color x:Key="FrpInverseSurfaceColor">#2D3133</Color>
+    <Color x:Key="FrpInverseTextColor">#EFF1F3</Color>
+    <Color x:Key="FrpTerminalSurfaceColor">#141B2B</Color>
+    <Color x:Key="FrpCodePanelBackgroundColor">#0B1117</Color>
+    <Color x:Key="FrpCodePanelGutterColor">#0A0F14</Color>
+    <Color x:Key="FrpStatusSuccessColor">#16A34A</Color>
+    <Color x:Key="FrpStatusWarningColor">#D97706</Color>
+    <Color x:Key="FrpStatusErrorColor">#DC2626</Color>
+    <Color x:Key="FrpStatusInfoColor">#2563EB</Color>
+    <Color x:Key="FrpStatusNeutralColor">#64748B</Color>
+    <Color x:Key="FrpErrorContainerColor">#FFDAD6</Color>
+
+    <SolidColorBrush x:Key="FrpBackgroundBrush" Color="{StaticResource FrpBackgroundColor}" />
+    <SolidColorBrush x:Key="FrpSidebarBackgroundBrush" Color="{StaticResource FrpSidebarBackgroundColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceBrush" Color="{StaticResource FrpSurfaceColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceWhiteBrush" Color="{StaticResource FrpSurfaceWhiteColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceLowBrush" Color="{StaticResource FrpSurfaceLowColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceContainerBrush" Color="{StaticResource FrpSurfaceContainerColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceHighBrush" Color="{StaticResource FrpSurfaceHighColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceVariantBrush" Color="{StaticResource FrpSurfaceVariantColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceDimBrush" Color="{StaticResource FrpSurfaceDimColor}" />
+    <SolidColorBrush x:Key="FrpBorderDefaultBrush" Color="{StaticResource FrpBorderDefaultColor}" />
+    <SolidColorBrush x:Key="FrpOutlineBrush" Color="{StaticResource FrpOutlineColor}" />
+    <SolidColorBrush x:Key="FrpOutlineVariantBrush" Color="{StaticResource FrpOutlineVariantColor}" />
+    <SolidColorBrush x:Key="FrpTextPrimaryBrush" Color="{StaticResource FrpTextPrimaryColor}" />
+    <SolidColorBrush x:Key="FrpTextSecondaryBrush" Color="{StaticResource FrpTextSecondaryColor}" />
+    <SolidColorBrush x:Key="FrpTextMutedBrush" Color="{StaticResource FrpTextMutedColor}" />
+    <SolidColorBrush x:Key="FrpTextStrongBrush" Color="{StaticResource FrpTextStrongColor}" />
+    <SolidColorBrush x:Key="FrpPrimaryBrush" Color="{StaticResource FrpPrimaryColor}" />
+    <SolidColorBrush x:Key="FrpPrimaryContainerBrush" Color="{StaticResource FrpPrimaryContainerColor}" />
+    <SolidColorBrush x:Key="FrpPrimaryHoverBrush" Color="{StaticResource FrpPrimaryHoverColor}" />
+    <SolidColorBrush x:Key="FrpOnPrimaryBrush" Color="{StaticResource FrpOnPrimaryColor}" />
+    <SolidColorBrush x:Key="FrpSelectionSubtleBrush" Color="{StaticResource FrpSelectionSubtleColor}" />
+    <SolidColorBrush x:Key="FrpInverseSurfaceBrush" Color="{StaticResource FrpInverseSurfaceColor}" />
+    <SolidColorBrush x:Key="FrpInverseTextBrush" Color="{StaticResource FrpInverseTextColor}" />
+    <SolidColorBrush x:Key="FrpTerminalSurfaceBrush" Color="{StaticResource FrpTerminalSurfaceColor}" />
+    <SolidColorBrush x:Key="FrpCodePanelBackgroundBrush" Color="{StaticResource FrpCodePanelBackgroundColor}" />
+    <SolidColorBrush x:Key="FrpCodePanelGutterBrush" Color="{StaticResource FrpCodePanelGutterColor}" />
+    <SolidColorBrush x:Key="FrpStatusSuccessBrush" Color="{StaticResource FrpStatusSuccessColor}" />
+    <SolidColorBrush x:Key="FrpStatusWarningBrush" Color="{StaticResource FrpStatusWarningColor}" />
+    <SolidColorBrush x:Key="FrpStatusErrorBrush" Color="{StaticResource FrpStatusErrorColor}" />
+    <SolidColorBrush x:Key="FrpStatusInfoBrush" Color="{StaticResource FrpStatusInfoColor}" />
+    <SolidColorBrush x:Key="FrpStatusNeutralBrush" Color="{StaticResource FrpStatusNeutralColor}" />
+    <SolidColorBrush x:Key="FrpErrorContainerBrush" Color="{StaticResource FrpErrorContainerColor}" />
+    <SolidColorBrush x:Key="FrpSidebarTextBrush" Color="{StaticResource FrpTextPrimaryColor}" />
+    <SolidColorBrush x:Key="FrpSidebarMutedBrush" Color="{StaticResource FrpTextSecondaryColor}" />
+    <SolidColorBrush x:Key="FrpSidebarSelectedBrush" Color="{StaticResource FrpSelectionSubtleColor}" Opacity="0.5" />
+    <SolidColorBrush x:Key="FrpSidebarHoverBrush" Color="{StaticResource FrpSurfaceContainerColor}" />
+    <SolidColorBrush x:Key="FrpIconSubtleBrush" Color="#52606D" />
+    <SolidColorBrush x:Key="FrpStatusSuccessSoftBrush" Color="#EAF7EF" />
+    <SolidColorBrush x:Key="FrpStatusWarningSoftBrush" Color="#FFF7E8" />
+    <SolidColorBrush x:Key="FrpStatusErrorSoftBrush" Color="#FDECEC" />
+    <SolidColorBrush x:Key="FrpStatusInfoSoftBrush" Color="#EFF6FF" />
+    <SolidColorBrush x:Key="FrpStatusNeutralSoftBrush" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="FrpCodeTextBrush" Color="#C9D1D9" />
+    <SolidColorBrush x:Key="FrpCodeMutedBrush" Color="#94A3B8" />
+
+    <FontFamily x:Key="Font.Ui">Segoe UI, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC, sans-serif</FontFamily>
+    <FontFamily x:Key="Font.Code">JetBrains Mono, Cascadia Code, Consolas, monospace</FontFamily>
+    <x:Double x:Key="FrpSpacingBase">4</x:Double>
+    <x:Double x:Key="FrpSpacingTight">8</x:Double>
+    <x:Double x:Key="FrpSpacingMedium">12</x:Double>
+    <x:Double x:Key="FrpSpacingLarge">16</x:Double>
+    <x:Double x:Key="FrpSpacingXLarge">20</x:Double>
+    <x:Double x:Key="FrpSidebarWidth">212</x:Double>
+    <x:Double x:Key="FrpTopbarHeight">52</x:Double>
+    <Thickness x:Key="FrpPageMargin">24</Thickness>
+    <CornerRadius x:Key="FrpRadiusSmall">4</CornerRadius>
+    <CornerRadius x:Key="FrpRadiusControl">6</CornerRadius>
+    <CornerRadius x:Key="FrpRadiusPanel">8</CornerRadius>
+    <Thickness x:Key="FrpBorderThicknessDefault">1</Thickness>
+
+    <!-- Compatibility aliases while pages migrate to Frp* semantic resources. -->
+    <Color x:Key="Color.AppBackground">#F8F9FB</Color>
+    <Color x:Key="Color.SidebarBackground">#F8F9FB</Color>
+    <Color x:Key="Color.Surface">#FFFFFF</Color>
+    <Color x:Key="Color.SurfaceSubtle">#F2F4F6</Color>
+    <Color x:Key="Color.SurfaceContainer">#ECEEF0</Color>
+    <Color x:Key="Color.BorderDefault">#D8DEE6</Color>
+    <Color x:Key="Color.BorderStrong">#C3C6D7</Color>
+    <Color x:Key="Color.TextPrimary">#17202A</Color>
+    <Color x:Key="Color.TextSecondary">#52606D</Color>
+    <Color x:Key="Color.TextMuted">#434655</Color>
+    <Color x:Key="Color.Primary">#004AC6</Color>
+    <Color x:Key="Color.PrimaryHover">#0053DB</Color>
+    <Color x:Key="Color.FocusRing">#93C5FD</Color>
+    <Color x:Key="Color.Success">#16A34A</Color>
+    <Color x:Key="Color.Warning">#D97706</Color>
+    <Color x:Key="Color.Error">#DC2626</Color>
+    <Color x:Key="Color.Info">#2563EB</Color>
+    <Color x:Key="Color.Neutral">#64748B</Color>
+    <Color x:Key="Color.Terminal">#0B1117</Color>
+    <Color x:Key="Color.TerminalHeader">#141B2B</Color>
+    <Color x:Key="Color.TerminalText">#C9D1D9</Color>
+
+    <StaticResource x:Key="Brush.AppBackground" ResourceKey="FrpBackgroundBrush" />
+    <StaticResource x:Key="Brush.SidebarBackground" ResourceKey="FrpSidebarBackgroundBrush" />
+    <StaticResource x:Key="Brush.Surface" ResourceKey="FrpSurfaceWhiteBrush" />
+    <StaticResource x:Key="Brush.SurfaceSubtle" ResourceKey="FrpSurfaceLowBrush" />
+    <StaticResource x:Key="Brush.SurfaceContainer" ResourceKey="FrpSurfaceContainerBrush" />
+    <StaticResource x:Key="Brush.BorderDefault" ResourceKey="FrpBorderDefaultBrush" />
+    <StaticResource x:Key="Brush.BorderStrong" ResourceKey="FrpOutlineVariantBrush" />
+    <StaticResource x:Key="Brush.TextPrimary" ResourceKey="FrpTextPrimaryBrush" />
+    <StaticResource x:Key="Brush.TextSecondary" ResourceKey="FrpTextSecondaryBrush" />
+    <StaticResource x:Key="Brush.TextMuted" ResourceKey="FrpTextMutedBrush" />
+    <StaticResource x:Key="Brush.Primary" ResourceKey="FrpPrimaryBrush" />
+    <StaticResource x:Key="Brush.PrimaryHover" ResourceKey="FrpPrimaryHoverBrush" />
+    <StaticResource x:Key="Brush.FocusRing" ResourceKey="FrpPrimaryContainerBrush" />
+    <StaticResource x:Key="Brush.Success" ResourceKey="FrpStatusSuccessBrush" />
+    <StaticResource x:Key="Brush.Warning" ResourceKey="FrpStatusWarningBrush" />
+    <StaticResource x:Key="Brush.Error" ResourceKey="FrpStatusErrorBrush" />
+    <StaticResource x:Key="Brush.Info" ResourceKey="FrpStatusInfoBrush" />
+    <StaticResource x:Key="Brush.Neutral" ResourceKey="FrpStatusNeutralBrush" />
+    <StaticResource x:Key="Brush.Terminal" ResourceKey="FrpCodePanelBackgroundBrush" />
+    <StaticResource x:Key="Brush.TerminalHeader" ResourceKey="FrpTerminalSurfaceBrush" />
+    <StaticResource x:Key="Brush.TerminalText" ResourceKey="FrpCodeTextBrush" />
+    <StaticResource x:Key="Brush.SidebarText" ResourceKey="FrpSidebarTextBrush" />
+    <StaticResource x:Key="Brush.SidebarMuted" ResourceKey="FrpSidebarMutedBrush" />
+    <StaticResource x:Key="Brush.SidebarSelected" ResourceKey="FrpSidebarSelectedBrush" />
+    <StaticResource x:Key="Brush.SidebarHover" ResourceKey="FrpSidebarHoverBrush" />
+    <StaticResource x:Key="Brush.IconSubtle" ResourceKey="FrpIconSubtleBrush" />
+    <StaticResource x:Key="Brush.SuccessSoft" ResourceKey="FrpStatusSuccessSoftBrush" />
+    <StaticResource x:Key="Brush.WarningSoft" ResourceKey="FrpStatusWarningSoftBrush" />
+    <StaticResource x:Key="Brush.ErrorSoft" ResourceKey="FrpStatusErrorSoftBrush" />
+    <StaticResource x:Key="Brush.InfoSoft" ResourceKey="FrpStatusInfoSoftBrush" />
+    <StaticResource x:Key="Brush.NeutralSoft" ResourceKey="FrpStatusNeutralSoftBrush" />
+    <StaticResource x:Key="Thickness.PageMargin" ResourceKey="FrpPageMargin" />
+    <StaticResource x:Key="Radius.Panel" ResourceKey="FrpRadiusPanel" />
+    <StaticResource x:Key="Radius.Control" ResourceKey="FrpRadiusControl" />
+
+    <StreamGeometry x:Key="Icon.Bell">M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22ZM5 17h14l-1.7-2.2V10a5.3 5.3 0 0 0-10.6 0v4.8L5 17Zm2.2-1.5 1-1.3V10a3.8 3.8 0 0 1 7.6 0v4.2l1 1.3H7.2Z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.Network">M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H13v2.5h3V20H8v-1.5h3V16H5.5A1.5 1.5 0 0 1 4 14.5v-9ZM5.5 5.5v9h13v-9h-13Z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.Sync">M17.7 7.1A7 7 0 0 0 5.2 9H3.6a8.5 8.5 0 0 1 15.1-3l1.8-1.8V9h-4.8l2-1.9ZM6.3 16.9A7 7 0 0 0 18.8 15h1.6a8.5 8.5 0 0 1-15.1 3l-1.8 1.8V15h4.8l-2 1.9Z</StreamGeometry>
+</ResourceDictionary>

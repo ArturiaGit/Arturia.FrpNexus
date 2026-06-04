@@ -1,0 +1,135 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Pages.NodesPageView"
+             x:DataType="pages:NodesPageViewModel">
+    <Grid ColumnDefinitions="*,320"
+          ColumnSpacing="16">
+        <Border Classes="panel">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <Border Classes="command-bar"
+                        Margin="12">
+                    <DockPanel LastChildFill="False">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="12"
+                                    VerticalAlignment="Center">
+                            <Button Classes="primary" Content="添加节点" />
+                            <Button Classes="secondary" Content="刷新列表" />
+                        </StackPanel>
+                        <TextBox DockPanel.Dock="Right"
+                                 Width="260"
+                                 VerticalAlignment="Center"
+                                 PlaceholderText="搜索节点 IP 或名称..." />
+                    </DockPanel>
+                </Border>
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding Nodes}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="IP 地址" Binding="{Binding Host}" Width="*" />
+                        <DataGridTemplateColumn Header="状态" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <controls:StatusBadgeControl DataContext="{Binding ConnectionStatus}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="FRP 服务" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <controls:StatusBadgeControl DataContext="{Binding FrpStatus}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="版本" Binding="{Binding FrpVersion}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DockPanel Grid.Row="2"
+                           Height="40"
+                           Background="{StaticResource Brush.SurfaceSubtle}">
+                    <TextBlock Classes="helper"
+                               Margin="12,0"
+                               VerticalAlignment="Center"
+                               Text="共 3 个节点" />
+                    <TextBlock DockPanel.Dock="Right"
+                               Classes="helper"
+                               Margin="12,0"
+                               VerticalAlignment="Center"
+                               Text="1 / 1" />
+                </DockPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1"
+                Classes="panel">
+            <Grid RowDefinitions="Auto,*">
+                <Border Padding="16"
+                        Background="{StaticResource Brush.SurfaceSubtle}"
+                        BorderBrush="{StaticResource Brush.BorderDefault}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel>
+                        <TextBlock Classes="section-title"
+                                   Text="{Binding SelectedNode.Name}" />
+                        <TextBlock Classes="helper"
+                                   Text="{Binding SelectedNode.OperatingSystem}" />
+                    </StackPanel>
+                </Border>
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel Margin="16"
+                                Spacing="18">
+                        <TextBlock Classes="group-label" Text="快速操作" />
+                        <Grid ColumnDefinitions="*,*"
+                              RowDefinitions="Auto,Auto"
+                              ColumnSpacing="8"
+                              RowSpacing="8">
+                            <Button Classes="secondary" HorizontalAlignment="Stretch" Content="测试连接" />
+                            <Button Grid.Column="1" Classes="secondary" HorizontalAlignment="Stretch" Content="上传核心" />
+                            <Button Grid.Row="1" Grid.ColumnSpan="2" Classes="secondary" Content="重启 FRP 进程" />
+                        </Grid>
+                        <Border Classes="subtle-panel" Padding="12">
+                            <StackPanel Classes="info-section">
+                                <TextBlock Classes="group-label" Text="SSH 连接信息" />
+                                <controls:KeyValueRowControl Label="主机地址"
+                                                             Value="{Binding SelectedNode.Host}"
+                                                             IsCode="True" />
+                                <controls:KeyValueRowControl Label="端口"
+                                                             Value="{Binding SelectedNode.SshPort}"
+                                                             IsCode="True" />
+                                <controls:KeyValueRowControl Label="用户名"
+                                                             Value="{Binding SelectedNode.UserName}"
+                                                             IsCode="True" />
+                                <controls:KeyValueRowControl Label="认证方式"
+                                                             Value="{Binding SelectedNode.Authentication}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="subtle-panel" Padding="12">
+                            <StackPanel Classes="info-section">
+                                <TextBlock Classes="group-label" Text="FRP 详情" />
+                                <controls:KeyValueRowControl Label="核心版本"
+                                                             Value="{Binding SelectedNode.FrpVersion}"
+                                                             IsCode="True" />
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12"
+                                      MinHeight="22">
+                                    <TextBlock Classes="helper"
+                                               Text="进程状态" />
+                                    <controls:StatusBadgeControl Grid.Column="1"
+                                                                 HorizontalAlignment="Right"
+                                                                 DataContext="{Binding SelectedNode.FrpStatus}" />
+                                </Grid>
+                                <controls:KeyValueRowControl Label="运行时间"
+                                                             Value="{Binding SelectedNode.Uptime}" />
+                                <controls:KeyValueRowControl Label="配置路径"
+                                                             Value="{Binding SelectedNode.ConfigPath}"
+                                                             IsCode="True" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

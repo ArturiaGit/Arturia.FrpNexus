@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.RuntimeStepControl"
+             x:DataType="pages:RuntimeStepViewModel">
+    <Border Classes="subtle-panel"
+            Padding="12"
+            Margin="0,0,0,8">
+        <StackPanel Spacing="8">
+            <DockPanel LastChildFill="False">
+                <TextBlock Classes="group-label"
+                           VerticalAlignment="Center"
+                           Text="{Binding Title}" />
+                <controls:StatusBadgeControl DockPanel.Dock="Right"
+                                             DataContext="{Binding Status}" />
+            </DockPanel>
+            <TextBlock Classes="helper"
+                       TextWrapping="Wrap"
+                       Text="{Binding Description}" />
+        </StackPanel>
+    </Border>
+</UserControl>

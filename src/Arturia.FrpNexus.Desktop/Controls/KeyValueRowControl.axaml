@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             x:Class="Arturia.FrpNexus.Desktop.Controls.KeyValueRowControl"
+             x:DataType="controls:KeyValueRowControl"
+             x:Name="Root">
+    <Grid ColumnDefinitions="Auto,*"
+          ColumnSpacing="12"
+          MinHeight="22">
+        <TextBlock Classes="helper"
+                   Text="{Binding #Root.Label}" />
+        <TextBlock Grid.Column="1"
+                   Classes.code="{Binding #Root.IsCode}"
+                   Foreground="{StaticResource Brush.TextPrimary}"
+                   HorizontalAlignment="Right"
+                   TextTrimming="CharacterEllipsis"
+                   Text="{Binding #Root.Value}" />
+    </Grid>
+</UserControl>

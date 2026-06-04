@@ -1,0 +1,41 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="Button.nav-button">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style Selector="Border.nav-item">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+
+    <Style Selector="Button.nav-button:pointerover Border.nav-item">
+        <Setter Property="Background" Value="{StaticResource FrpSidebarHoverBrush}" />
+    </Style>
+
+    <Style Selector="Border.nav-item.selected">
+        <Setter Property="Background" Value="{StaticResource FrpSidebarSelectedBrush}" />
+    </Style>
+
+    <Style Selector="PathIcon.nav-icon">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Foreground" Value="{StaticResource FrpSidebarMutedBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.nav-item.selected PathIcon.nav-icon">
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.nav-item.selected TextBlock.nav-title">
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+</Styles>

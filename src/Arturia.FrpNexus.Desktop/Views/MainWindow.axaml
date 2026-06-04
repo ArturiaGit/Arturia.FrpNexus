@@ -1,0 +1,190 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels"
+        xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+        xmlns:desktopModels="using:Arturia.FrpNexus.Desktop.Models"
+        xmlns:pageViews="using:Arturia.FrpNexus.Desktop.Views.Pages"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="Arturia.FrpNexus.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="FrpNexus"
+        Width="1280"
+        Height="800"
+        MinWidth="1100"
+        MinHeight="720"
+        Background="{StaticResource Brush.AppBackground}">
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="pages:DashboardPageViewModel">
+            <pageViews:DashboardPageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:NodesPageViewModel">
+            <pageViews:NodesPageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:TunnelsPageViewModel">
+            <pageViews:TunnelsPageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:ConfigurationsPageViewModel">
+            <pageViews:ConfigurationsPageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:RuntimePageViewModel">
+            <pageViews:RuntimePageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:LogsPageViewModel">
+            <pageViews:LogsPageView />
+        </DataTemplate>
+        <DataTemplate DataType="pages:SettingsPageViewModel">
+            <pageViews:SettingsPageView />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid ColumnDefinitions="212,*">
+        <Border Background="{StaticResource Brush.SidebarBackground}"
+                BorderBrush="{StaticResource Brush.BorderDefault}"
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto"
+                  Margin="0,24">
+                <StackPanel Grid.Row="0"
+                            Margin="16,0,16,24"
+                            Spacing="2">
+                    <Grid ColumnDefinitions="34,*"
+                          ColumnSpacing="10">
+                        <Border Width="32"
+                                Height="32"
+                                CornerRadius="8"
+                                Background="{StaticResource Brush.Primary}">
+                            <TextBlock Text="⌁"
+                                       Foreground="White"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Classes="section-title"
+                                       Foreground="{StaticResource Brush.SidebarText}"
+                                       Text="FrpNexus" />
+                            <TextBlock Classes="helper"
+                                       Foreground="{StaticResource Brush.SidebarMuted}"
+                                       Text="Phase 1 Skeleton" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding NavigationItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="desktopModels:NavigationItem">
+                            <Button Command="{Binding NavigateCommand}"
+                                    CommandParameter="{Binding}"
+                                    Classes="nav-button"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Margin="0,1">
+                                <Border Classes.nav-item="True"
+                                        Classes.selected="{Binding IsSelected}">
+                                    <Grid Height="40"
+                                          ColumnDefinitions="3,36,*">
+                                        <Border Grid.Column="0"
+                                                Background="{StaticResource Brush.Primary}"
+                                                IsVisible="{Binding IsSelected}" />
+                                        <PathIcon Grid.Column="1"
+                                                  Data="{Binding Icon, Converter={StaticResource NavigationIconConverter}}"
+                                                  Classes="nav-icon" />
+                                        <TextBlock Grid.Column="2"
+                                                   Classes="group-label nav-title"
+                                                   Foreground="{StaticResource Brush.SidebarText}"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Title}" />
+                                    </Grid>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Grid.Row="2"
+                        Margin="16,16,16,0"
+                        Padding="10"
+                        Background="{StaticResource Brush.SurfaceSubtle}"
+                        BorderBrush="{StaticResource Brush.BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="group-label"
+                                   Foreground="{StaticResource Brush.SidebarText}"
+                                   Text="账户" />
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource Brush.SidebarMuted}"
+                                   Text="本地控制台" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1"
+              RowDefinitions="52,*"
+              Background="{StaticResource Brush.AppBackground}">
+            <Border Grid.Row="0"
+                    Background="{StaticResource Brush.Surface}"
+                    BorderBrush="{StaticResource Brush.BorderDefault}"
+                    BorderThickness="0,0,0,1">
+                <DockPanel Margin="24,0">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Classes="page-title"
+                                   Text="{Binding CurrentPageTitle}" />
+                        <TextBlock Classes="helper"
+                                   Text="{Binding CurrentPageSubtitle}" />
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                Spacing="12"
+                                VerticalAlignment="Center">
+                        <Border Classes="badge success">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <Ellipse Width="7"
+                                         Height="7"
+                                         Fill="{StaticResource Brush.Success}"
+                                         VerticalAlignment="Center" />
+                                <TextBlock Classes="status-text success"
+                                           Text="{Binding ConnectionText}" />
+                            </StackPanel>
+                        </Border>
+                        <Button Classes="icon-secondary"
+                                ToolTip.Tip="通知">
+                            <PathIcon Width="16"
+                                      Height="16"
+                                      Data="{StaticResource Icon.Bell}"
+                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                        </Button>
+                        <Button Classes="icon-secondary"
+                                ToolTip.Tip="网络">
+                            <PathIcon Width="16"
+                                      Height="16"
+                                      Data="{StaticResource Icon.Network}"
+                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                        </Button>
+                        <Button Classes="icon-secondary"
+                                ToolTip.Tip="同步">
+                            <PathIcon Width="16"
+                                      Height="16"
+                                      Data="{StaticResource Icon.Sync}"
+                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <ContentControl Grid.Row="1"
+                            Margin="{StaticResource FrpPageMargin}"
+                            Content="{Binding CurrentPage}" />
+        </Grid>
+    </Grid>
+</Window>
