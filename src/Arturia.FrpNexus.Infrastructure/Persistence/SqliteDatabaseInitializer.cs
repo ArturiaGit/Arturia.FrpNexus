@@ -30,7 +30,8 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
                 frp_status TEXT NOT NULL,
                 frp_version TEXT NOT NULL,
                 uptime TEXT NOT NULL,
-                config_path TEXT NOT NULL
+                config_path TEXT NOT NULL,
+                last_connection_tested_at TEXT NULL
             );
 
             CREATE TABLE IF NOT EXISTS tunnels (
@@ -74,5 +75,36 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+
+        await EnsureColumnAsync(
+            connection,
+            "nodes",
+            "last_connection_tested_at",
+            "ALTER TABLE nodes ADD COLUMN last_connection_tested_at TEXT NULL;",
+            cancellationToken);
+    }
+
+    private static async Task EnsureColumnAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        string tableName,
+        string columnName,
+        string alterStatement,
+        CancellationToken cancellationToken)
+    {
+        await using var inspectCommand = connection.CreateCommand();
+        inspectCommand.CommandText = $"PRAGMA table_info({tableName});";
+
+        await using var reader = await inspectCommand.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        await using var alterCommand = connection.CreateCommand();
+        alterCommand.CommandText = alterStatement;
+        await alterCommand.ExecuteNonQueryAsync(cancellationToken);
     }
 }

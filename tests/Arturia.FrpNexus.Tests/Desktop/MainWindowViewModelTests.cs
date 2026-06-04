@@ -14,6 +14,7 @@ using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Arturia.FrpNexus.Infrastructure.Configurations;
 using Arturia.FrpNexus.Infrastructure.Deployments;
 using Arturia.FrpNexus.Infrastructure.Runtime;
+using Arturia.FrpNexus.Infrastructure.Ssh;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -160,6 +161,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<SqliteRuntimeRecordService>(serviceProvider.GetRequiredService<IRuntimeRecordService>());
         Assert.IsType<SqliteDeploymentRecordService>(serviceProvider.GetRequiredService<IDeploymentRecordService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
+        Assert.IsType<SshConnectionService>(serviceProvider.GetRequiredService<ISshConnectionService>());
     }
 
     [Fact]
@@ -198,7 +200,7 @@ public sealed class MainWindowViewModelTests
 
     private static NodesPageViewModel CreateNodesPageViewModel()
     {
-        return new NodesPageViewModel(new FakeNodeManagementService());
+        return new NodesPageViewModel(new FakeNodeManagementService(), new FakeSshConnectionService());
     }
 
     private static TunnelsPageViewModel CreateTunnelsPageViewModel()
@@ -273,6 +275,38 @@ public sealed class MainWindowViewModelTests
         {
             _nodes.RemoveAll(node => node.Name == nodeName);
             return Task.CompletedTask;
+        }
+
+        public Task UpdateConnectionTestResultAsync(
+            string nodeName,
+            FrpNexusStatus status,
+            DateTimeOffset testedAt,
+            CancellationToken cancellationToken = default)
+        {
+            var index = _nodes.FindIndex(node => node.Name == nodeName);
+            if (index >= 0)
+            {
+                var node = _nodes[index];
+                _nodes[index] = node with
+                {
+                    ConnectionStatus = status,
+                    LastConnectionTestedAt = testedAt
+                };
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeSshConnectionService : ISshConnectionService
+    {
+        public Task<SshConnectionTestResult> TestConnectionAsync(SshConnectionTestRequest request, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SshConnectionTestResult(
+                request.Node.Name,
+                FrpNexusStatus.Online,
+                DateTimeOffset.UtcNow,
+                "SSH 连接测试成功。"));
         }
     }
 

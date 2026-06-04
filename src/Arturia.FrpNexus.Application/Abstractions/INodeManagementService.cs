@@ -11,4 +11,10 @@ public interface INodeManagementService
     Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default);
 
     Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default);
+
+    Task UpdateConnectionTestResultAsync(
+        string nodeName,
+        FrpNexusStatus status,
+        DateTimeOffset testedAt,
+        CancellationToken cancellationToken = default);
 }

@@ -11,4 +11,5 @@ public sealed record NodeProfile(
     FrpNexusStatus FrpStatus,
     string FrpVersion,
     string Uptime,
-    string ConfigPath);
+    string ConfigPath,
+    DateTimeOffset? LastConnectionTestedAt = null);

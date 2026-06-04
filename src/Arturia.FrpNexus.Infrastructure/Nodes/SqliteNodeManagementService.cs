@@ -27,7 +27,8 @@ public sealed class SqliteNodeManagementService(
                    frp_status,
                    frp_version,
                    uptime,
-                   config_path
+                   config_path,
+                   last_connection_tested_at
             FROM nodes
             ORDER BY name;
             """;
@@ -62,7 +63,8 @@ public sealed class SqliteNodeManagementService(
                    frp_status,
                    frp_version,
                    uptime,
-                   config_path
+                   config_path,
+                   last_connection_tested_at
             FROM nodes
             WHERE name = $name;
             """;
@@ -94,7 +96,8 @@ public sealed class SqliteNodeManagementService(
                 frp_status,
                 frp_version,
                 uptime,
-                config_path
+                config_path,
+                last_connection_tested_at
             )
             VALUES (
                 $name,
@@ -107,7 +110,8 @@ public sealed class SqliteNodeManagementService(
                 $frp_status,
                 $frp_version,
                 $uptime,
-                $config_path
+                $config_path,
+                $last_connection_tested_at
             )
             ON CONFLICT(name) DO UPDATE SET
                 host = excluded.host,
@@ -119,7 +123,8 @@ public sealed class SqliteNodeManagementService(
                 frp_status = excluded.frp_status,
                 frp_version = excluded.frp_version,
                 uptime = excluded.uptime,
-                config_path = excluded.config_path;
+                config_path = excluded.config_path,
+                last_connection_tested_at = excluded.last_connection_tested_at;
             """;
 
         command.Parameters.AddWithValue("$name", node.Name);
@@ -133,6 +138,32 @@ public sealed class SqliteNodeManagementService(
         command.Parameters.AddWithValue("$frp_version", node.FrpVersion);
         command.Parameters.AddWithValue("$uptime", node.Uptime);
         command.Parameters.AddWithValue("$config_path", node.ConfigPath);
+        command.Parameters.AddWithValue("$last_connection_tested_at", node.LastConnectionTestedAt?.ToString("O") ?? (object)DBNull.Value);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task UpdateConnectionTestResultAsync(
+        string nodeName,
+        FrpNexusStatus status,
+        DateTimeOffset testedAt,
+        CancellationToken cancellationToken = default)
+    {
+        await databaseInitializer.InitializeAsync(cancellationToken);
+
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE nodes
+            SET connection_status = $connection_status,
+                last_connection_tested_at = $last_connection_tested_at
+            WHERE name = $name;
+            """;
+        command.Parameters.AddWithValue("$name", nodeName);
+        command.Parameters.AddWithValue("$connection_status", status.ToString());
+        command.Parameters.AddWithValue("$last_connection_tested_at", testedAt.ToString("O"));
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -164,7 +195,8 @@ public sealed class SqliteNodeManagementService(
             ParseStatus(reader.GetString(7)),
             reader.GetString(8),
             reader.GetString(9),
-            reader.GetString(10));
+            reader.GetString(10),
+            TryReadDateTimeOffset(reader, 11));
     }
 
     private static FrpNexusStatus ParseStatus(string value)
@@ -172,5 +204,17 @@ public sealed class SqliteNodeManagementService(
         return Enum.TryParse<FrpNexusStatus>(value, ignoreCase: true, out var status)
             ? status
             : FrpNexusStatus.Pending;
+    }
+
+    private static DateTimeOffset? TryReadDateTimeOffset(Microsoft.Data.Sqlite.SqliteDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+        {
+            return null;
+        }
+
+        return DateTimeOffset.TryParse(reader.GetString(ordinal), out var value)
+            ? value
+            : null;
     }
 }

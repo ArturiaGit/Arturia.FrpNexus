@@ -62,14 +62,28 @@ public sealed class PhaseOneNodeManagementService : INodeManagementService
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
+
+    public Task UpdateConnectionTestResultAsync(
+        string nodeName,
+        FrpNexusStatus status,
+        DateTimeOffset testedAt,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class PhaseOneSshConnectionService : ISshConnectionService
 {
-    public Task TestConnectionAsync(string nodeName, CancellationToken cancellationToken = default)
+    public Task<SshConnectionTestResult> TestConnectionAsync(SshConnectionTestRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return Task.FromResult(new SshConnectionTestResult(
+            request.Node.Name,
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            "SSH 连接测试占位服务尚未接入。"));
     }
 }
 

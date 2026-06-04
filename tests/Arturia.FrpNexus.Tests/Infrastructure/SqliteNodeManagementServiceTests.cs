@@ -56,6 +56,25 @@ public sealed class SqliteNodeManagementServiceTests
     }
 
     [Fact]
+    public async Task UpdateConnectionTestResultAsync_ShouldPersistSafeMetadata()
+    {
+        var service = CreateService();
+        var node = CreateNode("连接测试节点");
+        var testedAt = DateTimeOffset.Parse("2026-06-04T12:00:00+00:00");
+
+        await service.SaveNodeAsync(node);
+        await service.UpdateConnectionTestResultAsync(node.Name, FrpNexusStatus.Online, testedAt);
+
+        var actual = await service.GetNodeAsync(node.Name);
+
+        Assert.NotNull(actual);
+        Assert.Equal(FrpNexusStatus.Online, actual.ConnectionStatus);
+        Assert.Equal(testedAt, actual.LastConnectionTestedAt);
+        Assert.DoesNotContain("PASSWORD", actual.Authentication, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PRIVATE_KEY_CONTENT", actual.Authentication, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void NodeProfile_ShouldNotExposeSensitiveCredentialFields()
     {
         var properties = typeof(NodeProfile)
@@ -66,6 +85,7 @@ public sealed class SqliteNodeManagementServiceTests
         Assert.DoesNotContain(properties, property => property.Contains("Password", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("PrivateKeyContent", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(properties, property => property.Contains("Passphrase", StringComparison.OrdinalIgnoreCase));
     }
 
     private static SqliteNodeManagementService CreateService()

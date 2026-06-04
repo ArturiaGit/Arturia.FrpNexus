@@ -5,6 +5,7 @@ using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Arturia.FrpNexus.Infrastructure.Settings;
+using Arturia.FrpNexus.Infrastructure.Ssh;
 using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IConfigurationVersionService, SqliteConfigurationVersionService>();
         services.AddSingleton<IRuntimeRecordService, SqliteRuntimeRecordService>();
         services.AddSingleton<IDeploymentRecordService, SqliteDeploymentRecordService>();
+        services.AddSingleton<ISshClientAdapter, SshNetClientAdapter>();
+        services.AddSingleton<ISshConnectionService, SshConnectionService>();
 
         return services;
     }

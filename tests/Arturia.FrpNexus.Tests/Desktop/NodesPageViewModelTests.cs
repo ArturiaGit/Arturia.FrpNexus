@@ -13,7 +13,7 @@ public sealed class NodesPageViewModelTests
         [
             new("本地测试节点", "127.0.0.1", 22, "deploy", "密钥 (LOCAL_TEST)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
 
         await viewModel.LoadNodesAsync();
 
@@ -26,7 +26,7 @@ public sealed class NodesPageViewModelTests
     public async Task LoadNodesAsync_ShouldSeedSafeSampleNodesWhenDatabaseIsEmpty()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
 
         await viewModel.LoadNodesAsync();
 
@@ -42,7 +42,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldCreateNodeAndRefreshList()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -69,7 +69,7 @@ public sealed class NodesPageViewModelTests
         [
             new("上海-生产节点", "203.0.113.21", 22, "deploy", "密钥 (ID_RSA_SH)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "2h", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
         await viewModel.LoadNodesAsync();
 
         viewModel.SelectedNode = viewModel.Nodes.Single();
@@ -93,7 +93,7 @@ public sealed class NodesPageViewModelTests
         [
             new("待删除节点", "203.0.113.30", 22, "deploy", "密钥 (LOCAL_KEY)", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
         await viewModel.LoadNodesAsync();
         viewModel.SelectedNode = viewModel.Nodes.Single();
 
@@ -116,7 +116,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldRejectInvalidForm(string name, string host, string userName, string port, string expectedError)
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
         viewModel.StartCreateNodeCommand.Execute(null);
         viewModel.FormName = name;
         viewModel.FormHost = host;
@@ -133,7 +133,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldNotIntroduceSensitiveCredentialFields()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
         viewModel.StartCreateNodeCommand.Execute(null);
         viewModel.FormName = "安全边界节点";
         viewModel.FormHost = "203.0.113.50";
@@ -148,6 +148,46 @@ public sealed class NodesPageViewModelTests
         Assert.DoesNotContain("密码", saved.Authentication, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Token", saved.Authentication, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("私钥内容", saved.Authentication, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TestSelectedNodeConnectionCommand_ShouldUseSessionCredentialAndClearSecret()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("连接测试节点", "203.0.113.60", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
+        ]);
+        var sshService = new FakeSshConnectionService();
+        var viewModel = new NodesPageViewModel(service, sshService);
+        await viewModel.LoadNodesAsync();
+        viewModel.SelectedSshAuthenticationMode = "SessionPassword";
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.TestSelectedNodeConnectionCommand.ExecuteAsync(null);
+
+        Assert.Equal("SSH 连接测试成功。", viewModel.ConnectionTestStatusText);
+        Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.Equal(SshAuthenticationMode.SessionPassword, sshService.LastRequest?.Credential.AuthenticationMode);
+        Assert.Equal("连接测试节点", sshService.LastRequest?.Node.Name);
+        Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("SESSION_PASSWORD_PLACEHOLDER", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task TestSelectedNodeConnectionCommand_ShouldRejectMissingSessionPassword()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("连接测试节点", "203.0.113.60", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
+        ]);
+        var sshService = new FakeSshConnectionService();
+        var viewModel = new NodesPageViewModel(service, sshService);
+        await viewModel.LoadNodesAsync();
+        viewModel.SelectedSshAuthenticationMode = "SessionPassword";
+
+        await viewModel.TestSelectedNodeConnectionCommand.ExecuteAsync(null);
+
+        Assert.Equal("请输入本次会话使用的 SSH 密码，密码不会保存到 SQLite。", viewModel.ConnectionTestStatusText);
+        Assert.Null(sshService.LastRequest);
     }
 
     private sealed class FakeNodeManagementService(IReadOnlyList<NodeProfile> nodes) : INodeManagementService
@@ -177,6 +217,41 @@ public sealed class NodesPageViewModelTests
         {
             _nodes.RemoveAll(node => node.Name == nodeName);
             return Task.CompletedTask;
+        }
+
+        public Task UpdateConnectionTestResultAsync(
+            string nodeName,
+            FrpNexusStatus status,
+            DateTimeOffset testedAt,
+            CancellationToken cancellationToken = default)
+        {
+            var index = _nodes.FindIndex(node => node.Name == nodeName);
+            if (index >= 0)
+            {
+                var node = _nodes[index];
+                _nodes[index] = node with
+                {
+                    ConnectionStatus = status,
+                    LastConnectionTestedAt = testedAt
+                };
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeSshConnectionService : ISshConnectionService
+    {
+        public SshConnectionTestRequest? LastRequest { get; private set; }
+
+        public Task<SshConnectionTestResult> TestConnectionAsync(SshConnectionTestRequest request, CancellationToken cancellationToken = default)
+        {
+            LastRequest = request;
+            return Task.FromResult(new SshConnectionTestResult(
+                request.Node.Name,
+                FrpNexusStatus.Online,
+                DateTimeOffset.UtcNow,
+                "SSH 连接测试成功。"));
         }
     }
 }

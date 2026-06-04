@@ -2,21 +2,22 @@
 
 ## Active Phase
 
-Current phase: `Phase 2: SQLite Local Persistence + Settings Persistence`
+Current phase: `Phase 3: Remote Operations And Diagnostics`
 
 ## Allowed In This Phase
 
 Allowed work:
 
-- SQLite local persistence infrastructure.
-- Infrastructure project setup.
-- Settings persistence through `Application` interfaces and `Infrastructure` implementations.
-- Node, tunnel, configuration version, runtime record, and deployment record persistence through `Application` interfaces and `Infrastructure` implementations.
-- Local TOML generation and validation without remote upload or remote execution.
-- Local database path management under `%LocalAppData%/Arturia/FrpNexus/data/`.
-- Safe default settings for first run.
-- Unit tests for persistence path, initialization, read/write, and DI registration.
-- Documentation and Todo updates for Phase 2.
+- Credential-safe SSH connection testing.
+- Session-only credential input for passwords and private key passphrases.
+- SFTP upload through `Application` interfaces and `Infrastructure` implementations.
+- FRP release download and local binary preparation.
+- Remote start, stop, restart, and process status checks.
+- Remote log reading and diagnostics.
+- Persisting only safe runtime, deployment, and connection result metadata locally.
+- Unit tests with fake remote adapters; normal tests must remain offline and deterministic.
+- Opt-in integration tests only when explicitly configured.
+- Documentation and Todo updates for Phase 3.
 
 ## Required MVP Direction
 
@@ -35,11 +36,12 @@ The implementation should prepare for:
 
 Do not implement:
 
-- Real SSH connection testing.
-- Real SFTP upload.
-- Real FRP release download.
-- Real remote start, stop, or restart.
-- Real remote log streaming.
+- Persistent storage of SSH passwords, tokens, private key contents, or private key passphrases.
+- Logging of SSH passwords, tokens, private key contents, private key passphrases, or secret-bearing command lines.
+- Real SFTP upload before SSH credential strategy and SSH test are in place.
+- Real FRP release download before SSH test is stable.
+- Real remote start, stop, or restart before SFTP and deployment records are ready.
+- Real remote log streaming before remote runtime control is stable.
 - FrpNexus Agent.
 - Agent API.
 - Cloud sync.
@@ -55,14 +57,14 @@ Do not implement:
 
 If a requested change conflicts with this file, Codex must state that it is outside the current phase before proposing or implementing it.
 
-## Phase 2 Completion Gate
+## Phase 3 Completion Direction
 
-Phase 2 is considered ready to close when:
+Phase 3 should move toward a complete remote FRP operations workflow:
 
-- Settings, nodes, tunnels, configuration versions, runtime records, and deployment records all persist through SQLite.
-- Desktop view models access local persistence only through `Application` interfaces.
-- TOML generation and local validation work without remote side effects.
+- SSH connection testing works through `ISshConnectionService`.
+- SFTP can upload FRP binaries and TOML configuration.
+- FRP release preparation can select a suitable local binary.
+- Runtime controls can start, stop, restart, and inspect remote FRP processes.
+- Logs can be read remotely with safe diagnostics.
+- Sensitive credentials never enter SQLite, logs, screenshots, or test snapshots.
 - `dotnet build` and full `dotnet test` pass.
-- No real SSH, SFTP, FRP download, remote process control, or remote log streaming has been introduced.
-
-After this gate is satisfied, remote capabilities should begin in Phase 3 only after an explicit phase transition.

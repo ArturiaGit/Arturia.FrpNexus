@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.NodesPageView"
@@ -104,10 +105,39 @@
                               RowDefinitions="Auto,Auto"
                               ColumnSpacing="8"
                               RowSpacing="8">
-                            <Button Classes="secondary" HorizontalAlignment="Stretch" Content="测试连接" />
+                            <Button Classes="secondary"
+                                    HorizontalAlignment="Stretch"
+                                    Content="测试连接"
+                                    Command="{Binding TestSelectedNodeConnectionCommand}" />
                             <Button Grid.Column="1" Classes="secondary" HorizontalAlignment="Stretch" Content="上传核心" />
                             <Button Grid.Row="1" Grid.ColumnSpan="2" Classes="secondary" Content="重启 FRP 进程" />
                         </Grid>
+
+                        <Border Classes="subtle-panel" Padding="12">
+                            <StackPanel Classes="info-section">
+                                <TextBlock Classes="group-label" Text="SSH 测试凭据" />
+                                <TextBlock Classes="helper"
+                                           TextWrapping="Wrap"
+                                           Text="凭据仅用于本次连接测试。密码、私钥内容和 passphrase 不会写入 SQLite。" />
+                                <ComboBox SelectedItem="{Binding SelectedSshAuthenticationMode}">
+                                    <sys:String>SessionPassword</sys:String>
+                                    <sys:String>PrivateKey</sys:String>
+                                    <sys:String>SshAgent</sys:String>
+                                </ComboBox>
+                                <TextBox Classes="code"
+                                         PlaceholderText="私钥文件路径，例如 C:\Users\you\.ssh\id_rsa"
+                                         Text="{Binding SshPrivateKeyPath}" />
+                                <TextBox PasswordChar="*"
+                                         PlaceholderText="会话密码，仅本次使用"
+                                         Text="{Binding SshSessionPassword}" />
+                                <TextBox PasswordChar="*"
+                                         PlaceholderText="私钥 passphrase，仅本次使用"
+                                         Text="{Binding SshPrivateKeyPassphrase}" />
+                                <TextBlock Classes="helper"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding ConnectionTestStatusText}" />
+                            </StackPanel>
+                        </Border>
 
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Right"

@@ -2,7 +2,7 @@
 
 This document turns the product plan, current phase, and Stitch UI direction into executable Todo items. It is a coordination document for Codex and the user, not a substitute for `docs/CURRENT_PHASE.md`.
 
-Current phase: `Phase 2: SQLite Local Persistence + Settings Persistence`.
+Current phase: `Phase 3: Remote Operations And Diagnostics`.
 
 ## Todo Status
 
@@ -358,9 +358,9 @@ Phase 2 focuses on local SQLite persistence and local MVP behavior after the UI 
 
 Phase 3 should focus on runtime operations and diagnostics. The detailed implementation sequence is defined in `docs/PHASE_3_PLAN.md`.
 
-- [ ] Confirm Phase 3 entry gate in `docs/PHASE_3_PLAN.md`.
-- [ ] Review and approve `docs/CREDENTIAL_STRATEGY.md` before real SSH work.
-- [ ] Implement SSH connection testing service.
+- [x] Confirm Phase 3 entry gate in `docs/PHASE_3_PLAN.md`.
+- [x] Review and approve `docs/CREDENTIAL_STRATEGY.md` before real SSH work.
+- [x] Implement SSH connection testing service.
 - [ ] Implement SFTP upload service.
 - [ ] Implement FRP release download and binary selection.
 - [ ] Implement remote start, stop, and restart.
@@ -374,21 +374,21 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 ### Phase 3 First Iteration Todo
 
 - [x] Commit Phase 2 local persistence closure before starting remote work.
-- [ ] Update `docs/CURRENT_PHASE.md` to Phase 3 after explicit user confirmation.
-- [ ] Confirm Phase 3 entry gate from `docs/PHASE_3_PLAN.md`.
-- [ ] Review and approve `docs/CREDENTIAL_STRATEGY.md`.
-- [ ] Review `ISshConnectionService`; replace `nodeName`-only input if real SSH requires credential context.
-- [ ] Add a session-only credential input path that does not persist passwords, tokens, private key contents, or passphrases.
-- [ ] Implement SSH connection testing in Infrastructure behind `ISshConnectionService`.
-- [ ] Wire Nodes page `测试连接` to an async ViewModel command.
-- [ ] Persist only safe connection result metadata, such as status and timestamp.
-- [ ] Convert SSH failures into Chinese user-facing status text.
-- [ ] Add unit tests with fake SSH adapters.
-- [ ] Keep normal tests offline and deterministic.
-- [ ] Add opt-in integration-test hooks only if explicitly configured.
-- [ ] Verify sensitive fields are not stored in SQLite, logs, or test snapshots.
-- [ ] Run `dotnet build`.
-- [ ] Run full `dotnet test`.
+- [x] Update `docs/CURRENT_PHASE.md` to Phase 3 after explicit user confirmation.
+- [x] Confirm Phase 3 entry gate from `docs/PHASE_3_PLAN.md`.
+- [x] Review and approve `docs/CREDENTIAL_STRATEGY.md`.
+- [x] Review `ISshConnectionService`; replace `nodeName`-only input if real SSH requires credential context.
+- [x] Add a session-only credential input path that does not persist passwords, tokens, private key contents, or passphrases.
+- [x] Implement SSH connection testing in Infrastructure behind `ISshConnectionService`.
+- [x] Wire Nodes page `测试连接` to an async ViewModel command.
+- [x] Persist only safe connection result metadata, such as status and timestamp.
+- [x] Convert SSH failures into Chinese user-facing status text.
+- [x] Add unit tests with fake SSH adapters.
+- [x] Keep normal tests offline and deterministic.
+- [x] Add opt-in integration-test hooks only if explicitly configured.
+- [x] Verify sensitive fields are not stored in SQLite, logs, or test snapshots.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
 
 ## Phase 4 Route Todo
 
