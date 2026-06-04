@@ -3,6 +3,7 @@
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.TunnelsPageView"
+             x:Name="Root"
              x:DataType="pages:TunnelsPageViewModel">
     <Grid RowDefinitions="Auto,*"
           RowSpacing="12">
@@ -33,41 +34,136 @@
                 <Button DockPanel.Dock="Right"
                         Classes="primary"
                         VerticalAlignment="Center"
-                        Content="新建隧道" />
+                        Content="新建隧道"
+                        Command="{Binding StartCreateTunnelCommand}" />
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="1" Classes="panel">
-            <Grid RowDefinitions="*,40">
-                <DataGrid ItemsSource="{Binding Tunnels}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="隧道名称" Binding="{Binding Name}" Width="2*" />
-                        <DataGridTemplateColumn Header="协议" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <controls:ProtocolBadgeControl DataContext="{Binding Protocol}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="关联节点" Binding="{Binding NodeName}" Width="2*" />
-                        <DataGridTextColumn Header="本地端口" Binding="{Binding LocalPort}" Width="*" />
-                        <DataGridTextColumn Header="远程端口/域名" Binding="{Binding RemoteEndpoint}" Width="2*" />
-                        <DataGridTemplateColumn Header="状态" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <controls:StatusBadgeControl DataContext="{Binding Status}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-                <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
-                    <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="{Binding TunnelCountText}" />
-                    <TextBlock DockPanel.Dock="Right" Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="1 / 1" />
-                </DockPanel>
-            </Grid>
-        </Border>
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,320"
+              ColumnSpacing="16">
+            <Border Classes="panel">
+                <Grid RowDefinitions="*,40">
+                    <DataGrid ItemsSource="{Binding Tunnels}"
+                              SelectedItem="{Binding SelectedTunnel}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="隧道名称" Binding="{Binding Name}" Width="2*" />
+                            <DataGridTemplateColumn Header="协议" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <controls:ProtocolBadgeControl DataContext="{Binding Protocol}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="关联节点" Binding="{Binding NodeName}" Width="2*" />
+                            <DataGridTextColumn Header="本地端口" Binding="{Binding LocalPort}" Width="*" />
+                            <DataGridTextColumn Header="远程端点" Binding="{Binding RemoteEndpoint}" Width="2*" />
+                            <DataGridTemplateColumn Header="状态" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <controls:StatusBadgeControl DataContext="{Binding Status}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="操作" Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Classes="secondary compact"
+                                                Content="编辑"
+                                                Command="{Binding #Root.DataContext.StartEditSelectedTunnelCommand}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
+                        <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="{Binding TunnelCountText}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="1 / 1" />
+                    </DockPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Classes="panel"
+                    IsVisible="{Binding IsEditorOpen}">
+                <ScrollViewer>
+                    <StackPanel Margin="16"
+                                Spacing="12">
+                        <TextBlock Classes="section-title"
+                                   Text="{Binding EditorTitle}" />
+                        <TextBlock Classes="helper"
+                                   Text="仅保存本地 SQLite 记录，不执行远程校验、配置生成或部署。" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="隧道名称" />
+                            <TextBox Text="{Binding FormName}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="协议" />
+                            <ComboBox ItemsSource="{Binding ProtocolOptions}"
+                                      SelectedItem="{Binding FormProtocol}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="关联节点" />
+                            <TextBox Text="{Binding FormNodeName}" />
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="*,112"
+                              ColumnSpacing="8">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="helper" Text="本地地址" />
+                                <TextBox Classes="code"
+                                         Text="{Binding FormLocalAddress}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Spacing="6">
+                                <TextBlock Classes="helper" Text="本地端口" />
+                                <TextBox Classes="code"
+                                         Text="{Binding FormLocalPort}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="远程端点" />
+                            <TextBox Classes="code"
+                                     Text="{Binding FormRemoteEndpoint}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="状态说明" />
+                            <TextBox Text="{Binding FormStatusDetail}" />
+                        </StackPanel>
+
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource Brush.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding FormErrorText}" />
+
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <Button Classes="secondary"
+                                    Content="取消"
+                                    Command="{Binding CancelEditCommand}" />
+                            <Button Classes="primary"
+                                    Content="保存"
+                                    Command="{Binding SaveTunnelCommand}" />
+                        </StackPanel>
+
+                        <Border Classes="settings-divider" />
+
+                        <Button Classes="secondary"
+                                HorizontalAlignment="Right"
+                                Foreground="{StaticResource Brush.Error}"
+                                Content="{Binding DeleteButtonText}"
+                                Command="{Binding DeleteSelectedTunnelCommand}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

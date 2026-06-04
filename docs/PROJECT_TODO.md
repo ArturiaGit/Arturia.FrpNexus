@@ -266,6 +266,18 @@ Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 2 Fifth Iteration Todo
+
+- [x] Add local create, edit, and delete commands for Tunnels page.
+- [x] Keep tunnel CRUD limited to SQLite local records through `ITunnelManagementService`.
+- [x] Add a MVVM-friendly inline editor panel for local tunnel records.
+- [x] Validate required tunnel fields and local port range before saving.
+- [x] Require local delete confirmation before removing a tunnel record.
+- [x] Keep remote port checks, TOML generation, upload, and deployment out of this iteration.
+- [x] Add ViewModel tests for create, edit, delete, validation, and MVP protocols.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 3 Route Todo
 
 Phase 3 should focus on runtime operations and diagnostics.
