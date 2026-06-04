@@ -6,7 +6,7 @@ Phase 4 refines FrpNexus into a preview-ready Windows desktop tool. It begins af
 
 Phase 4 should polish the existing MVP workflow rather than expand the product into new platforms or enterprise features.
 
-1. Produce a repeatable Windows x64 release package.
+1. Keep the Windows x64 release packaging foundation ready, but defer actual preview package publishing until the product workflow is fully closed.
 2. Improve reliability for local persistence and remote operation workflows.
 3. Add safe import, export, and backup workflows.
 4. Skip keyboard navigation and accessibility for the current MVP by user decision.
@@ -29,6 +29,7 @@ Phase 4 should polish the existing MVP workflow rather than expand the product i
 - Add a Windows x64 folder-based publish script.
 - Document release command, output layout, manual upgrade, and release checks.
 - Keep installer, MSIX, automatic updates, and single-file publishing out of this iteration.
+- Do not publish or share a preview package until the project has a complete end-to-end workflow closure.
 
 ### Phase 4 Second Iteration: Reliability Audit
 
@@ -59,9 +60,9 @@ Phase 4 should polish the existing MVP workflow rather than expand the product i
 
 - Run `dotnet build`.
 - Run full `dotnet test`.
-- Run packaging scripts on Windows.
-- Inspect release output for expected executable files.
-- Confirm release output excludes tests, user databases, logs, credentials, private keys, and FRP caches.
+- Keep the packaging script available for future release verification.
+- Do not run packaging scripts as part of the current Phase 4 closure unless the user explicitly re-enables preview publishing.
+- When preview publishing is re-enabled later, inspect release output for expected executable files and confirm it excludes tests, user databases, logs, credentials, private keys, and FRP caches.
 - Add or update tests when reliability, import/export, or ViewModel behavior changes.
 
 ## Phase 4 Entry Gate

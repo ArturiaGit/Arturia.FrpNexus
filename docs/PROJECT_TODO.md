@@ -409,6 +409,7 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Improve import/export and backup workflows.
 - [ ] Consider legacy INI import/export only after TOML MVP is stable.
 - [x] Evaluate optional themes only after the default WinUI 3 / Fluent style is stable.
+- [blocked] Publish preview release package. Deferred by user decision until the full product workflow is closed.
 
 ### Phase 4 First Iteration Todo
 
@@ -421,7 +422,7 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Confirm release package excludes user SQLite data, logs, credentials, private keys, FRP caches, and tests.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
-- [x] Run Windows x64 publish verification.
+- [blocked] Run Windows x64 publish verification. Deferred by user decision; do not generate preview release artifacts during Phase 4 closure.
 
 ### Phase 4 Second Iteration Todo
 
@@ -462,6 +463,16 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Add tests for loading and saving Light, Dark, and System theme values.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
+
+### Phase 4 Closure Todo
+
+- [x] Document Phase 4 completed scope in `docs/PHASE_4_SUMMARY.md`.
+- [x] Document that preview release publishing is deferred until the product workflow is fully closed.
+- [x] Keep packaging script and release packaging documentation as future release infrastructure only.
+- [x] Keep keyboard navigation and accessibility skipped by user decision.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+- [blocked] Do not run `scripts/publish-win-x64.ps1` or create preview artifacts during this closure.
 
 ## Current Phase Prohibited Items
 
