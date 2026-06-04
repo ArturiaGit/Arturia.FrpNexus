@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Desktop.Theming;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -13,6 +15,7 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 public sealed partial class SettingsPageViewModel : PageViewModel
 {
     private readonly ISettingsService _settingsService;
+    private readonly IThemeService _themeService;
 
     private static readonly SettingsOptionViewModel[] ThemeOptionValues =
     [
@@ -67,10 +70,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     [ObservableProperty]
     private string _saveStatusText = "设置会保存到本地 SQLite 数据库";
 
-    public SettingsPageViewModel(ISettingsService settingsService)
+    public SettingsPageViewModel(ISettingsService settingsService, IThemeService themeService)
         : base("设置", "配置界面偏好、FRP 下载源、本地路径和 SSH 密钥")
     {
         _settingsService = settingsService;
+        _themeService = themeService;
 
         SshKeys =
         [
@@ -91,7 +95,21 @@ public sealed partial class SettingsPageViewModel : PageViewModel
 
     public async Task LoadSettingsAsync(CancellationToken cancellationToken = default)
     {
-        var settings = await _settingsService.GetSettingsAsync(cancellationToken);
+        FrpNexusSettingsSnapshot settings;
+        try
+        {
+            settings = await _settingsService.GetSettingsAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            SaveStatusText = "设置加载已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            SaveStatusText = ViewModelErrorText.ForUser("设置加载", ex);
+            return;
+        }
 
         Theme = settings.Theme;
         SelectedThemeOption = FindOption(ThemeOptions, settings.Theme);
@@ -103,6 +121,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         ConfigDirectory = settings.ConfigDirectory;
         LogDirectory = settings.LogDirectory;
         SqliteDatabasePath = settings.SqliteDatabasePath;
+        _themeService.ApplyTheme(Theme);
         SaveStatusText = "已加载本地设置";
     }
 
@@ -118,9 +137,20 @@ public sealed partial class SettingsPageViewModel : PageViewModel
             LogDirectory,
             SqliteDatabasePath);
 
-        await _settingsService.SaveSettingsAsync(settings);
-
-        SaveStatusText = "设置已保存到本地 SQLite";
+        try
+        {
+            await _settingsService.SaveSettingsAsync(settings);
+            _themeService.ApplyTheme(Theme);
+            SaveStatusText = "设置已保存到本地 SQLite，主题已应用";
+        }
+        catch (OperationCanceledException)
+        {
+            SaveStatusText = "设置保存已取消。";
+        }
+        catch (Exception ex)
+        {
+            SaveStatusText = ViewModelErrorText.ForUser("设置保存", ex);
+        }
     }
 
     partial void OnSelectedThemeOptionChanged(SettingsOptionViewModel value)

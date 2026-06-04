@@ -2,10 +2,12 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Arturia.FrpNexus.Desktop.Composition;
+using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System;
 
 namespace Arturia.FrpNexus.Desktop;
 
@@ -21,6 +23,7 @@ public partial class App : Avalonia.Application
     public override void OnFrameworkInitializationCompleted()
     {
         _serviceProvider = DesktopCompositionRoot.BuildServiceProvider();
+        _ = InitializeThemeAsync();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -31,6 +34,23 @@ public partial class App : Avalonia.Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private async System.Threading.Tasks.Task InitializeThemeAsync()
+    {
+        if (_serviceProvider is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _serviceProvider.GetRequiredService<IThemeService>().InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            _serviceProvider.GetService<ILogger>()?.Warning(ex, "Failed to initialize application theme.");
+        }
     }
 
     private void OnDesktopExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)

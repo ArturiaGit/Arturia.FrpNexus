@@ -5,6 +5,7 @@ using Arturia.FrpNexus.Desktop;
 using Arturia.FrpNexus.Desktop.Composition;
 using Arturia.FrpNexus.Desktop.Converters;
 using Arturia.FrpNexus.Desktop.Logging;
+using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views.Pages;
@@ -164,6 +165,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<SqliteRuntimeRecordService>(serviceProvider.GetRequiredService<IRuntimeRecordService>());
         Assert.IsType<SqliteDeploymentRecordService>(serviceProvider.GetRequiredService<IDeploymentRecordService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IThemeService>());
         Assert.IsType<SshConnectionService>(serviceProvider.GetRequiredService<ISshConnectionService>());
         Assert.IsType<RemoteFileTransferService>(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
         Assert.IsType<FrpReleaseService>(serviceProvider.GetRequiredService<IFrpReleaseService>());
@@ -236,7 +238,7 @@ public sealed class MainWindowViewModelTests
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
     {
-        return new SettingsPageViewModel(new FakeSettingsService());
+        return new SettingsPageViewModel(new FakeSettingsService(), new FakeThemeService());
     }
 
     private sealed class FakeSettingsService : ISettingsService
@@ -258,6 +260,18 @@ public sealed class MainWindowViewModelTests
         public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeThemeService : IThemeService
+    {
+        public Task InitializeAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public void ApplyTheme(string theme)
+        {
         }
     }
 

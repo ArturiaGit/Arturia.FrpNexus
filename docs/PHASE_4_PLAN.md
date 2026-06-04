@@ -9,8 +9,8 @@ Phase 4 should polish the existing MVP workflow rather than expand the product i
 1. Produce a repeatable Windows x64 release package.
 2. Improve reliability for local persistence and remote operation workflows.
 3. Add safe import, export, and backup workflows.
-4. Improve keyboard navigation and accessibility.
-5. Evaluate optional themes only after the default WinUI 3 / Fluent style remains stable.
+4. Skip keyboard navigation and accessibility for the current MVP by user decision.
+5. Make supported theme settings effective after the default WinUI 3 / Fluent style remains stable.
 
 ## Non-Negotiable Boundaries
 
@@ -44,16 +44,14 @@ Phase 4 should polish the existing MVP workflow rather than expand the product i
 - Provide a backup path for SQLite data without including secrets.
 - Keep SSH passwords, tokens, private key contents, and passphrases out of imports and exports.
 
-### Phase 4 Fourth Iteration: Keyboard And Accessibility
+### Phase 4 Fourth Iteration: Skipped By User Decision
 
-- Review Tab order for major pages.
-- Add accessibility names for key buttons, inputs, status badges, and data views.
-- Add common keyboard flows for save, cancel, refresh, search, and close actions where appropriate.
-- Keep UI Chinese-first and aligned with the existing Fluent style guide.
+- Do not implement shortcuts, keyboard navigation polish, AutomationProperties, or screen reader-specific polish in the current MVP.
+- Keep this as a documented skip so future work can revisit it intentionally.
 
 ### Phase 4 Fifth Iteration: Theme And UI Polish
 
-- Make supported theme settings effective if they are still placeholders.
+- Make supported theme settings effective for `Light`, `Dark`, and `System`.
 - Keep the default WinUI 3 / Fluent visual system as the baseline.
 - Evaluate optional themes only after the default light style is stable.
 

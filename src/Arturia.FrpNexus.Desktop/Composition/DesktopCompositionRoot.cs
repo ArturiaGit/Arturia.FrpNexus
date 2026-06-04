@@ -2,6 +2,7 @@ using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.Placeholders;
+using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
@@ -19,6 +20,7 @@ public static class DesktopCompositionRoot
 
         services.AddSingleton<ILogger>(_ => DesktopLogging.CreateLogger());
         services.AddFrpNexusInfrastructure();
+        services.AddSingleton<IThemeService, AvaloniaThemeService>();
 
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();

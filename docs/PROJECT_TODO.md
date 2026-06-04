@@ -405,10 +405,10 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 
 - [x] Add release packaging.
 - [x] Add update strategy if needed.
-- [ ] Improve accessibility and keyboard navigation.
+- [blocked] Improve accessibility and keyboard navigation. Skipped by user decision; not required for the current MVP acceptance.
 - [x] Improve import/export and backup workflows.
 - [ ] Consider legacy INI import/export only after TOML MVP is stable.
-- [ ] Evaluate optional themes only after the default WinUI 3 / Fluent style is stable.
+- [x] Evaluate optional themes only after the default WinUI 3 / Fluent style is stable.
 
 ### Phase 4 First Iteration Todo
 
@@ -444,6 +444,22 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Store portability implementation in Infrastructure and access it through an Application interface.
 - [x] Register portability service through Infrastructure DI.
 - [x] Add tests for export snapshot contents, JSON round trip, import upsert behavior, and sensitive-field boundaries.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 4 Fourth Iteration Todo
+
+- [blocked] Keyboard navigation and accessibility iteration skipped by user decision.
+- [blocked] Do not implement shortcuts, AutomationProperties, or screen reader-specific polish in the current MVP.
+
+### Phase 4 Fifth Iteration Todo
+
+- [x] Remove hardcoded Light theme from `App.axaml`.
+- [x] Add Desktop theme service for `Light`, `Dark`, and `System`.
+- [x] Apply persisted theme during application startup.
+- [x] Apply saved Settings theme immediately after `保存应用`.
+- [x] Keep theme implementation in Desktop UI infrastructure and avoid View code-behind business logic.
+- [x] Add tests for loading and saving Light, Dark, and System theme values.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
