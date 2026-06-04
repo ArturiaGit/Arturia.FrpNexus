@@ -2,7 +2,7 @@
 
 This document turns the product plan, current phase, and Stitch UI direction into executable Todo items. It is a coordination document for Codex and the user, not a substitute for `docs/CURRENT_PHASE.md`.
 
-Current phase: `Phase 1: SSH/SFTP MVP + UI Skeleton Implementation`.
+Current phase: `Phase 2: SQLite Local Persistence + Settings Persistence`.
 
 ## Todo Status
 
@@ -209,13 +209,36 @@ Acceptance:
 
 Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 
-- [ ] Implement SQLite local persistence through `Application` interfaces and `Infrastructure` implementations.
-- [ ] Implement settings persistence.
+- [x] Implement SQLite local persistence through `Application` interfaces and `Infrastructure` implementations.
+- [x] Implement settings persistence.
 - [ ] Implement SSH connection testing service.
 - [ ] Implement SFTP upload service.
 - [ ] Implement FRP release download and binary selection.
 - [ ] Implement TOML generation and validation workflow.
 - [ ] Add unit tests for Core, Application services, and ViewModel behavior.
+
+### Phase 2 First Iteration Todo
+
+- [x] Add `Arturia.FrpNexus.Infrastructure` project to the solution.
+- [x] Add SQLite dependency using `Microsoft.Data.Sqlite`.
+- [x] Add database path provider using `%LocalAppData%/Arturia/FrpNexus/data/frpnexus.db`.
+- [x] Add SQLite connection factory and schema initializer.
+- [x] Implement `ISettingsService` through Infrastructure.
+- [x] Register Infrastructure services through Desktop DI.
+- [x] Keep Desktop, views, and view models from directly accessing SQLite.
+- [x] Add tests for database path, first-run defaults, settings save/read, safe setting fields, and DI.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 2 Second Iteration Todo
+
+- [x] Wire Settings UI to SQLite persistence through `ISettingsService`.
+- [x] Bind Settings page controls to `SettingsPageViewModel` state instead of static XAML values.
+- [x] Bind `保存应用` to an async save command.
+- [x] Keep path picker, directory open, key import, and cache cleanup actions as placeholders.
+- [x] Add tests for loading settings, saving ordinary settings, sensitive-field boundaries, and DI resolution.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
 
 ## Phase 3 Route Todo
 

@@ -2,21 +2,19 @@
 
 ## Active Phase
 
-Current phase: `Phase 1: SSH/SFTP MVP + UI Skeleton Implementation`
+Current phase: `Phase 2: SQLite Local Persistence + Settings Persistence`
 
 ## Allowed In This Phase
 
 Allowed work:
 
-- Product and UI constraint documentation.
-- Avalonia project scaffolding.
-- Main shell layout.
-- Chinese navigation.
-- WinUI 3 / Fluent-inspired styles.
-- Static UI pages based on Stitch designs.
-- Placeholder view models and sample data.
-- UI state examples for online, offline, running, stopped, warning, and error.
-- Interfaces or placeholders for future SSH/SFTP services.
+- SQLite local persistence infrastructure.
+- Infrastructure project setup.
+- Settings persistence through `Application` interfaces and `Infrastructure` implementations.
+- Local database path management under `%LocalAppData%/Arturia/FrpNexus/data/`.
+- Safe default settings for first run.
+- Unit tests for persistence path, initialization, read/write, and DI registration.
+- Documentation and Todo updates for Phase 2.
 
 ## Required MVP Direction
 
@@ -35,6 +33,11 @@ The implementation should prepare for:
 
 Do not implement:
 
+- Real SSH connection testing.
+- Real SFTP upload.
+- Real FRP release download.
+- Real remote start, stop, or restart.
+- Real remote log streaming.
 - FrpNexus Agent.
 - Agent API.
 - Cloud sync.
@@ -49,4 +52,3 @@ Do not implement:
 ## Phase Rule
 
 If a requested change conflicts with this file, Codex must state that it is outside the current phase before proposing or implementing it.
-

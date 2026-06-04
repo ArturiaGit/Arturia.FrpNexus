@@ -7,6 +7,7 @@ using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views.Pages;
+using Arturia.FrpNexus.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -121,7 +122,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<ConfigurationsPageView>(locator.Build(new ConfigurationsPageViewModel()));
         Assert.IsType<RuntimePageView>(locator.Build(new RuntimePageViewModel()));
         Assert.IsType<LogsPageView>(locator.Build(new LogsPageViewModel()));
-        Assert.IsType<SettingsPageView>(locator.Build(new SettingsPageViewModel()));
+        Assert.IsType<SettingsPageView>(locator.Build(CreateSettingsPageViewModel()));
     }
 
     [Fact]
@@ -147,7 +148,18 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<ITomlConfigurationService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
-        Assert.NotNull(serviceProvider.GetRequiredService<ISettingsService>());
+        Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
+    }
+
+    [Fact]
+    public void DesktopCompositionRoot_ShouldResolveSettingsPageViewModelWithSettingsService()
+    {
+        using var serviceProvider = DesktopCompositionRoot.BuildServiceProvider();
+
+        var viewModel = serviceProvider.GetRequiredService<SettingsPageViewModel>();
+
+        Assert.NotNull(viewModel);
+        Assert.NotEmpty(viewModel.SshKeys);
     }
 
     [Fact]
@@ -170,6 +182,33 @@ public sealed class MainWindowViewModelTests
             new ConfigurationsPageViewModel(),
             new RuntimePageViewModel(),
             new LogsPageViewModel(),
-            new SettingsPageViewModel());
+            CreateSettingsPageViewModel());
+    }
+
+    private static SettingsPageViewModel CreateSettingsPageViewModel()
+    {
+        return new SettingsPageViewModel(new FakeSettingsService());
+    }
+
+    private sealed class FakeSettingsService : ISettingsService
+    {
+        private readonly FrpNexusSettingsSnapshot _settings = new(
+            "Light",
+            "zh-CN",
+            "GitHub Releases",
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core",
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\configs",
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db");
+
+        public Task<FrpNexusSettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_settings);
+        }
+
+        public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

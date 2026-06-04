@@ -4,6 +4,7 @@ using Arturia.FrpNexus.Desktop.Placeholders;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
+using Arturia.FrpNexus.Infrastructure.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
@@ -16,6 +17,8 @@ public static class DesktopCompositionRoot
         var services = new ServiceCollection();
 
         services.AddSingleton<ILogger>(_ => DesktopLogging.CreateLogger());
+        services.AddFrpNexusInfrastructure();
+
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();
 
@@ -26,7 +29,6 @@ public static class DesktopCompositionRoot
         services.AddSingleton<ITomlConfigurationService, PhaseOneTomlConfigurationService>();
         services.AddSingleton<IRemoteRuntimeService, PhaseOneRemoteRuntimeService>();
         services.AddSingleton<IRemoteLogService, PhaseOneRemoteLogService>();
-        services.AddSingleton<ISettingsService, PhaseOneSettingsService>();
 
         services.AddTransient<DashboardPageViewModel>();
         services.AddTransient<NodesPageViewModel>();

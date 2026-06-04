@@ -32,5 +32,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Arturia.FrpNexus.Core\Arturia.FrpNexus.Core.csproj" />
     <ProjectReference Include="..\Arturia.FrpNexus.Application\Arturia.FrpNexus.Application.csproj" />
+    <ProjectReference Include="..\Arturia.FrpNexus.Infrastructure\Arturia.FrpNexus.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
