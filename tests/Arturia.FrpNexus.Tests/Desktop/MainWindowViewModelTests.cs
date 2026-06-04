@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop;
 using Arturia.FrpNexus.Desktop.Composition;
@@ -10,6 +11,9 @@ using Arturia.FrpNexus.Desktop.Views.Pages;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Settings;
 using Arturia.FrpNexus.Infrastructure.Tunnels;
+using Arturia.FrpNexus.Infrastructure.Configurations;
+using Arturia.FrpNexus.Infrastructure.Deployments;
+using Arturia.FrpNexus.Infrastructure.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -121,8 +125,8 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<DashboardPageView>(locator.Build(new DashboardPageViewModel()));
         Assert.IsType<NodesPageView>(locator.Build(CreateNodesPageViewModel()));
         Assert.IsType<TunnelsPageView>(locator.Build(CreateTunnelsPageViewModel()));
-        Assert.IsType<ConfigurationsPageView>(locator.Build(new ConfigurationsPageViewModel()));
-        Assert.IsType<RuntimePageView>(locator.Build(new RuntimePageViewModel()));
+        Assert.IsType<ConfigurationsPageView>(locator.Build(CreateConfigurationsPageViewModel()));
+        Assert.IsType<RuntimePageView>(locator.Build(CreateRuntimePageViewModel()));
         Assert.IsType<LogsPageView>(locator.Build(new LogsPageViewModel()));
         Assert.IsType<SettingsPageView>(locator.Build(CreateSettingsPageViewModel()));
     }
@@ -152,6 +156,9 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
         Assert.IsType<SqliteNodeManagementService>(serviceProvider.GetRequiredService<INodeManagementService>());
         Assert.IsType<SqliteTunnelManagementService>(serviceProvider.GetRequiredService<ITunnelManagementService>());
+        Assert.IsType<SqliteConfigurationVersionService>(serviceProvider.GetRequiredService<IConfigurationVersionService>());
+        Assert.IsType<SqliteRuntimeRecordService>(serviceProvider.GetRequiredService<IRuntimeRecordService>());
+        Assert.IsType<SqliteDeploymentRecordService>(serviceProvider.GetRequiredService<IDeploymentRecordService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
     }
 
@@ -183,8 +190,8 @@ public sealed class MainWindowViewModelTests
             new DashboardPageViewModel(),
             CreateNodesPageViewModel(),
             CreateTunnelsPageViewModel(),
-            new ConfigurationsPageViewModel(),
-            new RuntimePageViewModel(),
+            CreateConfigurationsPageViewModel(),
+            CreateRuntimePageViewModel(),
             new LogsPageViewModel(),
             CreateSettingsPageViewModel());
     }
@@ -197,6 +204,16 @@ public sealed class MainWindowViewModelTests
     private static TunnelsPageViewModel CreateTunnelsPageViewModel()
     {
         return new TunnelsPageViewModel(new FakeTunnelManagementService());
+    }
+
+    private static ConfigurationsPageViewModel CreateConfigurationsPageViewModel()
+    {
+        return new ConfigurationsPageViewModel(new TomlConfigurationService(), new FakeConfigurationVersionService());
+    }
+
+    private static RuntimePageViewModel CreateRuntimePageViewModel()
+    {
+        return new RuntimePageViewModel(new FakeRuntimeRecordService(), new FakeDeploymentRecordService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
@@ -289,6 +306,97 @@ public sealed class MainWindowViewModelTests
         public Task DeleteTunnelAsync(string tunnelName, CancellationToken cancellationToken = default)
         {
             _tunnels.RemoveAll(tunnel => tunnel.Name == tunnelName);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeConfigurationVersionService : IConfigurationVersionService
+    {
+        public Task<IReadOnlyList<ConfigurationVersion>> ListConfigurationsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<ConfigurationVersion>>([]);
+        }
+
+        public Task<ConfigurationVersion?> GetConfigurationAsync(string name, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<ConfigurationVersion?>(null);
+        }
+
+        public Task SaveConfigurationAsync(ConfigurationVersion configuration, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteConfigurationAsync(string name, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRuntimeRecordService : IRuntimeRecordService
+    {
+        private readonly List<RuntimeProcess> _processes =
+        [
+            new("frps-main", "Web-Server-HK", "frps", FrpNexusStatus.Running, "14022", "4d 12h 30m", "0.0.0.0:7000"),
+            new("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Running, "14090", "4d 10h 12m", "127.0.0.1:8080"),
+            new("frpc-db", "DB-Node-SH", "frpc", FrpNexusStatus.Stopped, "-", "-", "127.0.0.1:3306"),
+            new("frpc-edge", "Edge-Router-BJ", "frpc", FrpNexusStatus.Error, "-", "连接失败", "127.0.0.1:7777")
+        ];
+
+        public Task<IReadOnlyList<RuntimeProcess>> ListRuntimeProcessesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RuntimeProcess>>(_processes);
+        }
+
+        public Task<RuntimeProcess?> GetRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_processes.FirstOrDefault(process => process.Name == processName));
+        }
+
+        public Task SaveRuntimeProcessAsync(RuntimeProcess process, CancellationToken cancellationToken = default)
+        {
+            _processes.RemoveAll(item => item.Name == process.Name);
+            _processes.Add(process);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
+        {
+            _processes.RemoveAll(process => process.Name == processName);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeDeploymentRecordService : IDeploymentRecordService
+    {
+        private readonly List<DeploymentRecord> _records =
+        [
+            new("测试 SSH 连接", "Web-Server-HK", "确认远程 Linux 节点凭据可用", FrpNexusStatus.Ready, DateTimeOffset.UtcNow),
+            new("下载 FRP Release", "Web-Server-HK", "选择适合目标系统的 frpc / frps", FrpNexusStatus.Pending, DateTimeOffset.UtcNow),
+            new("通过 SFTP 上传核心", "Web-Server-HK", "上传二进制文件与 TOML 配置", FrpNexusStatus.Pending, DateTimeOffset.UtcNow),
+            new("启动远程进程", "Web-Server-HK", "执行启动命令并读取状态", FrpNexusStatus.Pending, DateTimeOffset.UtcNow)
+        ];
+
+        public Task<IReadOnlyList<DeploymentRecord>> ListDeploymentRecordsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<DeploymentRecord>>(_records);
+        }
+
+        public Task<DeploymentRecord?> GetDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_records.FirstOrDefault(record => record.StepName == stepName));
+        }
+
+        public Task SaveDeploymentRecordAsync(DeploymentRecord record, CancellationToken cancellationToken = default)
+        {
+            _records.RemoveAll(item => item.StepName == record.StepName);
+            _records.Add(record);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default)
+        {
+            _records.RemoveAll(record => record.StepName == stepName);
             return Task.CompletedTask;
         }
     }

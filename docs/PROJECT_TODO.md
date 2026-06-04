@@ -207,15 +207,15 @@ Acceptance:
 
 ## Phase 2 Route Todo
 
-Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
+Phase 2 focuses on local SQLite persistence and local MVP behavior after the UI skeleton is stable. Real SSH, SFTP, FRP download, remote runtime control, and remote log streaming are intentionally deferred because `docs/CURRENT_PHASE.md` prohibits those capabilities in the active phase.
 
 - [x] Implement SQLite local persistence through `Application` interfaces and `Infrastructure` implementations.
 - [x] Implement settings persistence.
-- [ ] Implement SSH connection testing service.
-- [ ] Implement SFTP upload service.
-- [ ] Implement FRP release download and binary selection.
-- [ ] Implement TOML generation and validation workflow.
-- [ ] Add unit tests for Core, Application services, and ViewModel behavior.
+- [x] Implement configuration version persistence.
+- [x] Implement runtime record persistence.
+- [x] Implement deployment record persistence.
+- [x] Implement TOML generation and validation workflow.
+- [x] Add unit tests for Core, Application services, and ViewModel behavior.
 
 ### Phase 2 First Iteration Todo
 
@@ -291,16 +291,104 @@ Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 2 Seventh Iteration Todo
+
+- [x] Add a local TOML generation service through `ITomlConfigurationService`.
+- [x] Generate FRP proxy TOML for TCP, UDP, HTTP, and HTTPS without remote side effects.
+- [x] Validate generated TOML locally with Chinese user-facing error messages.
+- [x] Wire Configurations page fields to `ConfigurationsPageViewModel` state.
+- [x] Bind `生成 TOML` and `验证语法` to MVVM commands.
+- [x] Keep upload, remote validation, and deployment actions out of this iteration.
+- [x] Add Application tests for TOML generation and validation.
+- [x] Add ViewModel tests for generation, validation, and invalid input feedback.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 2 Eighth Iteration Todo
+
+- [x] Add configuration version persistence through `IConfigurationVersionService`.
+- [x] Add `configuration_versions` table for ordinary configuration metadata and TOML content.
+- [x] Register SQLite configuration version management through Infrastructure DI.
+- [x] Wire Configurations page `保存配置` to local SQLite persistence.
+- [x] Load saved local configuration versions into the Configurations page.
+- [x] Keep upload, remote validation, SSH, SFTP, FRP download, and deployment actions out of this iteration.
+- [x] Keep SSH passwords, tokens, and private key contents out of configuration version models.
+- [x] Add Infrastructure tests for configuration version table initialization, save/read, delete, and sensitive-field boundaries.
+- [x] Add ViewModel tests for saving and loading local configuration versions.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 2 Ninth Iteration Todo
+
+- [x] Add runtime record persistence through `IRuntimeRecordService`.
+- [x] Add `runtime_processes` table for ordinary runtime process snapshot fields.
+- [x] Register SQLite runtime record management through Infrastructure DI.
+- [x] Load Runtime page process records from `IRuntimeRecordService` instead of static-only sample data.
+- [x] Seed safe sample runtime records only when the local runtime database is empty.
+- [x] Keep start, stop, restart, remote refresh, SSH, SFTP, FRP download, and log streaming out of this iteration.
+- [x] Keep SSH passwords, tokens, and private key contents out of runtime record models.
+- [x] Add Infrastructure tests for runtime table initialization, save/read, delete, and sensitive-field boundaries.
+- [x] Add ViewModel tests for runtime loading and empty-database sample state.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 2 Tenth Iteration Todo
+
+- [x] Add deployment record persistence through `IDeploymentRecordService`.
+- [x] Add `deployment_records` table for ordinary deployment step snapshot fields.
+- [x] Register SQLite deployment record management through Infrastructure DI.
+- [x] Load Runtime page deployment steps from `IDeploymentRecordService` instead of static-only sample data.
+- [x] Seed safe sample deployment steps only when the local deployment database is empty.
+- [x] Keep SSH, SFTP, FRP download, upload, remote start/stop/restart, and log streaming out of this iteration.
+- [x] Keep SSH passwords, tokens, and private key contents out of deployment record models.
+- [x] Add Infrastructure tests for deployment table initialization, save/read, delete, and sensitive-field boundaries.
+- [x] Add ViewModel tests for deployment step loading and empty-database sample state.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
+### Phase 2 Closure Todo
+
+- [x] Document Phase 2 completed scope in `docs/PHASE_2_SUMMARY.md`.
+- [x] Document Phase 2 remote-operation boundaries and Phase 3 handoff.
+- [x] Keep Phase 2 closure aligned with `docs/CURRENT_PHASE.md`.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 3 Route Todo
 
-Phase 3 should focus on runtime operations and diagnostics.
+Phase 3 should focus on runtime operations and diagnostics. The detailed implementation sequence is defined in `docs/PHASE_3_PLAN.md`.
 
+- [ ] Confirm Phase 3 entry gate in `docs/PHASE_3_PLAN.md`.
+- [ ] Review and approve `docs/CREDENTIAL_STRATEGY.md` before real SSH work.
+- [ ] Implement SSH connection testing service.
+- [ ] Implement SFTP upload service.
+- [ ] Implement FRP release download and binary selection.
 - [ ] Implement remote start, stop, and restart.
 - [ ] Implement remote process status detection.
 - [ ] Implement remote log reading and streaming.
-- [ ] Add deployment records and runtime records.
+- [x] Add deployment records.
+- [x] Add runtime records.
 - [ ] Improve diagnostics and recoverable error states.
 - [ ] Add integration-style tests around controlled service boundaries where feasible.
+
+### Phase 3 First Iteration Todo
+
+- [ ] Commit Phase 2 local persistence closure before starting remote work.
+- [ ] Update `docs/CURRENT_PHASE.md` to Phase 3 after explicit user confirmation.
+- [ ] Confirm Phase 3 entry gate from `docs/PHASE_3_PLAN.md`.
+- [ ] Review and approve `docs/CREDENTIAL_STRATEGY.md`.
+- [ ] Review `ISshConnectionService`; replace `nodeName`-only input if real SSH requires credential context.
+- [ ] Add a session-only credential input path that does not persist passwords, tokens, private key contents, or passphrases.
+- [ ] Implement SSH connection testing in Infrastructure behind `ISshConnectionService`.
+- [ ] Wire Nodes page `测试连接` to an async ViewModel command.
+- [ ] Persist only safe connection result metadata, such as status and timestamp.
+- [ ] Convert SSH failures into Chinese user-facing status text.
+- [ ] Add unit tests with fake SSH adapters.
+- [ ] Keep normal tests offline and deterministic.
+- [ ] Add opt-in integration-test hooks only if explicitly configured.
+- [ ] Verify sensitive fields are not stored in SQLite, logs, or test snapshots.
+- [ ] Run `dotnet build`.
+- [ ] Run full `dotnet test`.
 
 ## Phase 4 Route Todo
 

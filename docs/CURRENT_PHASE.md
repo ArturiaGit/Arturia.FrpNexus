@@ -11,6 +11,8 @@ Allowed work:
 - SQLite local persistence infrastructure.
 - Infrastructure project setup.
 - Settings persistence through `Application` interfaces and `Infrastructure` implementations.
+- Node, tunnel, configuration version, runtime record, and deployment record persistence through `Application` interfaces and `Infrastructure` implementations.
+- Local TOML generation and validation without remote upload or remote execution.
 - Local database path management under `%LocalAppData%/Arturia/FrpNexus/data/`.
 - Safe default settings for first run.
 - Unit tests for persistence path, initialization, read/write, and DI registration.
@@ -52,3 +54,15 @@ Do not implement:
 ## Phase Rule
 
 If a requested change conflicts with this file, Codex must state that it is outside the current phase before proposing or implementing it.
+
+## Phase 2 Completion Gate
+
+Phase 2 is considered ready to close when:
+
+- Settings, nodes, tunnels, configuration versions, runtime records, and deployment records all persist through SQLite.
+- Desktop view models access local persistence only through `Application` interfaces.
+- TOML generation and local validation work without remote side effects.
+- `dotnet build` and full `dotnet test` pass.
+- No real SSH, SFTP, FRP download, remote process control, or remote log streaming has been introduced.
+
+After this gate is satisfied, remote capabilities should begin in Phase 3 only after an explicit phase transition.

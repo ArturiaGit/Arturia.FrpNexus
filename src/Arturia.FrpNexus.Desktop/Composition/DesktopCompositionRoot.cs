@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.Placeholders;
 using Arturia.FrpNexus.Desktop.ViewModels;
@@ -25,7 +26,7 @@ public static class DesktopCompositionRoot
         services.AddSingleton<ISshConnectionService, PhaseOneSshConnectionService>();
         services.AddSingleton<IRemoteFileTransferService, PhaseOneRemoteFileTransferService>();
         services.AddSingleton<IFrpReleaseService, PhaseOneFrpReleaseService>();
-        services.AddSingleton<ITomlConfigurationService, PhaseOneTomlConfigurationService>();
+        services.AddSingleton<ITomlConfigurationService, TomlConfigurationService>();
         services.AddSingleton<IRemoteRuntimeService, PhaseOneRemoteRuntimeService>();
         services.AddSingleton<IRemoteLogService, PhaseOneRemoteLogService>();
 
