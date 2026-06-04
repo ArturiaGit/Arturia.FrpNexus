@@ -2,6 +2,7 @@ using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 using Arturia.FrpNexus.Infrastructure.Settings;
+using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Arturia.FrpNexus.Infrastructure.DependencyInjection;
@@ -15,6 +16,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ISqliteDatabaseInitializer, SqliteDatabaseInitializer>();
         services.AddSingleton<ISettingsService, SqliteSettingsService>();
         services.AddSingleton<INodeManagementService, SqliteNodeManagementService>();
+        services.AddSingleton<ITunnelManagementService, SqliteTunnelManagementService>();
 
         return services;
     }

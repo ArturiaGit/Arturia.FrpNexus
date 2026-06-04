@@ -64,7 +64,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
                 <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
-                    <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="共 5 条记录" />
+                    <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="{Binding TunnelCountText}" />
                     <TextBlock DockPanel.Dock="Right" Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="1 / 1" />
                 </DockPanel>
             </Grid>

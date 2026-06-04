@@ -9,6 +9,7 @@ using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views.Pages;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Settings;
+using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -119,7 +120,7 @@ public sealed class MainWindowViewModelTests
 
         Assert.IsType<DashboardPageView>(locator.Build(new DashboardPageViewModel()));
         Assert.IsType<NodesPageView>(locator.Build(CreateNodesPageViewModel()));
-        Assert.IsType<TunnelsPageView>(locator.Build(new TunnelsPageViewModel()));
+        Assert.IsType<TunnelsPageView>(locator.Build(CreateTunnelsPageViewModel()));
         Assert.IsType<ConfigurationsPageView>(locator.Build(new ConfigurationsPageViewModel()));
         Assert.IsType<RuntimePageView>(locator.Build(new RuntimePageViewModel()));
         Assert.IsType<LogsPageView>(locator.Build(new LogsPageViewModel()));
@@ -150,6 +151,7 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
         Assert.IsType<SqliteNodeManagementService>(serviceProvider.GetRequiredService<INodeManagementService>());
+        Assert.IsType<SqliteTunnelManagementService>(serviceProvider.GetRequiredService<ITunnelManagementService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
     }
 
@@ -180,7 +182,7 @@ public sealed class MainWindowViewModelTests
         return new MainWindowViewModel(
             new DashboardPageViewModel(),
             CreateNodesPageViewModel(),
-            new TunnelsPageViewModel(),
+            CreateTunnelsPageViewModel(),
             new ConfigurationsPageViewModel(),
             new RuntimePageViewModel(),
             new LogsPageViewModel(),
@@ -190,6 +192,11 @@ public sealed class MainWindowViewModelTests
     private static NodesPageViewModel CreateNodesPageViewModel()
     {
         return new NodesPageViewModel(new FakeNodeManagementService());
+    }
+
+    private static TunnelsPageViewModel CreateTunnelsPageViewModel()
+    {
+        return new TunnelsPageViewModel(new FakeTunnelManagementService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
@@ -248,6 +255,40 @@ public sealed class MainWindowViewModelTests
         public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
         {
             _nodes.RemoveAll(node => node.Name == nodeName);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeTunnelManagementService : ITunnelManagementService
+    {
+        private readonly List<TunnelProfile> _tunnels =
+        [
+            new("web-dev-portal", TunnelProtocol.Http, "Node-Alpha-HK", "127.0.0.1", 8080, "dev.example.com", FrpNexusStatus.Running, "运行中"),
+            new("ssh-bastion", TunnelProtocol.Tcp, "Node-Beta-SG", "127.0.0.1", 22, "60022", FrpNexusStatus.Running, "运行中"),
+            new("udp-game-server", TunnelProtocol.Udp, "Node-Gamma-JP", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口被占用"),
+            new("secure-api", TunnelProtocol.Https, "Node-Alpha-HK", "127.0.0.1", 8443, "api.example.com", FrpNexusStatus.Warning, "证书待检查")
+        ];
+
+        public Task<IReadOnlyList<TunnelProfile>> ListTunnelsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<TunnelProfile>>(_tunnels);
+        }
+
+        public Task<TunnelProfile?> GetTunnelAsync(string tunnelName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_tunnels.FirstOrDefault(tunnel => tunnel.Name == tunnelName));
+        }
+
+        public Task SaveTunnelAsync(TunnelProfile tunnel, CancellationToken cancellationToken = default)
+        {
+            _tunnels.RemoveAll(item => item.Name == tunnel.Name);
+            _tunnels.Add(tunnel);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteTunnelAsync(string tunnelName, CancellationToken cancellationToken = default)
+        {
+            _tunnels.RemoveAll(tunnel => tunnel.Name == tunnelName);
             return Task.CompletedTask;
         }
     }

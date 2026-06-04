@@ -253,6 +253,19 @@ Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 2 Fourth Iteration Todo
+
+- [x] Add SQLite tunnel persistence through `ITunnelManagementService`.
+- [x] Add `tunnels` table for ordinary tunnel profile fields.
+- [x] Register SQLite tunnel management through Infrastructure DI.
+- [x] Load Tunnels page data from `ITunnelManagementService` instead of static sample data.
+- [x] Seed safe TCP, UDP, HTTP, and HTTPS examples only when the local tunnel database is empty.
+- [x] Keep create, edit, delete, validation, remote check, and deployment actions as placeholders.
+- [x] Add Infrastructure tests for tunnel table initialization, save/read, delete, and MVP protocols.
+- [x] Add ViewModel tests for tunnel loading and empty-database sample state.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 3 Route Todo
 
 Phase 3 should focus on runtime operations and diagnostics.

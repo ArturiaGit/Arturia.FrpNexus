@@ -32,6 +32,17 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
                 uptime TEXT NOT NULL,
                 config_path TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS tunnels (
+                name TEXT PRIMARY KEY NOT NULL,
+                protocol TEXT NOT NULL,
+                node_name TEXT NOT NULL,
+                local_address TEXT NOT NULL,
+                local_port INTEGER NOT NULL,
+                remote_endpoint TEXT NOT NULL,
+                status TEXT NOT NULL,
+                status_detail TEXT NOT NULL
+            );
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
