@@ -114,17 +114,28 @@ public sealed class PhaseOneRemoteFileTransferService : IRemoteFileTransferServi
 
 public sealed class PhaseOneFrpReleaseService : IFrpReleaseService
 {
-    public Task<IReadOnlyList<string>> ListAvailableVersionsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<string> versions = ["v0.61.1", "v0.60.0", "v0.59.0"];
+        IReadOnlyList<FrpReleaseVersion> versions =
+        [
+            new("v0.61.1", DateTimeOffset.UtcNow),
+            new("v0.60.0", DateTimeOffset.UtcNow),
+            new("v0.59.0", DateTimeOffset.UtcNow)
+        ];
         return Task.FromResult(versions);
     }
 
-    public Task PrepareReleaseAsync(string version, string targetRuntime, CancellationToken cancellationToken = default)
+    public Task<FrpReleasePreparationResult> PrepareReleaseAsync(FrpReleasePreparationRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
+        return Task.FromResult(new FrpReleasePreparationResult(
+            request.Version,
+            request.TargetRuntime,
+            request.BinaryName,
+            string.Empty,
+            DateTimeOffset.UtcNow,
+            "FRP Release 准备占位服务尚未接入。"));
     }
 }
 

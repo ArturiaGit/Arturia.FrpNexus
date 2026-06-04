@@ -362,7 +362,7 @@ Phase 3 should focus on runtime operations and diagnostics. The detailed impleme
 - [x] Review and approve `docs/CREDENTIAL_STRATEGY.md` before real SSH work.
 - [x] Implement SSH connection testing service.
 - [x] Implement SFTP upload service.
-- [ ] Implement FRP release download and binary selection.
+- [x] Implement FRP release download and binary selection.
 - [ ] Implement remote start, stop, and restart.
 - [ ] Implement remote process status detection.
 - [ ] Implement remote log reading and streaming.

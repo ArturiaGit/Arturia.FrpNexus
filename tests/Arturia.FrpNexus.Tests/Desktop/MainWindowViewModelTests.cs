@@ -13,6 +13,7 @@ using Arturia.FrpNexus.Infrastructure.Settings;
 using Arturia.FrpNexus.Infrastructure.Tunnels;
 using Arturia.FrpNexus.Infrastructure.Configurations;
 using Arturia.FrpNexus.Infrastructure.Deployments;
+using Arturia.FrpNexus.Infrastructure.Releases;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Arturia.FrpNexus.Infrastructure.Sftp;
 using Arturia.FrpNexus.Infrastructure.Ssh;
@@ -164,6 +165,7 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
         Assert.IsType<SshConnectionService>(serviceProvider.GetRequiredService<ISshConnectionService>());
         Assert.IsType<RemoteFileTransferService>(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
+        Assert.IsType<FrpReleaseService>(serviceProvider.GetRequiredService<IFrpReleaseService>());
     }
 
     [Fact]
