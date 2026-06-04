@@ -240,6 +240,19 @@ Phase 2 should focus on real local MVP behavior after the UI skeleton is stable.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 
+### Phase 2 Third Iteration Todo
+
+- [x] Add SQLite node persistence through `INodeManagementService`.
+- [x] Add `nodes` table for ordinary node profile fields.
+- [x] Keep SSH passwords, tokens, and private key contents out of node persistence.
+- [x] Register SQLite node management through Infrastructure DI.
+- [x] Load Nodes page data from `INodeManagementService` instead of static XAML-era sample data.
+- [x] Seed safe sample nodes only when the local node database is empty.
+- [x] Add Infrastructure tests for node table initialization, save/read, delete, and sensitive-field boundaries.
+- [x] Add ViewModel tests for node loading and empty-database sample state.
+- [x] Run `dotnet build`.
+- [x] Run full `dotnet test`.
+
 ## Phase 3 Route Todo
 
 Phase 3 should focus on runtime operations and diagnostics.

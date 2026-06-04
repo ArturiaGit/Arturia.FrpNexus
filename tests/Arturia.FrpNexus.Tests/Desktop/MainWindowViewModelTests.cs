@@ -7,6 +7,7 @@ using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views.Pages;
+using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -117,7 +118,7 @@ public sealed class MainWindowViewModelTests
         var locator = new ViewLocator();
 
         Assert.IsType<DashboardPageView>(locator.Build(new DashboardPageViewModel()));
-        Assert.IsType<NodesPageView>(locator.Build(new NodesPageViewModel()));
+        Assert.IsType<NodesPageView>(locator.Build(CreateNodesPageViewModel()));
         Assert.IsType<TunnelsPageView>(locator.Build(new TunnelsPageViewModel()));
         Assert.IsType<ConfigurationsPageView>(locator.Build(new ConfigurationsPageViewModel()));
         Assert.IsType<RuntimePageView>(locator.Build(new RuntimePageViewModel()));
@@ -148,6 +149,7 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<ITomlConfigurationService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
+        Assert.IsType<SqliteNodeManagementService>(serviceProvider.GetRequiredService<INodeManagementService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
     }
 
@@ -177,12 +179,17 @@ public sealed class MainWindowViewModelTests
     {
         return new MainWindowViewModel(
             new DashboardPageViewModel(),
-            new NodesPageViewModel(),
+            CreateNodesPageViewModel(),
             new TunnelsPageViewModel(),
             new ConfigurationsPageViewModel(),
             new RuntimePageViewModel(),
             new LogsPageViewModel(),
             CreateSettingsPageViewModel());
+    }
+
+    private static NodesPageViewModel CreateNodesPageViewModel()
+    {
+        return new NodesPageViewModel(new FakeNodeManagementService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
@@ -208,6 +215,39 @@ public sealed class MainWindowViewModelTests
 
         public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
         {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeNodeManagementService : INodeManagementService
+    {
+        private readonly List<NodeProfile> _nodes =
+        [
+            new("Web-Server-HK", "103.114.160.22", 22, "root", "密钥 (ID_RSA_HK)", "Linux x86_64 (Ubuntu 22.04 LTS)", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.51.3", "4d 12h 30m", "/etc/frp/frpc.toml"),
+            new("DB-Node-SH", "47.101.44.112", 22, "deploy", "密钥 (ID_RSA_SH)", "Debian 12", FrpNexusStatus.Online, FrpNexusStatus.Stopped, "v0.51.3", "-", "/opt/frp/frpc.toml"),
+            new("Edge-Router-BJ", "123.56.77.89", 2222, "root", "密钥 (ID_RSA_BJ)", "Ubuntu 20.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "-", "-", "/etc/frp/frpc.toml")
+        ];
+
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<NodeProfile>>(_nodes);
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_nodes.FirstOrDefault(node => node.Name == nodeName));
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            _nodes.RemoveAll(item => item.Name == node.Name);
+            _nodes.Add(node);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            _nodes.RemoveAll(node => node.Name == nodeName);
             return Task.CompletedTask;
         }
     }

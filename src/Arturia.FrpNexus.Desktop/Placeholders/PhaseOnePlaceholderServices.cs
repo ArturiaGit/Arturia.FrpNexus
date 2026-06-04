@@ -50,6 +50,18 @@ public sealed class PhaseOneNodeManagementService : INodeManagementService
         var node = Nodes.FirstOrDefault(item => string.Equals(item.Name, nodeName, StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(node);
     }
+
+    public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class PhaseOneSshConnectionService : ISshConnectionService
