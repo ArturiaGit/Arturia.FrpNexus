@@ -14,7 +14,8 @@
                     <controls:SettingsRowControl Title="主题外观"
                                                  Description="选择应用程序的颜色方案">
                         <controls:SettingsRowControl.ValueContent>
-                            <ComboBox Width="180"
+                            <ComboBox Classes="stitch-input"
+                                      Width="180"
                                       ItemsSource="{Binding ThemeOptions}"
                                       SelectedItem="{Binding SelectedThemeOption}">
                                 <ComboBox.ItemTemplate>
@@ -31,7 +32,8 @@
                     <controls:SettingsRowControl Title="显示语言"
                                                  Description="更改界面文本的语言">
                         <controls:SettingsRowControl.ValueContent>
-                            <ComboBox Width="180"
+                            <ComboBox Classes="stitch-input"
+                                      Width="180"
                                       ItemsSource="{Binding LanguageOptions}"
                                       SelectedItem="{Binding SelectedLanguageOption}">
                                 <ComboBox.ItemTemplate>
@@ -48,7 +50,8 @@
                     <controls:SettingsRowControl Title="启动行为"
                                                  Description="控制应用启动后的默认工作区状态">
                         <controls:SettingsRowControl.ValueContent>
-                            <CheckBox Content="启动后恢复上次页面"
+                            <CheckBox Classes="stitch-check"
+                                      Content="启动后恢复上次页面"
                                       IsChecked="True" />
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
@@ -61,7 +64,8 @@
                     <controls:SettingsRowControl Title="FRP 下载源"
                                                  Description="配置 FRP 客户端及服务端核心组件的更新服务器">
                         <controls:SettingsRowControl.ValueContent>
-                            <ComboBox Width="320"
+                            <ComboBox Classes="stitch-input"
+                                      Width="320"
                                       ItemsSource="{Binding FrpDownloadSourceOptions}"
                                       SelectedItem="{Binding SelectedFrpDownloadSourceOption}">
                                 <ComboBox.ItemTemplate>
@@ -79,10 +83,10 @@
                                                  Description="保存 frpc、frps 及版本缓存的本地目录">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
                                          Text="{Binding CoreDirectory}" />
                                 <Button Grid.Column="1"
-                                        Classes="secondary"
+                                        Classes="secondary stitch-command"
                                         Content="更改路径" />
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
@@ -94,10 +98,10 @@
                                                  Description="保存生成的 TOML 配置与导出文件">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
                                          Text="{Binding ConfigDirectory}" />
                                 <Button Grid.Column="1"
-                                        Classes="secondary"
+                                        Classes="secondary stitch-command"
                                         Content="打开目录" />
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
@@ -111,7 +115,7 @@
                     <controls:SettingsRowControl Title="SSH 密钥管理"
                                                  Description="管理用于连接远程 FRP 服务器的私钥凭据；示例仅展示名称、用途和脱敏指纹">
                         <controls:SettingsRowControl.ValueContent>
-                            <Button Classes="primary"
+                            <Button Classes="primary stitch-command"
                                     Content="导入新密钥" />
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
@@ -173,10 +177,9 @@
                                                         Orientation="Horizontal"
                                                         Spacing="6"
                                                         VerticalAlignment="Center">
-                                                <Button Classes="secondary compact"
+                                                <Button Classes="secondary stitch-command compact"
                                                         Content="编辑" />
-                                                <Button Classes="secondary compact"
-                                                        Foreground="{StaticResource Brush.Error}"
+                                                <Button Classes="secondary stitch-command danger compact"
                                                         Content="删除" />
                                             </StackPanel>
                                         </Grid>
@@ -206,10 +209,10 @@
                                                  Description="Serilog 本地文件日志默认记录 Warning 及以上级别">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
                                          Text="{Binding LogDirectory}" />
                                 <Button Grid.Column="1"
-                                        Classes="secondary"
+                                        Classes="secondary stitch-command"
                                         Content="打开目录" />
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
@@ -220,7 +223,7 @@
                     <controls:SettingsRowControl Title="SQLite 数据库"
                                                  Description="结构化本地数据默认通过 SQLite 保存，由 Application 接口访问">
                         <controls:SettingsRowControl.ValueContent>
-                            <TextBox Classes="code"
+                            <TextBox Classes="stitch-input code"
                                      Width="360"
                                      IsReadOnly="True"
                                      Text="{Binding SqliteDatabasePath}" />
@@ -243,7 +246,7 @@
                     <controls:SettingsRowControl Title="本地缓存"
                                                  Description="清理下载缓存、临时配置和旧版本运行产物">
                         <controls:SettingsRowControl.ValueContent>
-                            <Button Classes="secondary"
+                            <Button Classes="secondary stitch-command"
                                     Content="清理缓存" />
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
@@ -257,8 +260,8 @@
                 <TextBlock Classes="helper"
                            VerticalAlignment="Center"
                            Text="{Binding SaveStatusText}" />
-                <Button Classes="secondary" Content="重置默认" />
-                <Button Classes="primary"
+                <Button Classes="secondary stitch-command" Content="重置默认" />
+                <Button Classes="primary stitch-command"
                         Content="保存应用"
                         Command="{Binding SaveSettingsCommand}" />
             </StackPanel>

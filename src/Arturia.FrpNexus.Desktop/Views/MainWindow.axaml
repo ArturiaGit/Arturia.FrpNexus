@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels"
+        xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
         xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
         xmlns:desktopModels="using:Arturia.FrpNexus.Desktop.Models"
         xmlns:pageViews="using:Arturia.FrpNexus.Desktop.Views.Pages"
@@ -16,6 +17,10 @@
         MinWidth="1100"
         MinHeight="720"
         Background="{StaticResource Brush.AppBackground}">
+
+    <Window.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+    </Window.Resources>
 
     <Window.DataTemplates>
         <DataTemplate DataType="pages:DashboardPageViewModel">
@@ -69,7 +74,7 @@
                                        Text="FrpNexus" />
                             <TextBlock Classes="helper"
                                        Foreground="{StaticResource Brush.SidebarMuted}"
-                                       Text="Phase 1 Skeleton" />
+                                       Text="V2.4.0 Stable" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -111,19 +116,30 @@
 
                 <Border Grid.Row="2"
                         Margin="16,16,16,0"
-                        Padding="10"
-                        Background="{StaticResource Brush.SurfaceSubtle}"
-                        BorderBrush="{StaticResource Brush.BorderDefault}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                    <StackPanel Spacing="2">
-                        <TextBlock Classes="group-label"
-                                   Foreground="{StaticResource Brush.SidebarText}"
-                                   Text="账户" />
-                        <TextBlock Classes="helper"
-                                   Foreground="{StaticResource Brush.SidebarMuted}"
-                                   Text="本地控制台" />
-                    </StackPanel>
+                        Padding="10,8">
+                    <Grid ColumnDefinitions="32,*"
+                          ColumnSpacing="8">
+                        <Border Width="28"
+                                Height="28"
+                                CornerRadius="14"
+                                Background="{StaticResource Brush.SurfaceContainer}">
+                            <TextBlock Text="person"
+                                       FontSize="12"
+                                       Foreground="{StaticResource Brush.SidebarMuted}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1"
+                                    Spacing="0"
+                                    VerticalAlignment="Center">
+                            <TextBlock Classes="group-label"
+                                       Foreground="{StaticResource Brush.SidebarText}"
+                                       Text="账户" />
+                            <TextBlock Classes="helper"
+                                       Foreground="{StaticResource Brush.SidebarMuted}"
+                                       Text="本地控制台" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
@@ -136,24 +152,24 @@
                     BorderBrush="{StaticResource Brush.BorderDefault}"
                     BorderThickness="0,0,0,1">
                 <DockPanel Margin="24,0">
-                    <StackPanel VerticalAlignment="Center">
+                    <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="page-title"
+                                   VerticalAlignment="Center"
                                    Text="{Binding CurrentPageTitle}" />
-                        <TextBlock Classes="helper"
-                                   Text="{Binding CurrentPageSubtitle}" />
-                    </StackPanel>
-                    <StackPanel DockPanel.Dock="Right"
+                    <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"
                                 Spacing="12"
                                 VerticalAlignment="Center">
-                        <Border Classes="badge success">
+                        <Border Classes="topbar-status-badge success">
                             <StackPanel Orientation="Horizontal"
-                                        Spacing="6">
-                                <Ellipse Width="7"
-                                         Height="7"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+                                <Ellipse Width="8"
+                                         Height="8"
                                          Fill="{StaticResource Brush.Success}"
                                          VerticalAlignment="Center" />
                                 <TextBlock Classes="status-text success"
+                                           VerticalAlignment="Center"
                                            Text="{Binding ConnectionText}" />
                             </StackPanel>
                         </Border>
@@ -161,24 +177,22 @@
                                 ToolTip.Tip="通知">
                             <PathIcon Width="16"
                                       Height="16"
-                                      Data="{StaticResource Icon.Bell}"
-                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                                      Data="{Binding Source=notifications, Converter={StaticResource MetricIconConverter}}" />
                         </Button>
                         <Button Classes="icon-secondary"
                                 ToolTip.Tip="网络">
                             <PathIcon Width="16"
                                       Height="16"
-                                      Data="{StaticResource Icon.Network}"
-                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                                      Data="{Binding Source=lan, Converter={StaticResource MetricIconConverter}}" />
                         </Button>
                         <Button Classes="icon-secondary"
                                 ToolTip.Tip="同步">
                             <PathIcon Width="16"
                                       Height="16"
-                                      Data="{StaticResource Icon.Sync}"
-                                      Foreground="{StaticResource Brush.IconSubtle}" />
+                                      Data="{Binding Source=cloud_done, Converter={StaticResource MetricIconConverter}}" />
                         </Button>
                     </StackPanel>
+                    </Grid>
                 </DockPanel>
             </Border>
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
@@ -14,6 +15,14 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class ConfigurationsPageViewModel : PageViewModel
 {
+    private static readonly Regex TomlAssignmentRegex = new(
+        @"^(\s*)([A-Za-z0-9_.-]+)(\s*=\s*)(.*)$",
+        RegexOptions.Compiled);
+
+    private static readonly Regex TomlValueTokenRegex = new(
+        @"""(?:\\""|[^""])*""|\b\d+\b",
+        RegexOptions.Compiled);
+
     private readonly ITomlConfigurationService _tomlConfigurationService;
     private readonly IConfigurationVersionService _configurationVersionService;
 
@@ -47,6 +56,9 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
     [ObservableProperty]
     private string _configurationCountText = "共 0 个本地配置";
 
+    [ObservableProperty]
+    private bool _isAdvancedOptionsVisible;
+
     public ConfigurationsPageViewModel(
         ITomlConfigurationService tomlConfigurationService,
         IConfigurationVersionService configurationVersionService)
@@ -55,11 +67,14 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
         _tomlConfigurationService = tomlConfigurationService;
         _configurationVersionService = configurationVersionService;
         Configurations = [];
+        TomlPreviewLines = [];
         GenerateToml();
         _ = LoadConfigurationsAsync();
     }
 
     public ObservableCollection<ConfigurationVersion> Configurations { get; }
+
+    public ObservableCollection<TomlPreviewLineViewModel> TomlPreviewLines { get; }
 
     public IReadOnlyList<TunnelProtocol> ProtocolOptions { get; } =
     [
@@ -70,6 +85,16 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
     ];
 
     public ConfigurationPreview Preview => CreatePreview(TomlPreview);
+
+    public string AdvancedOptionsChevronIcon => IsAdvancedOptionsVisible ? "chevron_down" : "chevron_right";
+
+    public double AdvancedOptionsPanelMaxHeight => IsAdvancedOptionsVisible ? 112 : 0;
+
+    public double AdvancedOptionsPanelOpacity => IsAdvancedOptionsVisible ? 1 : 0;
+
+    public double AdvancedOptionsPanelOffsetY => IsAdvancedOptionsVisible ? 0 : -4;
+
+    public bool IsAdvancedOptionsInteractive => IsAdvancedOptionsVisible;
 
     [RelayCommand]
     public async Task LoadConfigurationsAsync(CancellationToken cancellationToken = default)
@@ -119,6 +144,7 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
             TomlPreview = _tomlConfigurationService.GenerateProxyToml(preview);
             ErrorText = string.Empty;
             StatusText = "已生成本地 TOML 预览，尚未上传到远程节点。";
+            RefreshTomlPreviewLines();
             OnPropertyChanged(nameof(Preview));
         }
         catch (InvalidOperationException ex)
@@ -218,6 +244,12 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
         }
     }
 
+    [RelayCommand]
+    private void ToggleAdvancedOptions()
+    {
+        IsAdvancedOptionsVisible = !IsAdvancedOptionsVisible;
+    }
+
     partial void OnSelectedConfigurationChanged(ConfigurationVersion? value)
     {
         if (value is not null)
@@ -235,6 +267,21 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
     {
         RemoteEndpoint = value is TunnelProtocol.Http or TunnelProtocol.Https ? "example.com" : "60022";
         ClearValidationState();
+    }
+
+    partial void OnTomlPreviewChanged(string value)
+    {
+        RefreshTomlPreviewLines();
+        OnPropertyChanged(nameof(Preview));
+    }
+
+    partial void OnIsAdvancedOptionsVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AdvancedOptionsChevronIcon));
+        OnPropertyChanged(nameof(AdvancedOptionsPanelMaxHeight));
+        OnPropertyChanged(nameof(AdvancedOptionsPanelOpacity));
+        OnPropertyChanged(nameof(AdvancedOptionsPanelOffsetY));
+        OnPropertyChanged(nameof(IsAdvancedOptionsInteractive));
     }
 
     partial void OnLocalAddressChanged(string value)
@@ -326,4 +373,102 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
         StatusText = $"已加载本地配置 `{configuration.Name}`。";
         OnPropertyChanged(nameof(Preview));
     }
+
+    private void RefreshTomlPreviewLines()
+    {
+        TomlPreviewLines.Clear();
+
+        if (string.IsNullOrWhiteSpace(TomlPreview))
+        {
+            TomlPreviewLines.Add(new TomlPreviewLineViewModel(1, [new TomlPreviewTokenViewModel("TOML 预览将在生成后显示。", TomlPreviewTokenKind.Comment)]));
+            return;
+        }
+
+        var lines = TomlPreview.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        for (var index = 0; index < lines.Length; index++)
+        {
+            TomlPreviewLines.Add(new TomlPreviewLineViewModel(index + 1, HighlightTomlLine(lines[index])));
+        }
+    }
+
+    private static IReadOnlyList<TomlPreviewTokenViewModel> HighlightTomlLine(string line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return [new TomlPreviewTokenViewModel(" ", TomlPreviewTokenKind.Plain)];
+        }
+
+        var trimmed = line.TrimStart();
+        if (trimmed.StartsWith('#') || trimmed.StartsWith('['))
+        {
+            return [new TomlPreviewTokenViewModel(line, TomlPreviewTokenKind.Section)];
+        }
+
+        var match = TomlAssignmentRegex.Match(line);
+        if (!match.Success)
+        {
+            return [new TomlPreviewTokenViewModel(line, TomlPreviewTokenKind.Plain)];
+        }
+
+        var tokens = new List<TomlPreviewTokenViewModel>();
+        AddIfNotEmpty(tokens, match.Groups[1].Value, TomlPreviewTokenKind.Plain);
+        AddIfNotEmpty(tokens, match.Groups[2].Value, TomlPreviewTokenKind.Key);
+        AddIfNotEmpty(tokens, match.Groups[3].Value, TomlPreviewTokenKind.Plain);
+
+        var value = match.Groups[4].Value;
+        var lastIndex = 0;
+        foreach (Match valueMatch in TomlValueTokenRegex.Matches(value))
+        {
+            AddIfNotEmpty(tokens, value[lastIndex..valueMatch.Index], TomlPreviewTokenKind.Plain);
+
+            var kind = valueMatch.Value.StartsWith('"')
+                ? TomlPreviewTokenKind.String
+                : TomlPreviewTokenKind.Number;
+            AddIfNotEmpty(tokens, valueMatch.Value, kind);
+            lastIndex = valueMatch.Index + valueMatch.Length;
+        }
+
+        AddIfNotEmpty(tokens, value[lastIndex..], TomlPreviewTokenKind.Plain);
+        return tokens;
+    }
+
+    private static void AddIfNotEmpty(ICollection<TomlPreviewTokenViewModel> tokens, string text, TomlPreviewTokenKind kind)
+    {
+        if (text.Length > 0)
+        {
+            tokens.Add(new TomlPreviewTokenViewModel(text, kind));
+        }
+    }
+}
+
+public sealed class TomlPreviewLineViewModel(int number, IReadOnlyList<TomlPreviewTokenViewModel> tokens)
+{
+    public int Number { get; } = number;
+
+    public IReadOnlyList<TomlPreviewTokenViewModel> Tokens { get; } = tokens;
+}
+
+public sealed class TomlPreviewTokenViewModel(string text, TomlPreviewTokenKind kind)
+{
+    public string Text { get; } = text;
+
+    public TomlPreviewTokenKind Kind { get; } = kind;
+
+    public bool IsKey => Kind == TomlPreviewTokenKind.Key;
+
+    public bool IsString => Kind == TomlPreviewTokenKind.String;
+
+    public bool IsNumber => Kind == TomlPreviewTokenKind.Number;
+
+    public bool IsSection => Kind == TomlPreviewTokenKind.Section || Kind == TomlPreviewTokenKind.Comment;
+}
+
+public enum TomlPreviewTokenKind
+{
+    Plain,
+    Key,
+    String,
+    Number,
+    Section,
+    Comment
 }

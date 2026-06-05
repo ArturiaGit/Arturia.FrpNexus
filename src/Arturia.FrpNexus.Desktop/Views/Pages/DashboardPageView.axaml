@@ -1,12 +1,20 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.DashboardPageView"
              x:DataType="pages:DashboardPageViewModel">
-    <ScrollViewer>
-        <Grid RowDefinitions="Auto,Auto,*"
-              RowSpacing="12">
+    <UserControl.Resources>
+        <converters:DashboardNodeStatusTextConverter x:Key="DashboardNodeStatusTextConverter" />
+        <converters:LogLevelBrushConverter x:Key="LogLevelBrushConverter" />
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+        <converters:StatusClassesConverter x:Key="StatusClassesConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <Grid RowDefinitions="Auto,Auto,Auto"
+              RowSpacing="16">
             <ItemsControl ItemsSource="{Binding Metrics}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -21,19 +29,48 @@
             </ItemsControl>
 
             <Grid Grid.Row="1"
-                  ColumnDefinitions="320,*"
+                  ColumnDefinitions="4*,8*"
                   ColumnSpacing="16">
                 <Border Classes="panel"
-                        Padding="16">
-                    <StackPanel Spacing="10">
+                        Padding="16"
+                        MinHeight="220">
+                    <StackPanel Spacing="12">
                         <TextBlock Classes="section-title"
                                    Text="快速操作" />
-                        <Button Classes="primary"
-                                Content="添加新节点" />
-                        <Button Classes="secondary"
-                                Content="创建内网穿透隧道" />
-                        <Button Classes="secondary"
-                                Content="重载全局配置" />
+
+                        <Button Classes="primary quick-action">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8"
+                                        HorizontalAlignment="Center">
+                                <PathIcon Width="18"
+                                          Height="18"
+                                          Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock FontWeight="SemiBold"
+                                           Text="添加新节点" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="secondary quick-action">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8"
+                                        HorizontalAlignment="Center">
+                                <PathIcon Width="18"
+                                          Height="18"
+                                          Data="{Binding Source=route, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="创建内网穿透隧道" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="secondary quick-action">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="8"
+                                        HorizontalAlignment="Center">
+                                <PathIcon Width="18"
+                                          Height="18"
+                                          Data="{Binding Source=autorenew, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="重载全局配置" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
 
@@ -41,32 +78,72 @@
                         Classes="panel"
                         Padding="16"
                         MinHeight="220">
-                    <Grid RowDefinitions="Auto,*">
-                        <DockPanel Margin="0,0,0,12">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Margin="0,0,0,12">
                             <TextBlock Classes="section-title"
                                        Text="近期节点状态" />
-                            <TextBlock DockPanel.Dock="Right"
-                                       Classes="helper"
-                                       Foreground="{StaticResource Brush.Primary}"
-                                       Text="查看全部" />
-                        </DockPanel>
-                        <DataGrid Grid.Row="1"
-                                  ItemsSource="{Binding RecentNodes}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="节点名称" Binding="{Binding Name}" Width="2*" />
-                                <DataGridTextColumn Header="IP 地址" Binding="{Binding Host}" Width="*" />
-                                <DataGridTextColumn Header="运行时间" Binding="{Binding Uptime}" Width="*" />
-                                <DataGridTemplateColumn Header="状态" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <controls:StatusBadgeControl DataContext="{Binding ConnectionStatus}" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                            <Button Grid.Column="1"
+                                    Classes="view-all-link"
+                                    VerticalAlignment="Center">
+                                <TextBlock Classes="helper"
+                                           Text="查看全部" />
+                            </Button>
+                        </Grid>
+
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="3*,2*,2.5*,2.5*"
+                              ColumnSpacing="12"
+                              Margin="0,0,0,2">
+                            <TextBlock Classes="table-header"
+                                       Text="节点名称" />
+                            <TextBlock Grid.Column="1"
+                                       Classes="table-header"
+                                       Text="IP 地址" />
+                            <TextBlock Grid.Column="2"
+                                       Classes="table-header"
+                                       Text="运行时间" />
+                            <TextBlock Grid.Column="3"
+                                       Classes="table-header"
+                                       HorizontalAlignment="Right"
+                                       Text="状态" />
+                        </Grid>
+
+                        <ItemsControl Grid.Row="2"
+                                      ItemsSource="{Binding RecentNodes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="table-row">
+                                        <Grid ColumnDefinitions="3*,2*,2.5*,2.5*"
+                                              ColumnSpacing="12">
+                                            <TextBlock Text="{Binding Name}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1"
+                                                       Foreground="{StaticResource Brush.TextSecondary}"
+                                                       Text="{Binding Host}" />
+                                            <TextBlock Grid.Column="2"
+                                                       Foreground="{StaticResource Brush.TextSecondary}"
+                                                       Text="{Binding Uptime}" />
+                                            <Border Grid.Column="3"
+                                                    Classes="dashboard-status-badge"
+                                                    HorizontalAlignment="Right"
+                                                    Classes.success="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=success}"
+                                                    Classes.warning="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+                                                    Classes.error="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+                                                    Classes.neutral="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=neutral}">
+                                                <TextBlock Classes="status-text"
+                                                           Classes.success="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=success}"
+                                                           Classes.warning="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=warning}"
+                                                           Classes.error="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=error}"
+                                                           Classes.neutral="{Binding ConnectionStatus, Converter={StaticResource StatusClassesConverter}, ConverterParameter=neutral}"
+                                                           Text="{Binding ConnectionStatus, Converter={StaticResource DashboardNodeStatusTextConverter}}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </Grid>
                 </Border>
             </Grid>
@@ -75,66 +152,98 @@
                   ColumnDefinitions="*,*"
                   ColumnSpacing="16">
                 <Border Classes="panel"
-                        Padding="16">
-                    <StackPanel Spacing="10">
-                        <TextBlock Classes="section-title"
-                                   Text="最近错误" />
-                        <ItemsControl ItemsSource="{Binding Incidents}">
+                        Padding="16"
+                        MinHeight="250">
+                    <Grid RowDefinitions="Auto,*">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    Margin="0,0,0,12">
+                            <PathIcon Width="20"
+                                      Height="20"
+                                      Data="{Binding Source=error, Converter={StaticResource MetricIconConverter}}"
+                                      Foreground="{StaticResource Brush.Error}"
+                                      VerticalAlignment="Center" />
+                            <TextBlock Classes="section-title"
+                                       Text="最近错误" />
+                        </StackPanel>
+
+                        <ItemsControl Grid.Row="1"
+                                      ItemsSource="{Binding Incidents}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="0,0,0,8"
+                                    <Border Margin="0,0,0,10"
                                             Classes="incident-row">
-                                        <StackPanel Spacing="2">
-                                            <DockPanel>
-                                                <TextBlock Classes="group-label"
-                                                           Foreground="{StaticResource Brush.Error}"
-                                                           Text="{Binding Title}" />
-                                                <TextBlock DockPanel.Dock="Right"
-                                                           Classes="helper"
-                                                           Text="{Binding Time}" />
-                                            </DockPanel>
-                                            <TextBlock Foreground="{StaticResource Brush.TextSecondary}"
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              RowDefinitions="Auto,Auto"
+                                              ColumnSpacing="12">
+                                            <TextBlock Classes="group-label"
+                                                       Foreground="{StaticResource Brush.Error}"
+                                                       Text="{Binding Title}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Classes="helper"
+                                                       Text="{Binding Time}" />
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.ColumnSpan="2"
+                                                       Foreground="{StaticResource Brush.TextSecondary}"
                                                        TextWrapping="Wrap"
                                                        Text="{Binding Message}" />
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
                 <Border Grid.Column="1"
-                        Classes="terminal-panel"
-                        Padding="16">
+                        Background="{StaticResource Brush.Terminal}"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource FrpRadiusPanel}"
+                        Padding="16"
+                        MinHeight="250">
                     <Grid RowDefinitions="Auto,*">
-                        <DockPanel Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="*,Auto"
+                              Margin="0,0,0,12">
                             <TextBlock Classes="section-title"
                                        Foreground="#EFF1F3"
+                                       VerticalAlignment="Center"
                                        Text="系统日志输出" />
-                            <Border DockPanel.Dock="Right"
-                                    Classes="badge success">
-                                <TextBlock Classes="status-text success"
-                                           Text="实时" />
+                            <Border Grid.Column="1"
+                                    Classes="realtime-badge">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6"
+                                            VerticalAlignment="Center">
+                                    <Ellipse Width="6"
+                                             Height="6"
+                                             Fill="{StaticResource Brush.Success}"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Classes="status-text success"
+                                               Text="实时" />
+                                </StackPanel>
                             </Border>
-                        </DockPanel>
+                        </Grid>
+
                         <ItemsControl Grid.Row="1"
                                       ItemsSource="{Binding Logs}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal"
-                                                Spacing="8"
-                                                Margin="0,0,0,4">
+                                    <Grid ColumnDefinitions="72,42,*"
+                                          ColumnSpacing="8"
+                                          Margin="0,0,0,5">
                                         <TextBlock Classes="code"
                                                    Foreground="{StaticResource Brush.TextMuted}"
                                                    Text="{Binding Timestamp}" />
-                                        <TextBlock Classes="code"
-                                                   Foreground="{StaticResource Brush.Info}"
-                                                   Text="{Binding Level}" />
-                                        <TextBlock Classes="code"
+                                        <TextBlock Grid.Column="1"
+                                                   Classes="code"
+                                                   Foreground="{Binding Level, Converter={StaticResource LogLevelBrushConverter}}"
+                                                   Text="{Binding Level, StringFormat='[{0}]'}" />
+                                        <TextBlock Grid.Column="2"
+                                                   Classes="code"
                                                    Foreground="{StaticResource Brush.TerminalText}"
+                                                   TextTrimming="CharacterEllipsis"
                                                    Text="{Binding Message}" />
-                                    </StackPanel>
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

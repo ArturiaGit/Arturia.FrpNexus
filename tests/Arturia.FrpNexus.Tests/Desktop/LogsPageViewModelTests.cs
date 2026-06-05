@@ -7,6 +7,64 @@ namespace Arturia.FrpNexus.Tests.Desktop;
 public sealed class LogsPageViewModelTests
 {
     [Fact]
+    public void NodeFilter_ShouldFilterVisibleLogsAndAllNodesShouldRestoreRows()
+    {
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
+
+        viewModel.SelectedNodeFilter = "DB-Node-SH";
+
+        Assert.Equal(3, viewModel.VisibleLogs.Count);
+        Assert.All(viewModel.VisibleLogs, log => Assert.Equal("DB-Node-SH", log.NodeName));
+        Assert.Equal("[Connected: DB-Node-SH]", viewModel.TerminalConnectionText);
+
+        viewModel.SelectedNodeFilter = "全部节点";
+
+        Assert.Equal(viewModel.Logs.Count, viewModel.VisibleLogs.Count);
+        Assert.Equal("[Connected: 全部节点]", viewModel.TerminalConnectionText);
+    }
+
+    [Fact]
+    public void SearchText_ShouldMatchMessageNodeProcessLevelAndTimestamp()
+    {
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
+
+        viewModel.SearchText = "db_backup_sync";
+
+        Assert.Equal(3, viewModel.VisibleLogs.Count);
+        Assert.All(viewModel.VisibleLogs, log => Assert.Contains("db_backup_sync", log.Message, StringComparison.OrdinalIgnoreCase));
+
+        viewModel.SearchText = "Web-Server-HK";
+
+        Assert.Equal(4, viewModel.VisibleLogs.Count);
+        Assert.All(viewModel.VisibleLogs, log => Assert.Equal("Web-Server-HK", log.NodeName));
+
+        viewModel.SearchText = "14:36:00.001";
+
+        Assert.Single(viewModel.VisibleLogs);
+    }
+
+    [Fact]
+    public void ProcessAndLevelFilters_ShouldCombineWithSearch()
+    {
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
+
+        viewModel.SelectedProcessFilter = "frpc";
+        viewModel.SelectedLevelFilter = "WARN";
+
+        Assert.Equal(2, viewModel.VisibleLogs.Count);
+        Assert.All(viewModel.VisibleLogs, log =>
+        {
+            Assert.Equal("frpc", log.ProcessName);
+            Assert.Equal("WARN", log.Level);
+        });
+
+        viewModel.SearchText = "10 seconds";
+
+        Assert.Single(viewModel.VisibleLogs);
+        Assert.Contains("10 seconds", viewModel.VisibleLogs.Single().Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ReadRemoteLogsCommand_ShouldLoadLogsAndClearSecret()
     {
         var remoteLogService = new FakeRemoteLogService();
@@ -19,8 +77,10 @@ public sealed class LogsPageViewModelTests
         await viewModel.ReadRemoteLogsCommand.ExecuteAsync(null);
 
         Assert.Single(viewModel.Logs);
+        Assert.Single(viewModel.VisibleLogs);
         Assert.Equal("已读取 1 行远程日志。", viewModel.StatusText);
         Assert.Equal(string.Empty, viewModel.SshSessionPassword);
+        Assert.False(viewModel.IsRemoteCredentialsVisible);
         Assert.NotNull(remoteLogService.LastRequest);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", viewModel.Logs.Single().Message, StringComparison.Ordinal);
     }
@@ -67,9 +127,39 @@ public sealed class LogsPageViewModelTests
         Assert.Equal("SESSION_PASSWORD_PLACEHOLDER", viewModel.SshSessionPassword);
     }
 
+    [Fact]
+    public async Task ReadRemoteLogsCommand_ShouldUseSelectedNodeFilterForRemoteRequest()
+    {
+        var remoteLogService = new FakeRemoteLogService();
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), remoteLogService);
+        viewModel.SelectedNodeFilter = "DB-Node-SH";
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.ReadRemoteLogsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(remoteLogService.LastRequest);
+        Assert.Equal("DB-Node-SH", remoteLogService.LastRequest.Node.Name);
+    }
+
+    [Fact]
+    public void ToggleRemoteCredentialsCommand_ShouldShowAndHideCredentialPanel()
+    {
+        var viewModel = new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
+
+        viewModel.ToggleRemoteCredentialsCommand.Execute(null);
+
+        Assert.True(viewModel.IsRemoteCredentialsVisible);
+
+        viewModel.ToggleRemoteCredentialsCommand.Execute(null);
+
+        Assert.False(viewModel.IsRemoteCredentialsVisible);
+    }
+
     private sealed class FakeNodeManagementService : INodeManagementService
     {
-        private readonly NodeProfile _node = new(
+        private readonly NodeProfile[] _nodes =
+        [
+            new(
             "Web-Server-HK",
             "203.0.113.10",
             22,
@@ -80,16 +170,29 @@ public sealed class LogsPageViewModelTests
             FrpNexusStatus.Running,
             "v0.61.1",
             "-",
-            "/etc/frp/frpc.toml");
+            "/etc/frp/frpc.toml"),
+            new(
+            "DB-Node-SH",
+            "198.51.100.20",
+            22,
+            "deploy",
+            "会话密码",
+            "Debian 12",
+            FrpNexusStatus.Online,
+            FrpNexusStatus.Running,
+            "v0.61.1",
+            "-",
+            "/etc/frp/frpc.toml")
+        ];
 
         public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IReadOnlyList<NodeProfile>>([_node]);
+            return Task.FromResult<IReadOnlyList<NodeProfile>>(_nodes);
         }
 
         public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(string.Equals(nodeName, _node.Name, StringComparison.OrdinalIgnoreCase) ? _node : null);
+            return Task.FromResult(_nodes.FirstOrDefault(node => string.Equals(nodeName, node.Name, StringComparison.OrdinalIgnoreCase)));
         }
 
         public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)

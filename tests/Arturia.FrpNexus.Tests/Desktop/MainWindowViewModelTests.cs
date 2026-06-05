@@ -32,7 +32,7 @@ public sealed class MainWindowViewModelTests
 
         var titles = viewModel.NavigationItems.Select(item => item.Title).ToArray();
 
-        Assert.Equal(["仪表盘", "节点", "隧道", "配置", "运行", "日志", "设置"], titles);
+        Assert.Equal(["仪表盘", "节点", "隧道", "配置", "日志", "设置"], titles);
     }
 
     [Fact]
@@ -71,8 +71,7 @@ public sealed class MainWindowViewModelTests
             .NavigationItems.Single(item => item.Title == "隧道").Page;
         var logs = (LogsPageViewModel)CreateMainWindowViewModel()
             .NavigationItems.Single(item => item.Title == "日志").Page;
-        var runtime = (RuntimePageViewModel)CreateMainWindowViewModel()
-            .NavigationItems.Single(item => item.Title == "运行").Page;
+        var runtime = CreateRuntimePageViewModel();
 
         Assert.Contains(nodes.Nodes, node => node.ConnectionStatus == FrpNexusStatus.Online);
         Assert.Contains(nodes.Nodes, node => node.ConnectionStatus == FrpNexusStatus.Offline);

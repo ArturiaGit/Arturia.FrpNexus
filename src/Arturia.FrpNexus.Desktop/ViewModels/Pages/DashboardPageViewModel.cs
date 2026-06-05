@@ -11,10 +11,10 @@ public sealed class DashboardPageViewModel : PageViewModel
     {
         Metrics =
         [
-            new("节点总数", "24", "DNS", FrpNexusStatus.Ready),
-            new("在线节点", "22", "OK", FrpNexusStatus.Online),
-            new("运行中进程", "15", "RUN", FrpNexusStatus.Running),
-            new("活跃隧道", "48", "TCP", FrpNexusStatus.Ready)
+            new("节点总数", "24", "dns", FrpNexusStatus.Ready),
+            new("在线节点", "22", "check_circle", FrpNexusStatus.Online),
+            new("运行中进程", "15", "memory", FrpNexusStatus.Running),
+            new("活跃隧道", "48", "rebase_edit", FrpNexusStatus.Ready)
         ];
 
         RecentNodes =
@@ -27,18 +27,21 @@ public sealed class DashboardPageViewModel : PageViewModel
 
         Incidents =
         [
-            new("授权失败", "10:45", "节点 'guangzhou-test-edge' 尝试连接被拒绝 (Token mismatch)。", FrpNexusStatus.Error),
-            new("端口冲突", "09:12", "隧道 'web-admin-ui' 尝试绑定的远程端口 8080 已被占用。", FrpNexusStatus.Error),
+            new("授权失败", "10:45 AM", "节点 'guangzhou-test-edge' 尝试连接被拒绝 (Token mismatch)。", FrpNexusStatus.Error),
+            new("端口冲突", "09:12 AM", "隧道 'web-admin-ui' 尝试绑定的远程端口 8080 已被占用。", FrpNexusStatus.Error),
             new("连接超时", "昨天 23:30", "FRP 服务端与节点 'backup-server-01' 的控制连接断开。", FrpNexusStatus.Warning)
         ];
 
         Logs =
         [
             new("[09:55:01]", "INFO", "local", "frps", "frps tcp listen on 0.0.0.0:7000", FrpNexusStatus.Ready),
+            new("[09:55:01]", "INFO", "local", "frps", "frps admin server listen on 127.0.0.1:7400", FrpNexusStatus.Ready),
+            new("[10:12:33]", "INFO", "shanghai-prod-1", "frpc", "[client: a1b2c3d4] client login info: ip [192.168.1.101:54321]", FrpNexusStatus.Ready),
             new("[10:12:33]", "OK", "shanghai-prod-1", "frpc", "client [shanghai-prod-1] login success", FrpNexusStatus.Online),
-            new("[10:15:42]", "INFO", "shanghai-prod-1", "frpc", "[ssh-dev] proxy added: [tcp]", FrpNexusStatus.Ready),
-            new("[10:45:00]", "WARN", "guangzhou-test-edge", "frpc", "token is unverified", FrpNexusStatus.Warning),
-            new("[10:45:00]", "ERR", "guangzhou-test-edge", "frpc", "client [guangzhou-test-edge] login failed", FrpNexusStatus.Error)
+            new("[10:15:42]", "INFO", "shanghai-prod-1", "frpc", "[client: a1b2c3d4] [ssh-dev] proxy added: [tcp]", FrpNexusStatus.Ready),
+            new("[10:45:00]", "WARN", "guangzhou-test-edge", "frpc", "[client: e5f6g7h8] token is unverified", FrpNexusStatus.Warning),
+            new("[10:45:00]", "ERR", "guangzhou-test-edge", "frpc", "client [guangzhou-test-edge] login failed", FrpNexusStatus.Error),
+            new("[11:02:15]", "INFO", "test-edge", "frpc", "[client: z9y8x7w6] [web-test] proxy added: [http] custom_domains: [test.example.com]", FrpNexusStatus.Ready)
         ];
     }
 

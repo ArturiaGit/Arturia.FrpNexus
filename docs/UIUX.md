@@ -4,14 +4,16 @@
 
 FrpNexus is a desktop application. The UI must feel like a professional Windows desktop operations tool, not a website or SaaS dashboard.
 
-The visual direction is WinUI 3 / Fluent Design:
+Except for the fixed window target and TOML-first configuration direction, the visual, layout, component-density, navigation, icon, copy, and page-organization standard is `stitch_frpnexus_design_system`.
+
+The visual direction follows the current Stitch design, which is a Windows 11-style desktop operations console:
 
 - Windows 11-style desktop layout.
 - Clear hierarchy.
 - Light tonal surfaces.
 - 1px borders.
 - Conservative shadows.
-- Fluent-style navigation, command bars, dialogs, info bars, lists, tables, toggles, and progress indicators.
+- Stitch-defined navigation, command bars, dialogs, info bars, lists, tables, toggles, progress indicators, and Material Symbols-style icons.
 
 ## Language
 
@@ -111,7 +113,7 @@ Base UI text should be compact and desktop-like:
 Core colors:
 
 - App background: `#F6F8FA`
-- Sidebar background: `#111827`
+- Sidebar background: current Stitch screenshots use a light sidebar surface; the older `#111827` dark sidebar note is legacy or optional theme material, not the default.
 - Surface: `#FFFFFF`
 - Subtle surface: `#F3F6F8`
 - Default border: `#D8DEE6`
@@ -151,7 +153,6 @@ Control sizes:
 
 ## Icon Direction
 
-Prefer Fluent System Icons style.
+Follow the icon style, icon placement, and icon meaning in the Stitch HTML and screenshots.
 
-The Stitch design may use Material Symbols, but Material Symbols are only design-output artifacts and must not define the final Avalonia icon style.
-
+Material Symbols-style icons are allowed in the final Avalonia UI when they best preserve Stitch fidelity.

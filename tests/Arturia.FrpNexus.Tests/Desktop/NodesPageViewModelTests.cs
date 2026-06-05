@@ -18,7 +18,9 @@ public sealed class NodesPageViewModelTests
         await viewModel.LoadNodesAsync();
 
         Assert.Single(viewModel.Nodes);
+        Assert.Single(viewModel.NodeRows);
         Assert.Equal("本地测试节点", viewModel.SelectedNode?.Name);
+        Assert.True(viewModel.NodeRows.Single().IsSelected);
         Assert.Equal("共 1 个节点", viewModel.NodeCountText);
     }
 
@@ -31,11 +33,32 @@ public sealed class NodesPageViewModelTests
         await viewModel.LoadNodesAsync();
 
         Assert.Equal(3, viewModel.Nodes.Count);
+        Assert.Equal(3, viewModel.NodeRows.Count);
         Assert.Equal("共 3 个节点", viewModel.NodeCountText);
         Assert.NotNull(viewModel.SelectedNode);
+        Assert.Equal("未安装", viewModel.NodeRows.Single(row => row.Name == "Edge-Router-BJ").FrpServiceText);
         Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("密码", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("私钥内容", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task SelectNodeCommand_ShouldUpdateSelectedRowState()
+    {
+        var service = new FakeNodeManagementService(
+        [
+            new("节点-A", "203.0.113.10", 22, "deploy", "密钥 (A)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml"),
+            new("节点-B", "203.0.113.11", 22, "deploy", "密钥 (B)", "Debian 12", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "-", "-", "/etc/frp/frpc.toml")
+        ]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.SelectNodeCommand.Execute(viewModel.NodeRows[1]);
+
+        Assert.Equal("节点-B", viewModel.SelectedNode?.Name);
+        Assert.False(viewModel.NodeRows[0].IsSelected);
+        Assert.True(viewModel.NodeRows[1].IsSelected);
+        Assert.Equal("未安装", viewModel.NodeRows[1].FrpServiceText);
     }
 
     [Fact]
@@ -60,6 +83,65 @@ public sealed class NodesPageViewModelTests
         Assert.Contains(viewModel.Nodes, node => node.Name == "北京-边缘节点" && node.SshPort == 2222);
         Assert.Equal("北京-边缘节点", viewModel.SelectedNode?.Name);
         Assert.False(viewModel.IsEditorOpen);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldApplyDefaultsWhenOptionalFieldsAreEmpty()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "默认值节点";
+        viewModel.FormHost = "203.0.113.24";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var saved = Assert.Single(service.SavedNodes.Where(node => node.Name == "默认值节点"));
+        Assert.Equal(NodesPageViewModel.DefaultUserName, saved.UserName);
+        Assert.Equal(22, saved.SshPort);
+        Assert.Equal(NodesPageViewModel.DefaultAuthentication, saved.Authentication);
+        Assert.Equal(NodesPageViewModel.DefaultOperatingSystem, saved.OperatingSystem);
+        Assert.Equal(NodesPageViewModel.DefaultFrpVersion, saved.FrpVersion);
+        Assert.Equal(NodesPageViewModel.DefaultConfigPath, saved.ConfigPath);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldUseCustomOperatingSystemWhenOtherIsSelected()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "自定义系统节点";
+        viewModel.FormHost = "203.0.113.25";
+        viewModel.SelectedOperatingSystem = NodesPageViewModel.OtherOperatingSystemOption;
+        viewModel.CustomOperatingSystem = "OpenWrt 23.05";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var saved = Assert.Single(service.SavedNodes.Where(node => node.Name == "自定义系统节点"));
+        Assert.Equal("OpenWrt 23.05", saved.OperatingSystem);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldFallbackCustomOperatingSystemToLinuxWhenEmpty()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "其他系统空值节点";
+        viewModel.FormHost = "203.0.113.26";
+        viewModel.SelectedOperatingSystem = NodesPageViewModel.OtherOperatingSystemOption;
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var saved = Assert.Single(service.SavedNodes.Where(node => node.Name == "其他系统空值节点"));
+        Assert.Equal("Linux", saved.OperatingSystem);
     }
 
     [Fact]
@@ -111,7 +193,6 @@ public sealed class NodesPageViewModelTests
     [Theory]
     [InlineData("", "203.0.113.40", "deploy", "22", "节点名称不能为空。")]
     [InlineData("测试节点", "", "deploy", "22", "Host 不能为空。")]
-    [InlineData("测试节点", "203.0.113.40", "", "22", "用户名不能为空。")]
     [InlineData("测试节点", "203.0.113.40", "deploy", "70000", "SSH 端口必须是 1 到 65535 之间的数字。")]
     public async Task SaveNodeCommand_ShouldRejectInvalidForm(string name, string host, string userName, string port, string expectedError)
     {

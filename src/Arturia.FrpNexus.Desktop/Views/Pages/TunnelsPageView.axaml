@@ -1,169 +1,428 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.TunnelsPageView"
              x:Name="Root"
              x:DataType="pages:TunnelsPageViewModel">
-    <Grid RowDefinitions="Auto,*"
-          RowSpacing="12">
-        <Border Classes="command-bar">
-            <DockPanel LastChildFill="False">
+    <UserControl.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid RowDefinitions="Auto,*"
+              RowSpacing="12">
+            <Grid ColumnDefinitions="Auto,*"
+                  ColumnSpacing="12">
                 <StackPanel Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <TextBox Width="240"
-                             PlaceholderText="搜索隧道名称、节点或端点..." />
-                    <ComboBox Width="132"
-                              SelectedIndex="0">
-                        <ComboBoxItem Content="所有协议" />
-                        <ComboBoxItem Content="TCP" />
-                        <ComboBoxItem Content="UDP" />
-                        <ComboBoxItem Content="HTTP" />
-                        <ComboBoxItem Content="HTTPS" />
-                    </ComboBox>
-                    <ComboBox Width="132"
-                              SelectedIndex="0">
-                        <ComboBoxItem Content="所有状态" />
-                        <ComboBoxItem Content="运行中" />
-                        <ComboBoxItem Content="已停止" />
-                        <ComboBoxItem Content="异常" />
-                        <ComboBoxItem Content="警告" />
-                    </ComboBox>
-                </StackPanel>
-                <Button DockPanel.Dock="Right"
-                        Classes="primary"
-                        VerticalAlignment="Center"
-                        Content="新建隧道"
-                        Command="{Binding StartCreateTunnelCommand}" />
-            </DockPanel>
-        </Border>
+                    <Grid Width="240"
+                          Height="34">
+                        <TextBox Classes="stitch-input"
+                                 Padding="36,0,12,0"
+                                 VerticalContentAlignment="Center"
+                                 PlaceholderText="搜索隧道..."
+                                 Text="{Binding SearchText}" />
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Margin="12,0,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                  IsHitTestVisible="False"
+                                  Data="{Binding Source=search, Converter={StaticResource MetricIconConverter}}" />
+                    </Grid>
 
-        <Grid Grid.Row="1"
-              ColumnDefinitions="*,320"
-              ColumnSpacing="16">
-            <Border Classes="panel">
-                <Grid RowDefinitions="*,40">
-                    <DataGrid ItemsSource="{Binding Tunnels}"
-                              SelectedItem="{Binding SelectedTunnel}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="隧道名称" Binding="{Binding Name}" Width="2*" />
-                            <DataGridTemplateColumn Header="协议" Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <controls:ProtocolBadgeControl DataContext="{Binding Protocol}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="关联节点" Binding="{Binding NodeName}" Width="2*" />
-                            <DataGridTextColumn Header="本地端口" Binding="{Binding LocalPort}" Width="*" />
-                            <DataGridTextColumn Header="远程端点" Binding="{Binding RemoteEndpoint}" Width="2*" />
-                            <DataGridTemplateColumn Header="状态" Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <controls:StatusBadgeControl DataContext="{Binding Status}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="操作" Width="Auto">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Classes="secondary compact"
-                                                Content="编辑"
-                                                Command="{Binding #Root.DataContext.StartEditSelectedTunnelCommand}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
-                        <TextBlock Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="{Binding TunnelCountText}" />
-                        <TextBlock DockPanel.Dock="Right" Classes="helper" Margin="12,0" VerticalAlignment="Center" Text="1 / 1" />
-                    </DockPanel>
+                    <ComboBox Classes="stitch-input"
+                              Width="132"
+                              ItemsSource="{Binding ProtocolFilterOptions}"
+                              SelectedItem="{Binding SelectedProtocolFilter}" />
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Classes="primary stitch-command"
+                        HorizontalAlignment="Right"
+                        Command="{Binding StartCreateTunnelCommand}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6"
+                                HorizontalAlignment="Center">
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
+                        <TextBlock Text="新建隧道" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Classes="panel"
+                    ClipToBounds="True">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <Border Height="40"
+                            Background="{StaticResource FrpSurfaceWhiteBrush}"
+                            BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                            BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="48,1.8*,0.9*,1.5*,1*,1.5*,1.25*,96"
+                              ColumnSpacing="12"
+                              Margin="0,0,12,0">
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsHitTestVisible="False" />
+                            <TextBlock Grid.Column="1"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="隧道名称" />
+                            <TextBlock Grid.Column="2"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="协议" />
+                            <TextBlock Grid.Column="3"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="关联节点" />
+                            <TextBlock Grid.Column="4"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="本地端口" />
+                            <TextBlock Grid.Column="5"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="远程端口/域名" />
+                            <TextBlock Grid.Column="6"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="状态" />
+                            <TextBlock Grid.Column="7"
+                                       Classes="table-header"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Text="操作" />
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding TunnelRows}"
+                                      HorizontalAlignment="Stretch">
+                            <ItemsControl.Styles>
+                                <Style Selector="ContentPresenter">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                </Style>
+                            </ItemsControl.Styles>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:TunnelListItemViewModel">
+                                    <Button Classes="node-row"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding #Root.DataContext.SelectTunnelCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid RowDefinitions="*,Auto"
+                                              HorizontalAlignment="Stretch">
+                                            <Border Background="{StaticResource FrpSelectionSubtleBrush}"
+                                                    Opacity="0.35"
+                                                    IsVisible="{Binding IsSelected}" />
+                                            <Grid ColumnDefinitions="48,1.8*,0.9*,1.5*,1*,1.5*,1.25*,96"
+                                                  ColumnSpacing="12"
+                                                  HorizontalAlignment="Stretch"
+                                                  Margin="0,0,12,0">
+                                                <Border Width="3"
+                                                        HorizontalAlignment="Left"
+                                                        Background="{StaticResource FrpPrimaryBrush}"
+                                                        IsVisible="{Binding IsSelected}" />
+                                                <CheckBox HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsSelected}"
+                                                          IsHitTestVisible="False" />
+                                                <TextBlock Grid.Column="1"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Name}" />
+                                                <controls:ProtocolBadgeControl Grid.Column="2"
+                                                                               HorizontalAlignment="Left"
+                                                                               VerticalAlignment="Center"
+                                                                               DataContext="{Binding Protocol}" />
+                                                <StackPanel Grid.Column="3"
+                                                            Orientation="Horizontal"
+                                                            Spacing="8"
+                                                            VerticalAlignment="Center">
+                                                    <PathIcon Width="18"
+                                                              Height="18"
+                                                              Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                              Data="{Binding Source=dns, Converter={StaticResource MetricIconConverter}}" />
+                                                    <TextBlock TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding NodeName}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="4"
+                                                           Classes="code"
+                                                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding LocalPortText}" />
+                                                <TextBlock Grid.Column="5"
+                                                           Classes="code"
+                                                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding RemoteEndpoint}" />
+                                                <StackPanel Grid.Column="6"
+                                                            Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            VerticalAlignment="Center">
+                                                    <Border Classes="badge"
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center"
+                                                            Classes.success="{Binding IsStatusSuccess}"
+                                                            Classes.warning="{Binding IsStatusWarning}"
+                                                            Classes.error="{Binding IsStatusError}"
+                                                            Classes.neutral="{Binding IsStatusNeutral}">
+                                                        <StackPanel Orientation="Horizontal"
+                                                                    Spacing="6">
+                                                            <Ellipse Width="6"
+                                                                     Height="6"
+                                                                     VerticalAlignment="Center"
+                                                                     IsVisible="{Binding !IsStatusError}"
+                                                                     Classes="status-dot"
+                                                                     Classes.success="{Binding IsStatusSuccess}"
+                                                                     Classes.warning="{Binding IsStatusWarning}"
+                                                                     Classes.neutral="{Binding IsStatusNeutral}" />
+                                                            <PathIcon Width="14"
+                                                                      Height="14"
+                                                                      VerticalAlignment="Center"
+                                                                      Foreground="{StaticResource FrpStatusErrorBrush}"
+                                                                      IsVisible="{Binding IsStatusError}"
+                                                                      Data="{Binding Source=warning, Converter={StaticResource MetricIconConverter}}" />
+                                                            <TextBlock Classes="status-text"
+                                                                       Classes.success="{Binding IsStatusSuccess}"
+                                                                       Classes.warning="{Binding IsStatusWarning}"
+                                                                       Classes.error="{Binding IsStatusError}"
+                                                                       Classes.neutral="{Binding IsStatusNeutral}"
+                                                                       Text="{Binding StatusText}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBlock Classes="helper"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               IsVisible="{Binding HasStatusDetail}"
+                                                               Text="{Binding StatusDetail}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="7"
+                                                            Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center">
+                                                    <Button Classes="icon-secondary"
+                                                            Width="28"
+                                                            Height="28"
+                                                            MinHeight="28"
+                                                            AutomationProperties.Name="编辑隧道"
+                                                            Command="{Binding #Root.DataContext.StartEditTunnelCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <ToolTip.Tip>
+                                                            <ToolTip Classes="stitch-tooltip"
+                                                                     Placement="Top"
+                                                                     VerticalOffset="-6"
+                                                                     Content="编辑" />
+                                                        </ToolTip.Tip>
+                                                        <PathIcon Width="16"
+                                                                  Height="16"
+                                                                  Data="{Binding Source=edit, Converter={StaticResource MetricIconConverter}}" />
+                                                    </Button>
+                                                    <Button Classes="icon-secondary"
+                                                            Width="28"
+                                                            Height="28"
+                                                            MinHeight="28"
+                                                            AutomationProperties.Name="{Binding RuntimeActionLabel}">
+                                                        <ToolTip.Tip>
+                                                            <ToolTip Classes="stitch-tooltip"
+                                                                     Placement="Top"
+                                                                     VerticalOffset="-6"
+                                                                     Content="{Binding RuntimeActionLabel}" />
+                                                        </ToolTip.Tip>
+                                                        <PathIcon Width="16"
+                                                                  Height="16"
+                                                                  Data="{Binding RuntimeActionIcon, Converter={StaticResource MetricIconConverter}}" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border Grid.Row="1"
+                                                    Height="1"
+                                                    Background="{StaticResource FrpBorderDefaultBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="2"
+                            Height="44"
+                            Padding="12,0"
+                            Background="{StaticResource FrpSurfaceLowBrush}"
+                            BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                            BorderThickness="0,1,0,0">
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalAlignment="Center">
+                            <TextBlock Classes="helper"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding TunnelCountText}" />
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        VerticalAlignment="Center">
+                                <Button Classes="icon-secondary"
+                                        Width="28"
+                                        Height="28"
+                                        MinHeight="28"
+                                        IsEnabled="False">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=chevron_left, Converter={StaticResource MetricIconConverter}}" />
+                                </Button>
+                                <TextBlock Classes="helper"
+                                           VerticalAlignment="Center"
+                                           Text="1 / 1" />
+                                <Button Classes="icon-secondary"
+                                        Width="28"
+                                        Height="28"
+                                        MinHeight="28"
+                                        IsEnabled="False">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=chevron_right, Converter={StaticResource MetricIconConverter}}" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
+        </Grid>
 
-            <Border Grid.Column="1"
-                    Classes="panel"
-                    IsVisible="{Binding IsEditorOpen}">
-                <ScrollViewer>
-                    <StackPanel Margin="16"
-                                Spacing="12">
+        <Border Width="320"
+                HorizontalAlignment="Right"
+                Classes="panel"
+                ClipToBounds="True"
+                IsVisible="{Binding IsEditorOpen}">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <Border Padding="16"
+                        Background="{StaticResource FrpSurfaceLowBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel>
                         <TextBlock Classes="section-title"
                                    Text="{Binding EditorTitle}" />
                         <TextBlock Classes="helper"
-                                   Text="仅保存本地 SQLite 记录，不执行远程校验、配置生成或部署。" />
+                                   Margin="0,4,0,0"
+                                   Text="仅保存本地 SQLite 记录，不执行远程部署。" />
+                    </StackPanel>
+                </Border>
 
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel Margin="16"
+                                Spacing="12">
                         <StackPanel Spacing="6">
-                            <TextBlock Classes="helper" Text="隧道名称" />
-                            <TextBox Text="{Binding FormName}" />
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="helper" Text="隧道名称" />
+                                <Border Classes="required-badge">
+                                    <TextBlock Classes="required-badge-text" Text="必填" />
+                                </Border>
+                            </StackPanel>
+                            <TextBox Classes="stitch-input"
+                                     Text="{Binding FormName}" />
                         </StackPanel>
 
                         <StackPanel Spacing="6">
                             <TextBlock Classes="helper" Text="协议" />
-                            <ComboBox ItemsSource="{Binding ProtocolOptions}"
+                            <ComboBox Classes="stitch-input"
+                                      ItemsSource="{Binding ProtocolOptions}"
                                       SelectedItem="{Binding FormProtocol}" />
                         </StackPanel>
 
                         <StackPanel Spacing="6">
-                            <TextBlock Classes="helper" Text="关联节点" />
-                            <TextBox Text="{Binding FormNodeName}" />
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="helper" Text="关联节点" />
+                                <Border Classes="required-badge">
+                                    <TextBlock Classes="required-badge-text" Text="必填" />
+                                </Border>
+                            </StackPanel>
+                            <TextBox Classes="stitch-input"
+                                     PlaceholderText="例如 Node-Alpha-HK"
+                                     Text="{Binding FormNodeName}" />
                         </StackPanel>
 
-                        <Grid ColumnDefinitions="*,112"
+                        <Grid ColumnDefinitions="*,104"
                               ColumnSpacing="8">
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="helper" Text="本地地址" />
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
+                                         PlaceholderText="{x:Static pages:TunnelsPageViewModel.DefaultLocalAddress}"
                                          Text="{Binding FormLocalAddress}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1"
                                         Spacing="6">
                                 <TextBlock Classes="helper" Text="本地端口" />
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
+                                         PlaceholderText="{x:Static pages:TunnelsPageViewModel.DefaultLocalPort}"
                                          Text="{Binding FormLocalPort}" />
                             </StackPanel>
                         </Grid>
 
                         <StackPanel Spacing="6">
-                            <TextBlock Classes="helper" Text="远程端点" />
-                            <TextBox Classes="code"
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <TextBlock Classes="helper" Text="远程端点" />
+                                <Border Classes="required-badge">
+                                    <TextBlock Classes="required-badge-text" Text="必填" />
+                                </Border>
+                            </StackPanel>
+                            <TextBox Classes="stitch-input code"
                                      Text="{Binding FormRemoteEndpoint}" />
                         </StackPanel>
 
                         <StackPanel Spacing="6">
                             <TextBlock Classes="helper" Text="状态说明" />
-                            <TextBox Text="{Binding FormStatusDetail}" />
+                            <TextBox Classes="stitch-input"
+                                     PlaceholderText="{x:Static pages:TunnelsPageViewModel.DefaultStatusDetail}"
+                                     Text="{Binding FormStatusDetail}" />
                         </StackPanel>
 
                         <TextBlock Classes="helper"
                                    Foreground="{StaticResource Brush.Error}"
                                    TextWrapping="Wrap"
                                    Text="{Binding FormErrorText}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2"
+                        Padding="16,12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Button Grid.Column="0"
+                                Classes="danger stitch-command"
+                                Content="{Binding DeleteButtonText}"
+                                Command="{Binding DeleteSelectedTunnelCommand}"
+                                IsVisible="{Binding IsEditingExistingTunnel}" />
 
                         <StackPanel Orientation="Horizontal"
+                                    Grid.Column="2"
                                     HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
                                     Spacing="8">
-                            <Button Classes="secondary"
+                            <Button Classes="secondary stitch-command"
                                     Content="取消"
                                     Command="{Binding CancelEditCommand}" />
-                            <Button Classes="primary"
+                            <Button Classes="primary stitch-command"
                                     Content="保存"
                                     Command="{Binding SaveTunnelCommand}" />
                         </StackPanel>
-
-                        <Border Classes="settings-divider" />
-
-                        <Button Classes="secondary"
-                                HorizontalAlignment="Right"
-                                Foreground="{StaticResource Brush.Error}"
-                                Content="{Binding DeleteButtonText}"
-                                Command="{Binding DeleteSelectedTunnelCommand}" />
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

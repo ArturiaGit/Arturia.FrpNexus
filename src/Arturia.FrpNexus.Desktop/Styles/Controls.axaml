@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:templatedControls="using:Avalonia.Controls.Templates">
     <Style Selector="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
@@ -10,6 +11,12 @@
     <Style Selector="TextBlock.page-title">
         <Setter Property="FontSize" Value="20" />
         <Setter Property="LineHeight" Value="28" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.metric-value">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="LineHeight" Value="30" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
@@ -46,8 +53,8 @@
     </Style>
 
     <Style Selector="Border.metric-tile">
-        <Setter Property="Padding" Value="16" />
-        <Setter Property="MinHeight" Value="76" />
+        <Setter Property="Padding" Value="18,16" />
+        <Setter Property="MinHeight" Value="82" />
     </Style>
 
     <Style Selector="Border.subtle-panel">
@@ -66,11 +73,187 @@
     </Style>
 
     <Style Selector="Border.incident-row">
-        <Setter Property="Padding" Value="10" />
-        <Setter Property="Background" Value="{StaticResource Brush.ErrorSoft}" />
-        <Setter Property="BorderBrush" Value="#F3B6B6" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Background" Value="#1AFFDAD6" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
         <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="Border.table-row">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="0,8" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.table-header">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.material-symbol">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="LineHeight" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Border.required-badge">
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="Background" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.required-badge-text">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="LineHeight" Value="16" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="ToolTip.stitch-tooltip">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        BoxShadow="0 4 12 0 #14192324">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}"
+                                      TextBlock.FontFamily="{TemplateBinding FontFamily}"
+                                      TextBlock.FontSize="{TemplateBinding FontSize}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.quick-action">
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="PART_ButtonChrome"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter x:Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.quick-action PathIcon">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.quick-action TextBlock">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.view-all-link">
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.view-all-link:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpStatusInfoSoftBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.view-all-link:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.view-all-link TextBlock">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Border.dashboard-status-badge">
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Border.dashboard-status-badge.success">
+        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#B7E4C7" />
+    </Style>
+
+    <Style Selector="Border.dashboard-status-badge.warning">
+        <Setter Property="Background" Value="{StaticResource FrpStatusWarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#F8D49A" />
+    </Style>
+
+    <Style Selector="Border.dashboard-status-badge.error">
+        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="BorderBrush" Value="#F3B6B6" />
+    </Style>
+
+    <Style Selector="Border.dashboard-status-badge.neutral">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceVariantBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Border.realtime-badge">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="Background" Value="#1A16A34A" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="StackPanel.info-section">
@@ -108,6 +291,19 @@
         <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
         <Setter Property="Foreground" Value="{StaticResource FrpOnPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.primary:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryHoverBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.primary:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpOnPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
     </Style>
 
     <Style Selector="Button.secondary">
@@ -115,6 +311,12 @@
         <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.secondary:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceContainerBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
     </Style>
 
     <Style Selector="Button.icon-secondary">
@@ -129,12 +331,212 @@
         <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.icon-secondary:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceContainerBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Button.icon-secondary:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceHighBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Button.icon-secondary PathIcon">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.stitch-command PathIcon">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command TextBlock">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command.secondary:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceHighBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command.danger">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="BorderBrush" Value="#F3B6B6" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.stitch-command.danger:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command.danger:pressed">
+        <Setter Property="Background" Value="#FFE1DF" />
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
+    <Style Selector="Button.stitch-command:disabled">
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <Style Selector="Button.node-row">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.node-row:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+    </Style>
+
+    <Style Selector="Button.node-row:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceContainerBrush}" />
     </Style>
 
     <Style Selector="Button.compact">
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Height" Value="30" />
         <Setter Property="Padding" Value="10,0" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+                    <Border Width="18"
+                            Height="18"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource FrpRadiusSmall}">
+                        <PathIcon x:Name="PART_CheckMark"
+                                  Width="13"
+                                  Height="13"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  IsVisible="False"
+                                  Foreground="{StaticResource FrpOnPrimaryBrush}"
+                                  Data="M 4.5,9.2 L 2.1,6.8 L 1.1,7.8 L 4.5,11.2 L 12.9,2.8 L 11.9,1.8 Z" />
+                    </Border>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalContentAlignment="Center"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpOutlineVariantBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceHighBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpOutlineVariantBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:checked">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:checked:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryHoverBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:checked:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:checked /template/ PathIcon#PART_CheckMark">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-check:disabled">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextSecondaryBrush}" />
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="Cursor" Value="Arrow" />
     </Style>
 
     <Style Selector="TextBox, ComboBox">
@@ -145,6 +547,220 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
         <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.stitch-input">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="CaretBrush" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Cursor" Value="IBeam" />
+        <Setter Property="SelectionBrush" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="SelectionForegroundBrush" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="PART_InputChrome"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Cursor="IBeam">
+                    <Grid>
+                        <TextPresenter Name="PART_TextPresenter"
+                                       Margin="{TemplateBinding Padding}"
+                                       VerticalAlignment="Center"
+                                       Cursor="IBeam"
+                                       IsHitTestVisible="True"
+                                       Text="{TemplateBinding Text}"
+                                       CaretBrush="{TemplateBinding CaretBrush}"
+                                       SelectionBrush="{TemplateBinding SelectionBrush}"
+                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}" />
+                        <TextBlock Name="PART_Watermark"
+                                   Margin="{TemplateBinding Padding}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   Opacity="0.75"
+                                   Text="{TemplateBinding Watermark}"
+                                   Cursor="IBeam"
+                                   IsHitTestVisible="False" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="TextBox.stitch-input:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpOutlineVariantBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.stitch-input:focus">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.stitch-input:disabled">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.stitch-input:not(:empty) /template/ TextBlock#PART_Watermark">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <Style Selector="TextBox.stitch-input.code">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Code}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="PlaceholderForeground" Value="{StaticResource FrpTextSecondaryBrush}" />
+        <Setter Property="MaxDropDownHeight" Value="240" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <Border x:Name="PART_ComboChrome"
+                            Height="{TemplateBinding Height}"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Cursor="Hand">
+                        <Grid ColumnDefinitions="*,32">
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}" />
+                            <PathIcon Grid.Column="1"
+                                      Width="14"
+                                      Height="14"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Cursor="Hand"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      Data="M 2,4 L 7,9 L 12,4 Z" />
+                        </Grid>
+                    </Border>
+
+                    <Popup Name="PART_Popup"
+                           IsOpen="{TemplateBinding IsDropDownOpen}"
+                           IsLightDismissEnabled="True"
+                           OverlayDismissEventPassThrough="True"
+                           Placement="BottomEdgeAlignedLeft"
+                           MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}">
+                        <Border Margin="0,4,0,0"
+                                Background="{StaticResource FrpSurfaceWhiteBrush}"
+                                BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource FrpRadiusPanel}"
+                                BoxShadow="0 4 12 0 #14192324">
+                            <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <ItemsPresenter Name="PART_ItemsPresenter"
+                                                Margin="0,4" />
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpOutlineVariantBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input:focus">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input:disabled">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input ComboBoxItem">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="PART_ItemChrome"
+                        MinHeight="{TemplateBinding MinHeight}"
+                        Margin="4,0"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{StaticResource FrpRadiusSmall}"
+                        Cursor="Hand">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input ComboBoxItem:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input ComboBoxItem:pressed">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceContainerBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input ComboBoxItem:selected">
+        <Setter Property="Background" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox.stitch-input ComboBoxItem:selected:pointerover">
+        <Setter Property="Background" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
     </Style>
 
     <Style Selector="TextBox.code">

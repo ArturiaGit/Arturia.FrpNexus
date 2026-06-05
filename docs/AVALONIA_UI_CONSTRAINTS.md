@@ -4,14 +4,14 @@
 
 Use these sources when implementing the Avalonia desktop UI:
 
-- Product source: `docs/PRODUCT.md`
-- UI/UX source: `docs/UIUX.md`
-- UI style source: `docs/UI_STYLE_GUIDE.md`
-- UI layout source: `docs/UI_LAYOUT_GUIDE.md`
-- Stitch implementation source: `docs/STITCH_IMPLEMENTATION_GUIDE.md`
-- Design system tokens: `stitch_frpnexus_design_system/frpnexus_design_system/DESIGN.md`
-- Visual references: `stitch_frpnexus_design_system/frpnexus_*/screen.png`
-- Layout and copy references: `stitch_frpnexus_design_system/frpnexus_*/code.html`
+- Product and phase boundaries: `docs/CURRENT_PHASE.md`, then `docs/PRODUCT.md`.
+- UI authority, except for window size and TOML default: `stitch_frpnexus_design_system/frpnexus_*/screen.png`, `stitch_frpnexus_design_system/frpnexus_*/code.html`, and `stitch_frpnexus_design_system/frpnexus_design_system/DESIGN.md`.
+- Implementation guides: `docs/STITCH_IMPLEMENTATION_GUIDE.md`, `docs/UI_STYLE_GUIDE.md`, `docs/UI_LAYOUT_GUIDE.md`, and `docs/UIUX.md`.
+
+If UI/UX visual, layout, navigation, icon, component-density, or page-organization guidance conflicts with Stitch, follow Stitch. The explicit exceptions are:
+
+- Window design and QA remain limited to `1100 x 720` through `1280 x 800`.
+- TOML remains the default FRP configuration format. INI examples from Stitch must be translated to TOML-oriented copy or paths during implementation.
 
 ## Page Mapping
 
@@ -26,7 +26,7 @@ Map Stitch designs to Avalonia pages as follows:
 | `frpnexus_5` | 日志 | Logs / 日志 |
 | `frpnexus_6` | 设置 | Settings / 设置 |
 
-If the implementation has a separate Runtime page, design it using the same visual system and place it between 配置 and 日志 in navigation.
+Current main navigation follows the six Stitch pages: 仪表盘, 节点, 隧道, 配置, 日志, 设置. Runtime management remains a product capability, but it should be represented inside the existing Stitch-driven page structure unless a dedicated Stitch runtime page is added later.
 
 Page implementation should proceed through the mapping in `docs/STITCH_IMPLEMENTATION_GUIDE.md` and the page layout rules in `docs/UI_LAYOUT_GUIDE.md`. Stitch pages are the primary source for page composition, but the final implementation must be translated into Avalonia controls, styles, resources, views, and view models.
 
@@ -41,6 +41,8 @@ Translate the Stitch design into Avalonia primitives:
 - CSS shadows -> Avalonia box shadow or omitted when unnecessary
 - HTML sections -> Avalonia `UserControl` views
 - Repeated rows/cards -> item controls with view models
+- Stitch interaction states -> Avalonia styles, pseudoclasses, and `ControlTemplate` overrides when needed
+- Material Symbols-style icons -> Avalonia `PathIcon`, shared icon resources, or dedicated converters/controls
 
 Do not implement:
 
@@ -49,6 +51,21 @@ Do not implement:
 - Tailwind runtime
 - WebView
 - Browser-based UI
+
+Avalonia state translation rule:
+
+- Do not assume `Avalonia.Themes.Fluent` default control templates preserve Stitch states.
+- When a default template overrides `Background`, `BorderBrush`, `Foreground`, icon color, caret color, selection color, watermark color, or pressed/hover visuals in a way that conflicts with Stitch, override it in resource dictionaries or dedicated styles.
+- For important icon+text commands, child `PathIcon` and `TextBlock` content must follow the parent control foreground across normal, hover, pressed, and disabled states.
+- Do not use ordinary text characters as substitutes for key Material Symbols-style icons when a `PathIcon` or shared icon resource is needed for visual fidelity.
+- This rule applies to buttons, `TextBox`, password inputs, `ComboBox`, list rows, and table rows. Do not rely on Fluent defaults when they make a Stitch control visually unstable or unreadable.
+- Inputs must not show non-Stitch black-background/white-text hover or focus states, unreadable `Watermark` text, invisible caret, or high-contrast selection colors that break the light input surface.
+- If input states drift from Stitch, use resource dictionaries, dedicated styles, or `ControlTemplate` overrides to control `Background`, `Foreground`, `BorderBrush`, `CaretBrush`, `SelectionBrush`, `SelectionForegroundBrush`, and watermark presentation.
+- `ComboBox` requires full state ownership when Fluent defaults leak non-Stitch overlays. If Setter-only styling cannot control the closed control, popup, selected item, hover item, or pressed item, use a dedicated `ControlTemplate` for the control and item containers.
+- `ComboBox` popups should support desktop light-dismiss behavior. Use `IsLightDismissEnabled` and `OverlayDismissEventPassThrough` or equivalent Avalonia behavior when clicking outside should both close the popup and continue to the clicked target.
+- Cursor semantics are part of Stitch fidelity: editable text surfaces use an I-beam cursor, while selectable controls, popup items, icon buttons, and lightweight links use a hand cursor.
+- Decorative icons inside text inputs must not block input hit testing or prevent the editable area from showing the expected text cursor.
+- Custom list/table rows must preserve full-width hover and selected backgrounds. When using `ItemsControl + Grid`, stretch the item container and row content instead of letting rows shrink to their text content.
 
 ## Avalonia Structure
 
@@ -109,7 +126,9 @@ Use `code.html` files to preserve:
 
 Do not render or embed Stitch HTML/CSS. Treat `code.html` as a source for Avalonia resource translation only.
 
-When Stitch files conflict on SideNav color, use the current project decision in `docs/UI_STYLE_GUIDE.md` and `docs/UI_LAYOUT_GUIDE.md`: the default main SideNav is light Fluent NavigationView-style; dark surfaces are reserved for logs, terminals, TOML previews, and code panels.
+The final UI must preserve interactive behavior, not just static screenshot composition. Verify hover, pressed, disabled, cursor, alignment, and icon-color states when translating Stitch controls.
+
+When Stitch files conflict with older local UI documentation, use the current Stitch screenshots and HTML. For the SideNav, the current Stitch screenshots use a light sidebar by default; the older persistent dark sidebar note in `DESIGN.md` is legacy or optional theme material.
 
 Use `DESIGN.md` to preserve:
 
@@ -134,6 +153,7 @@ At minimum, the UI skeleton must include:
 - Configuration editor with TOML preview.
 - Logs page with filter/search controls and monospace log area.
 - Settings page with grouped setting sections.
+- Runtime management affordances where Stitch currently places related node, configuration, and log workflows.
 
 ## Prohibited UI Outcomes
 

@@ -1,42 +1,186 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+             xmlns:models="using:Arturia.FrpNexus.Core.Models"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.ConfigurationsPageView"
              x:DataType="pages:ConfigurationsPageViewModel">
+    <UserControl.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+        <converters:TunnelProtocolTextConverter x:Key="TunnelProtocolTextConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.config-section-header">
+            <Setter Property="Padding" Value="0,0,0,4" />
+            <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+
+        <Style Selector="Button.config-link">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpTextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{DynamicResource FrpRadiusSmall}">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.config-link:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="Button.config-link PathIcon">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+
+        <Style Selector="Button.config-link TextBlock">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+
+        <Style Selector="Button.code-command">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpCodeTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
+        </Style>
+
+        <Style Selector="Button.code-command:pointerover">
+            <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        </Style>
+
+        <Style Selector="Button.code-command:pressed">
+            <Setter Property="Background" Value="#394044" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        </Style>
+
+        <Style Selector="Button.code-command PathIcon">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+
+        <Style Selector="Button.code-command TextBlock">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-line-number">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Code}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="Foreground" Value="#4A5568" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-token">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Code}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-token.key">
+            <Setter Property="Foreground" Value="#8F3A2C" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-token.string">
+            <Setter Property="Foreground" Value="{DynamicResource FrpStatusSuccessBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-token.number">
+            <Setter Property="Foreground" Value="{DynamicResource FrpStatusInfoBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.toml-token.section">
+            <Setter Property="Foreground" Value="{DynamicResource FrpStatusNeutralBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </UserControl.Styles>
+
     <Grid ColumnDefinitions="*,*"
           ColumnSpacing="16">
-        <Border Classes="panel">
+        <Border Classes="panel"
+                ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <Border Classes="command-bar"
-                        Margin="12">
-                    <DockPanel LastChildFill="False">
+                <Border Padding="16,12"
+                        Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="12">
                         <TextBlock Classes="section-title"
                                    VerticalAlignment="Center"
                                    Text="可视化编辑" />
-                        <StackPanel DockPanel.Dock="Right"
+                        <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     Spacing="8"
                                     VerticalAlignment="Center">
-                            <Button Classes="secondary compact"
-                                    Content="生成 TOML"
-                                    Command="{Binding GenerateTomlCommand}" />
-                            <Button Classes="secondary compact"
-                                    Content="上传配置" />
-                            <Button Classes="primary"
-                                    Content="保存配置"
-                                    Command="{Binding SaveConfigurationCommand}" />
+                            <Button Classes="secondary stitch-command"
+                                    MinHeight="32"
+                                    Height="32"
+                                    Command="{Binding GenerateTomlCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=code, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="生成 TOML" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="secondary stitch-command"
+                                    MinHeight="32"
+                                    Height="32">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=upload, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="上传配置" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="primary stitch-command"
+                                    Command="{Binding SaveConfigurationCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=save, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="保存配置" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
-                    </DockPanel>
+                    </Grid>
                 </Border>
 
                 <ScrollViewer Grid.Row="1">
-                    <StackPanel Margin="16" Spacing="18">
-                        <TextBlock Classes="group-label" Text="本地配置版本" />
-                        <Border Classes="subtle-panel"
-                                Padding="12">
+                    <StackPanel Margin="16"
+                                Spacing="18">
+                        <StackPanel Spacing="8">
+                            <Border Classes="config-section-header">
+                                <TextBlock Classes="group-label" Text="本地配置版本" />
+                            </Border>
                             <StackPanel Spacing="8">
-                                <ComboBox ItemsSource="{Binding Configurations}"
+                                <ComboBox Classes="stitch-input"
+                                          ItemsSource="{Binding Configurations}"
                                           SelectedItem="{Binding SelectedConfiguration}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -47,50 +191,139 @@
                                 <TextBlock Classes="helper"
                                            Text="{Binding ConfigurationCountText}" />
                             </StackPanel>
-                        </Border>
+                        </StackPanel>
 
-                        <TextBlock Classes="group-label" Text="基本信息" />
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="代理名称 *" />
-                            <TextBox Text="{Binding ProxyName}" />
-                        </StackPanel>
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="代理类型" />
-                            <ComboBox ItemsSource="{Binding ProtocolOptions}"
-                                      SelectedItem="{Binding SelectedProtocol}" />
-                        </StackPanel>
-                        <TextBlock Classes="group-label" Text="本地配置" />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <StackPanel Spacing="12">
+                            <Border Classes="config-section-header">
+                                <TextBlock Classes="group-label" Text="基本信息" />
+                            </Border>
                             <StackPanel Spacing="6">
-                                <TextBlock Text="本地 IP" />
-                                <TextBox Classes="code"
-                                         Text="{Binding LocalAddress}" />
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <TextBlock Text="代理名称" />
+                                    <Border Classes="required-badge">
+                                        <TextBlock Classes="required-badge-text" Text="必填" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBox Classes="stitch-input"
+                                         Text="{Binding ProxyName}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Spacing="6">
-                                <TextBlock Text="本地端口" />
-                                <TextBox Classes="code"
-                                         Text="{Binding LocalPort}" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="代理类型" />
+                                <ComboBox Classes="stitch-input"
+                                          ItemsSource="{Binding ProtocolOptions}"
+                                          SelectedItem="{Binding SelectedProtocol}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:TunnelProtocol">
+                                            <TextBlock Text="{Binding Converter={StaticResource TunnelProtocolTextConverter}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </StackPanel>
-                        </Grid>
-                        <TextBlock Classes="group-label" Text="远程配置" />
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="远程端点 (HTTP/HTTPS 使用域名，TCP/UDP 使用远程端口)" />
-                            <TextBox Classes="code"
-                                     Text="{Binding RemoteEndpoint}" />
                         </StackPanel>
 
-                        <TextBlock Classes="group-label" Text="高级选项" />
-                        <Border Classes="subtle-panel"
-                                Padding="12">
-                            <StackPanel Classes="info-section">
-                                <controls:KeyValueRowControl Label="加密传输"
-                                                             Value="待配置" />
-                                <controls:KeyValueRowControl Label="压缩传输"
-                                                             Value="待配置" />
-                                <controls:KeyValueRowControl Label="Token"
-                                                             Value="不在界面明文显示" />
+                        <StackPanel Spacing="12">
+                            <Border Classes="config-section-header">
+                                <TextBlock Classes="group-label" Text="本地配置" />
+                            </Border>
+                            <Grid ColumnDefinitions="*,*"
+                                  ColumnSpacing="12">
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6">
+                                        <TextBlock Text="本地 IP" />
+                                        <Border Classes="required-badge">
+                                            <TextBlock Classes="required-badge-text" Text="必填" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBox Classes="stitch-input code"
+                                             Text="{Binding LocalAddress}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1"
+                                            Spacing="6">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6">
+                                        <TextBlock Text="本地端口" />
+                                        <Border Classes="required-badge">
+                                            <TextBlock Classes="required-badge-text" Text="必填" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBox Classes="stitch-input code"
+                                             Text="{Binding LocalPort}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Spacing="12">
+                            <Border Classes="config-section-header">
+                                <TextBlock Classes="group-label" Text="远程配置" />
+                            </Border>
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <TextBlock Text="远程端点 (HTTP/HTTPS 使用域名，TCP/UDP 使用远程端口)" />
+                                    <Border Classes="required-badge">
+                                        <TextBlock Classes="required-badge-text" Text="必填" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBox Classes="stitch-input code"
+                                         Text="{Binding RemoteEndpoint}" />
                             </StackPanel>
-                        </Border>
+                        </StackPanel>
+
+                        <StackPanel>
+                            <Button Classes="config-link stitch-command"
+                                    Command="{Binding ToggleAdvancedOptionsCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="4">
+                                    <Border Width="20"
+                                            Height="20"
+                                            ClipToBounds="False">
+                                        <PathIcon Width="16"
+                                                  Height="16"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Data="{Binding AdvancedOptionsChevronIcon, Converter={StaticResource MetricIconConverter}}" />
+                                    </Border>
+                                    <TextBlock Text="显示高级选项" />
+                                </StackPanel>
+                            </Button>
+                            <Border MaxHeight="{Binding AdvancedOptionsPanelMaxHeight}"
+                                    Opacity="{Binding AdvancedOptionsPanelOpacity}"
+                                    ClipToBounds="True"
+                                    IsHitTestVisible="{Binding IsAdvancedOptionsInteractive}">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="MaxHeight"
+                                                          Duration="0:0:0.22" />
+                                        <DoubleTransition Property="Opacity"
+                                                          Duration="0:0:0.18" />
+                                    </Transitions>
+                                </Border.Transitions>
+                                <Border Classes="subtle-panel"
+                                        Margin="0,8,0,0"
+                                        Padding="12">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform Y="{Binding AdvancedOptionsPanelOffsetY}">
+                                            <TranslateTransform.Transitions>
+                                                <Transitions>
+                                                    <DoubleTransition Property="Y"
+                                                                      Duration="0:0:0.22" />
+                                                </Transitions>
+                                            </TranslateTransform.Transitions>
+                                        </TranslateTransform>
+                                    </Border.RenderTransform>
+                                    <StackPanel Classes="info-section">
+                                        <controls:KeyValueRowControl Label="加密传输"
+                                                                     Value="待配置" />
+                                        <controls:KeyValueRowControl Label="压缩传输"
+                                                                     Value="待配置" />
+                                        <controls:KeyValueRowControl Label="Token"
+                                                                     Value="不在界面明文显示" />
+                                    </StackPanel>
+                                </Border>
+                            </Border>
+                        </StackPanel>
 
                         <Border Classes="subtle-panel"
                                 Padding="12">
@@ -101,7 +334,7 @@
                                            TextWrapping="Wrap"
                                            Text="{Binding StatusText}" />
                                 <TextBlock Classes="helper"
-                                           Foreground="{StaticResource Brush.Error}"
+                                           Foreground="{DynamicResource Brush.Error}"
                                            TextWrapping="Wrap"
                                            Text="{Binding ErrorText}" />
                             </StackPanel>
@@ -110,36 +343,100 @@
                 </ScrollViewer>
             </Grid>
         </Border>
+
         <Border Grid.Column="1"
-                Classes="terminal-panel">
+                Background="{DynamicResource FrpCodePanelBackgroundBrush}"
+                BorderBrush="{DynamicResource FrpInverseSurfaceBrush}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource FrpRadiusPanel}"
+                ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <DockPanel Classes="terminal-header"
-                           LastChildFill="False"
-                           Height="44">
-                    <TextBlock Classes="section-title"
-                               Margin="16,0"
-                               VerticalAlignment="Center"
-                               Foreground="#EFF1F3"
-                               Text="frpc.toml 预览" />
-                    <StackPanel DockPanel.Dock="Right"
-                                Margin="0,0,16,0"
-                                Orientation="Horizontal"
-                                Spacing="8"
-                                VerticalAlignment="Center">
-                        <Button Classes="secondary compact"
-                                Foreground="#C9D1D9"
-                                Content="验证语法"
-                                Command="{Binding ValidateTomlCommand}" />
-                        <Button Classes="secondary compact"
-                                Foreground="#C9D1D9"
-                                Content="复制" />
-                    </StackPanel>
-                </DockPanel>
-                <ScrollViewer Grid.Row="1" Margin="16">
-                    <TextBlock Classes="code"
-                               Foreground="{StaticResource Brush.TerminalText}"
-                               Text="{Binding TomlPreview}" />
-                </ScrollViewer>
+                <Border Height="44"
+                        Padding="16,0"
+                        Background="{DynamicResource FrpTerminalSurfaceBrush}"
+                        BorderBrush="{DynamicResource FrpInverseSurfaceBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="12"
+                          VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                            <PathIcon Width="18"
+                                      Height="18"
+                                      Foreground="{DynamicResource FrpCodeMutedBrush}"
+                                      Data="{Binding Source=code, Converter={StaticResource MetricIconConverter}}" />
+                            <TextBlock Classes="section-title"
+                                       Foreground="{DynamicResource FrpInverseTextBrush}"
+                                       Text="frpc.toml 预览" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                            <Button Classes="code-command stitch-command"
+                                    Command="{Binding ValidateTomlCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=check_circle, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="验证语法" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="code-command stitch-command">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=content_copy, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="复制" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="40,*">
+                    <Border Background="{DynamicResource FrpCodePanelGutterBrush}"
+                            BorderBrush="{DynamicResource FrpInverseSurfaceBrush}"
+                            BorderThickness="0,0,1,0" />
+                    <ScrollViewer Grid.ColumnSpan="2"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding TomlPreviewLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:TomlPreviewLineViewModel">
+                                    <Grid ColumnDefinitions="40,*"
+                                          MinHeight="18">
+                                        <TextBlock Classes="toml-line-number"
+                                                   Margin="0,0,8,0"
+                                                   Text="{Binding Number}" />
+                                        <ItemsControl Grid.Column="1"
+                                                      ItemsSource="{Binding Tokens}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="pages:TomlPreviewTokenViewModel">
+                                                    <TextBlock Classes="toml-token"
+                                                               Classes.key="{Binding IsKey}"
+                                                               Classes.string="{Binding IsString}"
+                                                               Classes.number="{Binding IsNumber}"
+                                                               Classes.section="{Binding IsSection}"
+                                                               Text="{Binding Text}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

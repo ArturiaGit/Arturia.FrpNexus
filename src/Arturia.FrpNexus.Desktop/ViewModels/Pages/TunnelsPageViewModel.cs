@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -12,6 +13,10 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class TunnelsPageViewModel : PageViewModel
 {
+    public const string DefaultLocalAddress = "127.0.0.1";
+    public const string DefaultLocalPort = "8080";
+    public const string DefaultStatusDetail = "本地记录";
+
     private readonly ITunnelManagementService _tunnelManagementService;
     private bool _isDeleteConfirmationPending;
     private string? _editingOriginalName;
@@ -23,7 +28,16 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     private TunnelProfile? _selectedTunnel;
 
     [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedProtocolFilter = AllProtocolFilter;
+
+    [ObservableProperty]
     private bool _isEditorOpen;
+
+    [ObservableProperty]
+    private bool _isEditingExistingTunnel;
 
     [ObservableProperty]
     private string _editorTitle = "隧道详情";
@@ -38,16 +52,16 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     private string _formNodeName = string.Empty;
 
     [ObservableProperty]
-    private string _formLocalAddress = "127.0.0.1";
+    private string _formLocalAddress = string.Empty;
 
     [ObservableProperty]
-    private string _formLocalPort = "8080";
+    private string _formLocalPort = string.Empty;
 
     [ObservableProperty]
     private string _formRemoteEndpoint = string.Empty;
 
     [ObservableProperty]
-    private string _formStatusDetail = "本地记录";
+    private string _formStatusDetail = string.Empty;
 
     [ObservableProperty]
     private string _formErrorText = string.Empty;
@@ -60,11 +74,25 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     {
         _tunnelManagementService = tunnelManagementService;
         Tunnels = [];
+        TunnelRows = [];
 
         _ = LoadTunnelsAsync();
     }
 
     public ObservableCollection<TunnelProfile> Tunnels { get; }
+
+    public ObservableCollection<TunnelListItemViewModel> TunnelRows { get; }
+
+    public const string AllProtocolFilter = "所有协议";
+
+    public IReadOnlyList<string> ProtocolFilterOptions { get; } =
+    [
+        AllProtocolFilter,
+        "TCP",
+        "UDP",
+        "HTTP",
+        "HTTPS"
+    ];
 
     public IReadOnlyList<TunnelProtocol> ProtocolOptions { get; } =
     [
@@ -95,7 +123,29 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         }
 
         SelectedTunnel = Tunnels.FirstOrDefault();
-        TunnelCountText = $"共 {Tunnels.Count} 条记录";
+        ApplyFilters();
+    }
+
+    [RelayCommand]
+    private void SelectTunnel(TunnelListItemViewModel? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedTunnel = row.Tunnel;
+    }
+
+    [RelayCommand]
+    private void StartEditTunnel(TunnelListItemViewModel? row)
+    {
+        if (row is not null)
+        {
+            SelectedTunnel = row.Tunnel;
+        }
+
+        StartEditSelectedTunnel();
     }
 
     [RelayCommand]
@@ -103,14 +153,15 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     {
         _editingOriginalName = null;
         ResetDeleteConfirmation();
+        IsEditingExistingTunnel = false;
         EditorTitle = "新建隧道";
         FormName = string.Empty;
         FormProtocol = TunnelProtocol.Http;
-        FormNodeName = SelectedTunnel?.NodeName ?? "Node-Alpha-HK";
-        FormLocalAddress = "127.0.0.1";
-        FormLocalPort = "8080";
+        FormNodeName = string.Empty;
+        FormLocalAddress = string.Empty;
+        FormLocalPort = string.Empty;
         FormRemoteEndpoint = string.Empty;
-        FormStatusDetail = "本地记录";
+        FormStatusDetail = string.Empty;
         FormErrorText = string.Empty;
         IsEditorOpen = true;
     }
@@ -126,6 +177,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
         _editingOriginalName = SelectedTunnel.Name;
         ResetDeleteConfirmation();
+        IsEditingExistingTunnel = true;
         EditorTitle = "编辑隧道";
         FormName = SelectedTunnel.Name;
         FormProtocol = SelectedTunnel.Protocol;
@@ -159,6 +211,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
         SelectedTunnel = Tunnels.FirstOrDefault(item => item.Name == tunnel.Name);
         IsEditorOpen = false;
+        IsEditingExistingTunnel = false;
         FormErrorText = string.Empty;
         _editingOriginalName = null;
     }
@@ -168,6 +221,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     {
         ResetDeleteConfirmation();
         IsEditorOpen = false;
+        IsEditingExistingTunnel = false;
         FormErrorText = string.Empty;
         _editingOriginalName = null;
     }
@@ -193,12 +247,24 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         ResetDeleteConfirmation();
         await LoadTunnelsAsync();
         IsEditorOpen = false;
+        IsEditingExistingTunnel = false;
         FormErrorText = string.Empty;
     }
 
     partial void OnSelectedTunnelChanged(TunnelProfile? value)
     {
         ResetDeleteConfirmation();
+        SyncSelectedRows();
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplyFilters();
+    }
+
+    partial void OnSelectedProtocolFilterChanged(string value)
+    {
+        ApplyFilters();
     }
 
     private static IReadOnlyList<TunnelProfile> CreateSeedTunnels()
@@ -207,9 +273,66 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         [
             new("web-dev-portal", TunnelProtocol.Http, "Node-Alpha-HK", "127.0.0.1", 8080, "dev.example.com", FrpNexusStatus.Running, "运行中"),
             new("ssh-bastion", TunnelProtocol.Tcp, "Node-Beta-SG", "127.0.0.1", 22, "60022", FrpNexusStatus.Running, "运行中"),
-            new("udp-game-server", TunnelProtocol.Udp, "Node-Gamma-JP", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口被占用"),
-            new("secure-api", TunnelProtocol.Https, "Node-Alpha-HK", "127.0.0.1", 8443, "api.example.com", FrpNexusStatus.Warning, "证书待检查")
+            new("database-test", TunnelProtocol.Tcp, "Node-Alpha-HK", "127.0.0.1", 3306, "13306", FrpNexusStatus.Stopped, "已停止"),
+            new("udp-game-server", TunnelProtocol.Udp, "Node-Gamma-JP", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口被占用")
         ];
+    }
+
+    private void ApplyFilters()
+    {
+        var rows = Tunnels.AsEnumerable();
+        var search = SearchText.Trim();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            rows = rows.Where(tunnel =>
+                tunnel.Name.Contains(search, System.StringComparison.OrdinalIgnoreCase)
+                || tunnel.NodeName.Contains(search, System.StringComparison.OrdinalIgnoreCase)
+                || tunnel.RemoteEndpoint.Contains(search, System.StringComparison.OrdinalIgnoreCase)
+                || tunnel.LocalPort.ToString(System.Globalization.CultureInfo.InvariantCulture).Contains(search, System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (TryParseProtocolFilter(SelectedProtocolFilter, out var protocol))
+        {
+            rows = rows.Where(tunnel => tunnel.Protocol == protocol);
+        }
+
+        TunnelRows.Clear();
+        foreach (var tunnel in rows)
+        {
+            TunnelRows.Add(new TunnelListItemViewModel(tunnel));
+        }
+
+        SyncSelectedRows();
+        TunnelCountText = $"共 {TunnelRows.Count} 条记录";
+    }
+
+    private void SyncSelectedRows()
+    {
+        foreach (var row in TunnelRows)
+        {
+            row.IsSelected = SelectedTunnel is not null
+                && string.Equals(row.Tunnel.Name, SelectedTunnel.Name, System.StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static bool TryParseProtocolFilter(string value, out TunnelProtocol protocol)
+    {
+        protocol = TunnelProtocol.Tcp;
+        return value switch
+        {
+            "TCP" => SetProtocol(TunnelProtocol.Tcp, out protocol),
+            "UDP" => SetProtocol(TunnelProtocol.Udp, out protocol),
+            "HTTP" => SetProtocol(TunnelProtocol.Http, out protocol),
+            "HTTPS" => SetProtocol(TunnelProtocol.Https, out protocol),
+            _ => false
+        };
+    }
+
+    private static bool SetProtocol(TunnelProtocol value, out TunnelProtocol protocol)
+    {
+        protocol = value;
+        return true;
     }
 
     private bool TryCreateTunnel(out TunnelProfile tunnel)
@@ -228,13 +351,9 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(FormLocalAddress))
-        {
-            FormErrorText = "本地地址不能为空。";
-            return false;
-        }
-
-        if (!int.TryParse(FormLocalPort, out var localPort) || localPort is < 1 or > 65535)
+        var localAddress = ValueOrDefault(FormLocalAddress, DefaultLocalAddress);
+        var localPortText = ValueOrDefault(FormLocalPort, DefaultLocalPort);
+        if (!int.TryParse(localPortText, out var localPort) || localPort is < 1 or > 65535)
         {
             FormErrorText = "本地端口必须是 1 到 65535 之间的数字。";
             return false;
@@ -250,13 +369,18 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
             FormName.Trim(),
             FormProtocol,
             FormNodeName.Trim(),
-            FormLocalAddress.Trim(),
+            localAddress,
             localPort,
             FormRemoteEndpoint.Trim(),
             FrpNexusStatus.Stopped,
-            string.IsNullOrWhiteSpace(FormStatusDetail) ? "本地记录" : FormStatusDetail.Trim());
+            ValueOrDefault(FormStatusDetail, DefaultStatusDetail));
 
         return true;
+    }
+
+    private static string ValueOrDefault(string value, string defaultValue)
+    {
+        return string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
     }
 
     private void ResetDeleteConfirmation()
@@ -264,4 +388,64 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         _isDeleteConfirmationPending = false;
         DeleteButtonText = "删除";
     }
+}
+
+public sealed partial class TunnelListItemViewModel : ObservableObject
+{
+    public TunnelListItemViewModel(TunnelProfile tunnel)
+    {
+        Tunnel = tunnel;
+    }
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public TunnelProfile Tunnel { get; }
+
+    public string Name => Tunnel.Name;
+
+    public TunnelProtocol Protocol => Tunnel.Protocol;
+
+    public string NodeName => Tunnel.NodeName;
+
+    public string LocalPortText => Tunnel.LocalPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    public string RemoteEndpoint => Tunnel.RemoteEndpoint;
+
+    public string StatusText => Tunnel.Status switch
+    {
+        FrpNexusStatus.Running => "运行中",
+        FrpNexusStatus.Stopped => "已停止",
+        FrpNexusStatus.Error => "异常",
+        FrpNexusStatus.Warning => "警告",
+        _ => Tunnel.StatusDetail
+    };
+
+    public string StatusDetail => Tunnel.StatusDetail;
+
+    public bool HasStatusDetail => Tunnel.Status == FrpNexusStatus.Error && !string.IsNullOrWhiteSpace(Tunnel.StatusDetail);
+
+    public bool IsStatusSuccess => Tunnel.Status == FrpNexusStatus.Running;
+
+    public bool IsStatusWarning => Tunnel.Status == FrpNexusStatus.Warning;
+
+    public bool IsStatusError => Tunnel.Status == FrpNexusStatus.Error;
+
+    public bool IsStatusNeutral => Tunnel.Status == FrpNexusStatus.Stopped;
+
+    public string RuntimeActionIcon => Tunnel.Status switch
+    {
+        FrpNexusStatus.Running => "stop_circle",
+        FrpNexusStatus.Stopped => "play_circle",
+        FrpNexusStatus.Error => "refresh",
+        _ => "refresh"
+    };
+
+    public string RuntimeActionLabel => Tunnel.Status switch
+    {
+        FrpNexusStatus.Running => "停止",
+        FrpNexusStatus.Stopped => "启动",
+        FrpNexusStatus.Error => "重试",
+        _ => "刷新"
+    };
 }

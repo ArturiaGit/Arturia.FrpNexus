@@ -15,6 +15,10 @@ public sealed class ConfigurationsPageViewModelTests
         Assert.Contains("[[proxies]]", viewModel.TomlPreview);
         Assert.Contains("type = \"http\"", viewModel.TomlPreview);
         Assert.Contains("customDomains = [\"example.com\"]", viewModel.TomlPreview);
+        Assert.Contains(viewModel.TomlPreviewLines, line => line.Tokens.Any(token => token.Kind == TomlPreviewTokenKind.Section));
+        Assert.Contains(viewModel.TomlPreviewLines, line => line.Tokens.Any(token => token.Kind == TomlPreviewTokenKind.Key));
+        Assert.Contains(viewModel.TomlPreviewLines, line => line.Tokens.Any(token => token.Kind == TomlPreviewTokenKind.String));
+        Assert.Contains(viewModel.TomlPreviewLines, line => line.Tokens.Any(token => token.Kind == TomlPreviewTokenKind.Number));
         Assert.Equal("已生成本地 TOML 预览，尚未上传到远程节点。", viewModel.StatusText);
     }
 
@@ -35,6 +39,55 @@ public sealed class ConfigurationsPageViewModelTests
         Assert.Contains("remotePort = 60022", viewModel.TomlPreview);
         Assert.DoesNotContain("customDomains", viewModel.TomlPreview);
         Assert.Equal(string.Empty, viewModel.ErrorText);
+    }
+
+    [Fact]
+    public void TomlPreviewLines_ShouldRefreshWhenTomlPreviewChanges()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.TomlPreview = """
+        [[proxies]]
+        name = "manual_proxy"
+        localPort = 9000
+        # comment
+        """;
+
+        Assert.Equal(4, viewModel.TomlPreviewLines.Count);
+        Assert.Contains(viewModel.TomlPreviewLines[1].Tokens, token => token.Text == "manual_proxy" || token.Text == "\"manual_proxy\"");
+        Assert.Contains(viewModel.TomlPreviewLines[2].Tokens, token => token.Kind == TomlPreviewTokenKind.Number && token.Text == "9000");
+        Assert.Contains(viewModel.TomlPreviewLines[3].Tokens, token => token.Kind == TomlPreviewTokenKind.Section);
+    }
+
+    [Fact]
+    public void ToggleAdvancedOptionsCommand_ShouldToggleAdvancedOptions()
+    {
+        var viewModel = CreateViewModel();
+
+        Assert.False(viewModel.IsAdvancedOptionsVisible);
+        Assert.Equal("chevron_right", viewModel.AdvancedOptionsChevronIcon);
+        Assert.Equal(0, viewModel.AdvancedOptionsPanelMaxHeight);
+        Assert.Equal(0, viewModel.AdvancedOptionsPanelOpacity);
+        Assert.Equal(-4, viewModel.AdvancedOptionsPanelOffsetY);
+        Assert.False(viewModel.IsAdvancedOptionsInteractive);
+
+        viewModel.ToggleAdvancedOptionsCommand.Execute(null);
+
+        Assert.True(viewModel.IsAdvancedOptionsVisible);
+        Assert.Equal("chevron_down", viewModel.AdvancedOptionsChevronIcon);
+        Assert.Equal(112, viewModel.AdvancedOptionsPanelMaxHeight);
+        Assert.Equal(1, viewModel.AdvancedOptionsPanelOpacity);
+        Assert.Equal(0, viewModel.AdvancedOptionsPanelOffsetY);
+        Assert.True(viewModel.IsAdvancedOptionsInteractive);
+
+        viewModel.ToggleAdvancedOptionsCommand.Execute(null);
+
+        Assert.False(viewModel.IsAdvancedOptionsVisible);
+        Assert.Equal("chevron_right", viewModel.AdvancedOptionsChevronIcon);
+        Assert.Equal(0, viewModel.AdvancedOptionsPanelMaxHeight);
+        Assert.Equal(0, viewModel.AdvancedOptionsPanelOpacity);
+        Assert.Equal(-4, viewModel.AdvancedOptionsPanelOffsetY);
+        Assert.False(viewModel.IsAdvancedOptionsInteractive);
     }
 
     [Fact]
@@ -119,6 +172,7 @@ public sealed class ConfigurationsPageViewModelTests
         Assert.Equal(TunnelProtocol.Tcp, viewModel.SelectedProtocol);
         Assert.Equal("60022", viewModel.RemoteEndpoint);
         Assert.Contains("remotePort = 60022", viewModel.TomlPreview);
+        Assert.Contains(viewModel.TomlPreviewLines, line => line.Tokens.Any(token => token.Kind == TomlPreviewTokenKind.Number && token.Text == "60022"));
     }
 
     [Fact]

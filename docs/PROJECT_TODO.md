@@ -4,6 +4,12 @@ This document turns the product plan, current phase, and Stitch UI direction int
 
 Current phase: `Phase 4: Packaging, Reliability, And Product Polish`.
 
+Current UI source decision:
+
+- Except for the `1100 x 720` to `1280 x 800` window target and TOML-first configuration direction, UI/UX decisions follow `stitch_frpnexus_design_system`.
+- Current Stitch main navigation uses: 仪表盘, 节点, 隧道, 配置, 日志, 设置.
+- Runtime management remains a product capability, but do not force a `运行` navigation item unless a future Stitch source adds it.
+
 ## Todo Status
 
 Use these markers:
@@ -72,7 +78,7 @@ Acceptance:
 - [x] Implement main shell layout with fixed `212px` SideNav.
 - [x] Implement fixed `52px` TopBar.
 - [x] Implement page content host with `24px` page margin.
-- [x] Add Chinese navigation items: 仪表盘, 节点, 隧道, 配置, 运行, 日志, 设置.
+- [x] Add Chinese navigation items following the then-current UI direction; current Stitch source uses 仪表盘, 节点, 隧道, 配置, 日志, 设置.
 - [x] Add active, hover, disabled, and normal navigation states.
 - [x] Add connection status area and compact top-right action buttons.
 
@@ -139,9 +145,9 @@ Acceptance:
 - TOML preview uses dark technical panel style.
 - Configuration UI does not prioritize INI.
 
-### Runtime Page
+### Runtime Workflow
 
-- [x] Implement static Runtime page derived from the same visual system.
+- [x] Implement runtime workflow affordances derived from the same visual system.
 - [x] Add process list or runtime status table.
 - [x] Add start, stop, restart, and refresh placeholder commands.
 - [x] Add selected runtime detail panel or technical output area.
@@ -150,7 +156,7 @@ Acceptance:
 
 Acceptance:
 
-- Runtime remains static UI in Phase 1.
+- Runtime remains static UI/workflow material in Phase 1.
 - No real remote process control is implemented yet.
 
 ### Logs Page
@@ -473,6 +479,26 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 - [blocked] Do not run `scripts/publish-win-x64.ps1` or create preview artifacts during this closure.
+
+## v1.0 End-to-End Acceptance / RC Gate Todo
+
+This gate validates whether FrpNexus can complete one real remote FRP deployment and runtime-management workflow. It is not Phase 5 and does not add new product features.
+
+- [x] Document the v1.0 end-to-end acceptance checklist in `docs/V1_E2E_ACCEPTANCE.md`.
+- [x] Keep preview release publishing deferred until the end-to-end workflow passes.
+- [x] Keep INI, keyboard shortcuts, accessibility polish, Agent mode, cloud sync, and web dashboard out of this gate.
+- [ ] Prepare a real Linux VPS test node with SSH access and safe test credentials.
+- [ ] Verify node creation, local persistence, and SSH connection testing.
+- [ ] Verify FRP release download, binary selection, and SFTP upload.
+- [ ] Verify TOML generation, validation, local configuration-version persistence, and configuration upload.
+- [ ] Verify remote FRP start, stop, restart, process status refresh, and deployment record updates.
+- [ ] Verify remote log reading and refresh behavior.
+- [ ] Verify at least one real HTTP or TCP tunnel reaches a local test service through the remote endpoint.
+- [ ] Verify app restart preserves ordinary settings, nodes, tunnels, configuration versions, runtime records, and deployment records.
+- [ ] Verify SQLite data, local logs, and export snapshots do not contain SSH passwords, tokens, private key contents, or private key passphrases.
+- [ ] Run `dotnet build`.
+- [ ] Run full `dotnet test`.
+- [blocked] Do not publish or package a preview release until this gate passes and the user explicitly re-enables publishing.
 
 ## Current Phase Prohibited Items
 

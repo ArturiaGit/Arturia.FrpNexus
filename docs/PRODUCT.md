@@ -36,15 +36,18 @@ The MVP must support:
 
 ## Core Modules
 
-The product navigation must use these Chinese modules:
+The product must keep runtime management as an MVP capability, but the main navigation follows the current Stitch UI source.
+
+The current Stitch-driven main navigation uses these Chinese modules:
 
 - 仪表盘
 - 节点
 - 隧道
 - 配置
-- 运行
 - 日志
 - 设置
+
+Runtime-related process control, status, and diagnostics may be represented inside the existing Stitch pages, especially 节点, 配置, and 日志, until a dedicated Stitch runtime page is added.
 
 ## Configuration Direction
 
@@ -65,4 +68,3 @@ Do not build these in the first version:
 - Multi-tenant backend
 - Complex traffic analytics
 - Advanced audit logs
-

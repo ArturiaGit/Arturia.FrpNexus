@@ -2,7 +2,7 @@
 
 This guide is the implementation-facing UI style source for FrpNexus. It extracts colors, typography, spacing, shape, component density, and technical panel treatments from `stitch_frpnexus_design_system/frpnexus_design_system/DESIGN.md` and the `frpnexus_1` through `frpnexus_6` Stitch screens.
 
-The final Avalonia UI must feel like a Windows 11 desktop operations tool using WinUI 3 / Fluent Design principles. Stitch HTML and Tailwind classes are references only; implement the UI with Avalonia XAML, styles, resource dictionaries, views, and MVVM-friendly view models.
+The final Avalonia UI must preserve the current Stitch visual system except for the fixed window target and TOML-first configuration direction. Stitch HTML and Tailwind classes are references only; implement the UI with Avalonia XAML, styles, resource dictionaries, views, and MVVM-friendly view models.
 
 ## Source Mapping
 
@@ -17,15 +17,15 @@ Use these Stitch sources:
 - Settings patterns: `stitch_frpnexus_design_system/frpnexus_6/code.html`
 - Visual verification references: `stitch_frpnexus_design_system/frpnexus_*/screen.png`
 
-When Stitch tokens and older docs differ, this guide is the normalized Avalonia implementation target. In particular, the current default SideNav is light Fluent NavigationView-style. The older dark sidebar note and any `#111827` sidebar resource should be treated as legacy or optional theme-experiment material, not the Phase 1 default.
+When Stitch tokens and older docs differ, Stitch is the UI/UX authority. The current Stitch screenshots and most page HTML define a light default SideNav; the older dark sidebar note and any `#111827` sidebar resource should be treated as legacy or optional theme-experiment material, not the default.
 
 ## Design Principles
 
-- Keep a WinUI 3 / Fluent-inspired Windows 11 desktop tool style.
+- Keep the current Stitch desktop operations-console style.
 - Prioritize clarity, stable hierarchy, and high information density.
 - Use tonal surfaces, 1px borders, compact controls, and conservative shadows.
 - Keep the UI Chinese-first. Technical terms such as `FRP`, `SSH`, `SFTP`, `TOML`, `TCP`, `UDP`, `HTTP`, `HTTPS`, `Token`, `frpc`, and `frps` may remain in English.
-- Do not use marketing hero layouts, web admin dashboards, Material Design visuals, oversized low-density cards, decorative gradients, or WebView/HTML rendering.
+- Do not use marketing hero layouts, web admin dashboards, oversized low-density cards, decorative gradients, or WebView/HTML rendering.
 
 ## Color Tokens
 
@@ -178,11 +178,11 @@ Extracted from all Stitch pages.
   - Text/icon: `FrpTextSecondaryBrush`
   - Hover background: `FrpSurfaceContainerBrush`
 
-Use Fluent-style icons in Avalonia. Material Symbols in Stitch are visual placeholders only.
+Follow the Material Symbols-style icon language, sizing, placement, and meaning in Stitch. In Avalonia, implement those icons through an appropriate icon resource or control while keeping MVVM-friendly bindings.
 
 SideNav color rule:
 
-- The current default SideNav must be light, matching WinUI 3 / Fluent NavigationView behavior and the majority of Stitch `code.html` pages.
+- The current default SideNav must be light, matching the Stitch screenshots and the majority of Stitch `code.html` pages.
 - Do not use `#111827` as the default main navigation background.
 - If existing resources contain a dark sidebar token, treat it as legacy or future optional theme material until an explicit theme task migrates it.
 - Dark panels remain correct for logs, terminal output, TOML preview, and code-oriented technical areas.
@@ -196,6 +196,8 @@ SideNav color rule:
 - Page title: `FrpPageTitleTextStyle`
 - Right actions: compact icon buttons `32px x 32px`
 - Connection status: status badge style with dot, Chinese text, and success color when ready.
+- The connection status badge must use a fixed height and vertically centered content; its status dot and Chinese text must sit on the same visual center line.
+- TopBar icon buttons must preserve visible background, border, and icon color across normal, `hover`, `pressed`, and disabled states.
 
 ### Command Bar
 
@@ -218,6 +220,7 @@ Primary button:
 - Radius: `4px` to `6px`
 - Border: transparent or primary
 - Font: body or group label depending on emphasis
+- Pressed state: keep a primary blue background and `FrpOnPrimaryBrush` text/icon color; do not allow the button to become white or unreadable.
 
 Secondary button:
 
@@ -227,6 +230,7 @@ Secondary button:
 - Border: `1px FrpBorderDefaultBrush`
 - Hover: `FrpSurfaceLowBrush` or `FrpSurfaceContainerBrush`
 - Text: `FrpTextPrimaryBrush`
+- Pressed state: use `FrpSurfaceHighBrush` or an equivalent stronger surface while keeping the border visible.
 
 Icon buttons:
 
@@ -234,8 +238,18 @@ Icon buttons:
 - Radius: `4px`
 - Icon size: `16px` to `20px`
 - Hover background: `FrpSurfaceVariantBrush` or `FrpSurfaceContainerBrush`
+- Normal state: transparent background, `1px FrpBorderDefaultBrush`, and secondary icon color.
+- Hover and pressed states: visible tonal background, stable border, and primary icon color.
 
 Avoid pill-shaped primary buttons.
+
+Avalonia implementation rule:
+
+- Do not rely on `Avalonia.Themes.Fluent` default `Button` templates when they override Stitch state colors.
+- If a Fluent template causes primary, secondary, or icon buttons to lose their background, border, text, or icon color on `hover` / `pressed`, define a dedicated `ControlTemplate` with a `Border` and `ContentPresenter`.
+- In custom button templates, bind `Background`, `BorderBrush`, `BorderThickness`, `CornerRadius`, `Padding`, and content alignment through `TemplateBinding`.
+- Button content such as `PathIcon` and `TextBlock` should inherit the parent `Button.Foreground`, especially in icon+text buttons, so state changes update the icon and label together.
+- Clickable text links such as `查看全部` should be lightweight button-style controls with `Cursor="Hand"`, primary text color, subtle hover feedback, and no large button chrome.
 
 ### Inputs And Selects
 
@@ -247,6 +261,20 @@ Avoid pill-shaped primary buttons.
 - Search input left icon inset: `32px` to `36px`
 - Focus: primary border plus subtle focus ring or bottom-heavy border.
 - Placeholder: secondary text with reduced opacity.
+- Normal, hover, focus, and disabled states must remain light-background and dark-text unless Stitch explicitly shows a dark technical input.
+- Do not allow Avalonia input hover or focus states to become black-background with white text, invisible placeholder text, or unreadable selection colors.
+- `TextBox` and password inputs using `PasswordChar` should share the same Stitch state model: stable white or subtle container background, readable foreground, visible border, primary focus accent, and readable watermark.
+- If `Avalonia.Themes.Fluent` templates conflict with Stitch, use a dedicated style or `ControlTemplate` to control `Background`, `Foreground`, `BorderBrush`, `CaretBrush`, `SelectionBrush`, `SelectionForegroundBrush`, and `Watermark` visuals.
+- Search field icons should stay muted in normal state and may shift to primary on focus, but they must not overpower the input value.
+- Search or decorative icons inside editable fields must not steal hit testing from the input text area; use `IsHitTestVisible="False"` or an equivalent layout when needed.
+- Placeholder or watermark copy must use muted text and remain readable in normal, hover, focus, and disabled states.
+- Selected text should use a Stitch-compatible `SelectionBrush` and `SelectionForegroundBrush`; avoid high-contrast system defaults that visually break the light input field.
+- Monospace inputs for IP addresses, ports, paths, TOML fragments, and versions should keep the same input chrome while using the technical font stack.
+- Editable fields such as `TextBox`, password inputs, and search fields should use `Cursor="IBeam"` across the input chrome, text presenter, and watermark area.
+- Selectable controls such as `ComboBox` should use `Cursor="Hand"` on the closed control, chevron area, popup items, and other clickable select surfaces.
+- `ComboBox` controls must preserve the same light WinUI 3 / Stitch model as inputs: white or subtle surface, readable foreground, visible border, primary focus/open accent, and no dark Fluent overlay.
+- `ComboBox` popups must use light surface, clear border, modest radius, and readable item states. Item `hover`, `selected`, `pressed`, and `selected + hover` states should remain light-toned; do not allow gray-black selected or hover blocks.
+- Expanded `ComboBox` popups should support clicking outside to close. In Avalonia, prefer light-dismiss behavior such as `IsLightDismissEnabled` and event pass-through such as `OverlayDismissEventPassThrough` when the desktop interaction expects the outside click to continue to the target control.
 
 ### Data Grid And Lists
 
@@ -264,6 +292,11 @@ Extracted from nodes and tunnels pages.
   - `3px` primary left indicator when selection needs emphasis
 - Avoid vertical dividers.
 - Code-like cells such as IP, port, version, path, and domain use technical font.
+- Table headers, row content, selected row backgrounds, left selection indicators, and horizontal separators must share the same column structure and fill the table panel width.
+- When building a Stitch-like table with `ItemsControl + Grid`, the `ItemsControl`, item container, row button, and row content `Grid` must use `HorizontalAlignment="Stretch"` or equivalent layout constraints.
+- Checkbox visual columns, status badge columns, and version/IP technical columns must keep fixed or shared widths across header and body rows.
+- Long names, IPs, versions, domains, and paths should use trimming rather than pushing later columns out of alignment.
+- The selected row background and separator should span the full row width; do not let row content shrink to its text width.
 
 ### Status Badges
 
@@ -339,7 +372,7 @@ Extracted from configuration page.
 
 ### Empty States, Info Bars, And Dialogs
 
-Use Fluent-inspired quiet surfaces.
+Use Stitch-inspired quiet surfaces.
 
 - Empty states should be compact and actionable, not hero-like.
 - Info bars use status tint backgrounds and 1px status borders.
@@ -350,11 +383,11 @@ Use Fluent-inspired quiet surfaces.
 
 The project may use third-party Avalonia UI libraries only as control capability supplements.
 
-- The visual system in this guide remains authoritative.
+- The Stitch visual system remains authoritative.
 - Third-party themes must not replace the FrpNexus color, typography, spacing, shape, and density rules.
 - Controls from a UI library must still bind to `CommunityToolkit.Mvvm` view models through Avalonia binding and commands.
 - Do not put business logic in third-party control code-behind.
-- If a library's default style conflicts with this guide, override it through resource dictionaries or do not use that control.
+- If a library's default style conflicts with Stitch, override it through resource dictionaries or do not use that control.
 
 Default baseline:
 

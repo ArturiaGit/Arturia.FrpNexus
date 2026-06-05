@@ -2,135 +2,393 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
              x:Class="Arturia.FrpNexus.Desktop.Views.Pages.NodesPageView"
              x:Name="Root"
              x:DataType="pages:NodesPageViewModel">
+    <UserControl.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+    </UserControl.Resources>
+
     <Grid ColumnDefinitions="*,320"
-          ColumnSpacing="16">
-        <Border Classes="panel">
+          ColumnSpacing="20">
+        <Border Classes="panel"
+                ClipToBounds="True">
             <Grid RowDefinitions="Auto,*,Auto">
-                <Border Classes="command-bar"
-                        Margin="12">
-                    <DockPanel LastChildFill="False">
+                <Border Padding="12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12">
                         <StackPanel Orientation="Horizontal"
                                     Spacing="12"
                                     VerticalAlignment="Center">
-                            <Button Classes="primary"
-                                    Content="添加节点"
-                                    Command="{Binding StartCreateNodeCommand}" />
-                            <Button Classes="secondary"
-                                    Content="刷新列表"
-                                    Command="{Binding LoadNodesCommand}" />
+                            <Button Classes="primary stitch-command"
+                                    Command="{Binding StartCreateNodeCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Width="18"
+                                              Height="18"
+                                              Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="添加节点" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Classes="secondary stitch-command"
+                                    Command="{Binding LoadNodesCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6"
+                                            HorizontalAlignment="Center">
+                                    <PathIcon Width="18"
+                                              Height="18"
+                                              Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="刷新列表" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
-                        <TextBox DockPanel.Dock="Right"
-                                 Width="260"
-                                 VerticalAlignment="Center"
-                                 PlaceholderText="搜索节点 IP 或名称..." />
-                    </DockPanel>
+
+                        <Grid Grid.Column="1"
+                              Width="256"
+                              Height="34"
+                              HorizontalAlignment="Right">
+                            <TextBox Classes="stitch-input"
+                                     Padding="36,0,12,0"
+                                     VerticalContentAlignment="Center"
+                                     PlaceholderText="搜索节点 IP 或名称..." />
+                            <PathIcon Width="18"
+                                      Height="18"
+                                      Margin="12,0,0,0"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Center"
+                                      Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                      IsHitTestVisible="False"
+                                      Data="{Binding Source=search, Converter={StaticResource MetricIconConverter}}" />
+                        </Grid>
+                    </Grid>
                 </Border>
 
-                <DataGrid Grid.Row="1"
-                          ItemsSource="{Binding Nodes}"
-                          SelectedItem="{Binding SelectedNode}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="2*" />
-                        <DataGridTextColumn Header="IP 地址" Binding="{Binding Host}" Width="*" />
-                        <DataGridTemplateColumn Header="状态" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <controls:StatusBadgeControl DataContext="{Binding ConnectionStatus}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="FRP 服务" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <controls:StatusBadgeControl DataContext="{Binding FrpStatus}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="版本" Binding="{Binding FrpVersion}" Width="*" />
-                        <DataGridTemplateColumn Header="操作" Width="Auto">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Button Classes="secondary compact"
-                                            Content="编辑"
-                                            Command="{Binding #Root.DataContext.StartEditSelectedNodeCommand}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Grid Grid.Row="1"
+                      RowDefinitions="40,*">
+                    <Border Background="{StaticResource FrpSurfaceLowBrush}"
+                            BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                            BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="48,2.2*,1.45*,1.2*,1.35*,1*"
+                              ColumnSpacing="12"
+                              Margin="0,0,12,0">
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsHitTestVisible="False" />
+                            <TextBlock Grid.Column="1"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="名称" />
+                            <TextBlock Grid.Column="2"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="IP 地址" />
+                            <TextBlock Grid.Column="3"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="状态" />
+                            <TextBlock Grid.Column="4"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="FRP 服务" />
+                            <TextBlock Grid.Column="5"
+                                       Classes="table-header"
+                                       VerticalAlignment="Center"
+                                       Text="版本" />
+                        </Grid>
+                    </Border>
 
-                <DockPanel Grid.Row="2"
-                           Height="40"
-                           Background="{StaticResource Brush.SurfaceSubtle}">
-                    <TextBlock Classes="helper"
-                               Margin="12,0"
-                               VerticalAlignment="Center"
-                               Text="{Binding NodeCountText}" />
-                    <TextBlock DockPanel.Dock="Right"
-                               Classes="helper"
-                               Margin="12,0"
-                               VerticalAlignment="Center"
-                               Text="1 / 1" />
-                </DockPanel>
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding NodeRows}"
+                                      HorizontalAlignment="Stretch">
+                            <ItemsControl.Styles>
+                                <Style Selector="ContentPresenter">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                </Style>
+                            </ItemsControl.Styles>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:NodeListItemViewModel">
+                                    <Button Classes="node-row"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding #Root.DataContext.SelectNodeCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid RowDefinitions="*,Auto"
+                                              HorizontalAlignment="Stretch">
+                                            <Border Background="{StaticResource FrpSelectionSubtleBrush}"
+                                                    Opacity="0.35"
+                                                    IsVisible="{Binding IsSelected}" />
+                                            <Grid ColumnDefinitions="48,2.2*,1.45*,1.2*,1.35*,1*"
+                                                  ColumnSpacing="12"
+                                                  HorizontalAlignment="Stretch"
+                                                  Margin="0,0,12,0">
+                                                <Border Width="3"
+                                                        HorizontalAlignment="Left"
+                                                        Background="{StaticResource FrpPrimaryBrush}"
+                                                        IsVisible="{Binding IsSelected}" />
+                                                <CheckBox HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsSelected}"
+                                                          IsHitTestVisible="False" />
+                                                <StackPanel Grid.Column="1"
+                                                            Orientation="Horizontal"
+                                                            Spacing="8"
+                                                            VerticalAlignment="Center">
+                                                    <PathIcon Width="18"
+                                                              Height="18"
+                                                              Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                              Data="{Binding Source=dns, Converter={StaticResource MetricIconConverter}}" />
+                                                    <TextBlock FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding Name}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2"
+                                                           Classes="code"
+                                                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Host}" />
+                                                <Border Grid.Column="3"
+                                                        Classes="badge"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Classes.success="{Binding IsConnectionSuccess}"
+                                                        Classes.error="{Binding IsConnectionError}">
+                                                    <StackPanel Orientation="Horizontal"
+                                                                Spacing="6">
+                                                        <Ellipse Width="6"
+                                                                 Height="6"
+                                                                 VerticalAlignment="Center"
+                                                                 Classes="status-dot"
+                                                                 Classes.success="{Binding IsConnectionSuccess}"
+                                                                 Classes.error="{Binding IsConnectionError}" />
+                                                        <TextBlock Classes="status-text"
+                                                                   Classes.success="{Binding IsConnectionSuccess}"
+                                                                   Classes.error="{Binding IsConnectionError}"
+                                                                   Text="{Binding ConnectionStatusText}" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Grid.Column="4"
+                                                        Classes="badge"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Classes.success="{Binding IsFrpSuccess}"
+                                                        Classes.warning="{Binding IsFrpWarning}"
+                                                        Classes.error="{Binding IsFrpError}"
+                                                        Classes.neutral="{Binding IsFrpNeutral}">
+                                                    <TextBlock Classes="status-text"
+                                                               Classes.success="{Binding IsFrpSuccess}"
+                                                               Classes.warning="{Binding IsFrpWarning}"
+                                                               Classes.error="{Binding IsFrpError}"
+                                                               Classes.neutral="{Binding IsFrpNeutral}"
+                                                               Text="{Binding FrpServiceText}" />
+                                                </Border>
+                                                <TextBlock Grid.Column="5"
+                                                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Version}" />
+                                            </Grid>
+                                            <Border Grid.Row="1"
+                                                    Height="1"
+                                                    Background="{StaticResource FrpBorderDefaultBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+
+                <Border Grid.Row="2"
+                        Height="44"
+                        Padding="12,0"
+                        Background="{StaticResource FrpSurfaceLowBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="*,Auto"
+                          VerticalAlignment="Center">
+                        <TextBlock Classes="helper"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding NodeCountText}" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                            <Button Classes="icon-secondary"
+                                    Width="28"
+                                    Height="28"
+                                    MinHeight="28"
+                                    IsEnabled="False">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=chevron_left, Converter={StaticResource MetricIconConverter}}" />
+                            </Button>
+                            <TextBlock Classes="helper"
+                                       VerticalAlignment="Center"
+                                       Text="1 / 1" />
+                            <Button Classes="icon-secondary"
+                                    Width="28"
+                                    Height="28"
+                                    MinHeight="28"
+                                    IsEnabled="False">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=chevron_right, Converter={StaticResource MetricIconConverter}}" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
         <Border Grid.Column="1"
                 Classes="panel"
+                ClipToBounds="True"
                 IsVisible="{Binding !IsEditorOpen}">
             <Grid RowDefinitions="Auto,*">
                 <Border Padding="16"
-                        Background="{StaticResource Brush.SurfaceSubtle}"
-                        BorderBrush="{StaticResource Brush.BorderDefault}"
+                        Background="{StaticResource FrpSurfaceLowBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
                         BorderThickness="0,0,0,1">
                     <StackPanel>
                         <TextBlock Classes="section-title"
                                    Text="{Binding SelectedNode.Name}" />
                         <TextBlock Classes="helper"
+                                   Margin="0,4,0,0"
                                    Text="{Binding SelectedNode.OperatingSystem}" />
                     </StackPanel>
                 </Border>
 
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Margin="16"
-                                Spacing="18">
-                        <TextBlock Classes="group-label" Text="快速操作" />
-                        <Grid ColumnDefinitions="*,*"
-                              RowDefinitions="Auto,Auto"
-                              ColumnSpacing="8"
-                              RowSpacing="8">
-                            <Button Classes="secondary"
-                                    HorizontalAlignment="Stretch"
-                                    Content="测试连接"
-                                    Command="{Binding TestSelectedNodeConnectionCommand}" />
-                            <Button Grid.Column="1" Classes="secondary" HorizontalAlignment="Stretch" Content="上传核心" />
-                            <Button Grid.Row="1" Grid.ColumnSpan="2" Classes="secondary" Content="重启 FRP 进程" />
-                        </Grid>
+                                Spacing="20">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="group-label"
+                                       Text="快速操作" />
+                            <Grid ColumnDefinitions="*,*"
+                                  RowDefinitions="Auto,Auto"
+                                  ColumnSpacing="8"
+                                  RowSpacing="8">
+                                <Button Classes="secondary stitch-command"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{Binding TestSelectedNodeConnectionCommand}">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6">
+                                        <PathIcon Width="16"
+                                                  Height="16"
+                                                  Data="{Binding Source=terminal, Converter={StaticResource MetricIconConverter}}" />
+                                        <TextBlock Text="测试连接" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="1"
+                                        Classes="secondary stitch-command"
+                                        HorizontalAlignment="Stretch">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6">
+                                        <PathIcon Width="16"
+                                                  Height="16"
+                                                  Data="{Binding Source=upload, Converter={StaticResource MetricIconConverter}}" />
+                                        <TextBlock Text="上传核心" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Classes="secondary stitch-command"
+                                        Foreground="{StaticResource FrpStatusWarningBrush}"
+                                        HorizontalAlignment="Stretch">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6"
+                                                HorizontalAlignment="Center">
+                                        <PathIcon Width="16"
+                                                  Height="16"
+                                                  Data="{Binding Source=restart_alt, Converter={StaticResource MetricIconConverter}}" />
+                                        <TextBlock Text="重启 FRP 进程" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
 
-                        <Border Classes="subtle-panel" Padding="12">
+                        <Border Classes="settings-divider" />
+
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="group-label"
+                                       Text="SSH 连接信息" />
+                            <Border Classes="subtle-panel"
+                                    Padding="12">
+                                <StackPanel Classes="info-section">
+                                    <controls:KeyValueRowControl Label="主机地址"
+                                                                 Value="{Binding SelectedNode.Host}"
+                                                                 IsCode="True" />
+                                    <controls:KeyValueRowControl Label="端口"
+                                                                 Value="{Binding SelectedNode.SshPort}"
+                                                                 IsCode="True" />
+                                    <controls:KeyValueRowControl Label="用户名"
+                                                                 Value="{Binding SelectedNode.UserName}"
+                                                                 IsCode="True" />
+                                    <controls:KeyValueRowControl Label="认证方式"
+                                                                 Value="{Binding SelectedNode.Authentication}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="group-label"
+                                       Text="FRP 详情" />
+                            <Border Classes="subtle-panel"
+                                    Padding="12">
+                                <StackPanel Classes="info-section">
+                                    <controls:KeyValueRowControl Label="核心版本"
+                                                                 Value="{Binding SelectedNode.FrpVersion}"
+                                                                 IsCode="True" />
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="12"
+                                          MinHeight="22">
+                                        <TextBlock Classes="helper"
+                                                   Text="进程状态" />
+                                        <TextBlock Grid.Column="1"
+                                                   Classes="status-text success"
+                                                   HorizontalAlignment="Right"
+                                                   Text="running (pid: 14022)" />
+                                    </Grid>
+                                    <controls:KeyValueRowControl Label="运行时间"
+                                                                 Value="{Binding SelectedNode.Uptime}" />
+                                    <controls:KeyValueRowControl Label="配置路径"
+                                                                 Value="{Binding SelectedNode.ConfigPath}"
+                                                                 IsCode="True" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <Border Classes="subtle-panel"
+                                Padding="12">
                             <StackPanel Classes="info-section">
-                                <TextBlock Classes="group-label" Text="SSH 测试凭据" />
+                                <TextBlock Classes="group-label"
+                                           Text="SSH 测试凭据" />
                                 <TextBlock Classes="helper"
                                            TextWrapping="Wrap"
                                            Text="凭据仅用于本次连接测试。密码、私钥内容和 passphrase 不会写入 SQLite。" />
-                                <ComboBox SelectedItem="{Binding SelectedSshAuthenticationMode}">
+                                <ComboBox Classes="stitch-input"
+                                          SelectedItem="{Binding SelectedSshAuthenticationMode}">
                                     <sys:String>SessionPassword</sys:String>
                                     <sys:String>PrivateKey</sys:String>
                                     <sys:String>SshAgent</sys:String>
                                 </ComboBox>
-                                <TextBox Classes="code"
+                                <TextBox Classes="stitch-input code"
                                          PlaceholderText="私钥文件路径，例如 C:\Users\you\.ssh\id_rsa"
                                          Text="{Binding SshPrivateKeyPath}" />
-                                <TextBox PasswordChar="*"
+                                <TextBox Classes="stitch-input"
+                                         PasswordChar="*"
                                          PlaceholderText="会话密码，仅本次使用"
                                          Text="{Binding SshSessionPassword}" />
-                                <TextBox PasswordChar="*"
+                                <TextBox Classes="stitch-input"
+                                         PasswordChar="*"
                                          PlaceholderText="私钥 passphrase，仅本次使用"
                                          Text="{Binding SshPrivateKeyPassphrase}" />
                                 <TextBlock Classes="helper"
@@ -142,59 +400,33 @@
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Right"
                                     Spacing="8">
-                            <Button Classes="secondary"
-                                    Content="编辑节点"
-                                    Command="{Binding StartEditSelectedNodeCommand}" />
-                            <Button Classes="secondary"
+                            <Button Classes="secondary stitch-command"
+                                    Command="{Binding StartEditSelectedNodeCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=edit, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="编辑节点" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="secondary stitch-command"
                                     Foreground="{StaticResource Brush.Error}"
-                                    Content="{Binding DeleteButtonText}"
-                                    Command="{Binding DeleteSelectedNodeCommand}" />
+                                    Command="{Binding DeleteSelectedNodeCommand}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=delete, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="{Binding DeleteButtonText}" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
 
                         <TextBlock Classes="helper"
                                    Foreground="{StaticResource Brush.Error}"
                                    TextWrapping="Wrap"
                                    Text="{Binding FormErrorText}" />
-
-                        <Border Classes="subtle-panel" Padding="12">
-                            <StackPanel Classes="info-section">
-                                <TextBlock Classes="group-label" Text="SSH 连接信息" />
-                                <controls:KeyValueRowControl Label="主机地址"
-                                                             Value="{Binding SelectedNode.Host}"
-                                                             IsCode="True" />
-                                <controls:KeyValueRowControl Label="端口"
-                                                             Value="{Binding SelectedNode.SshPort}"
-                                                             IsCode="True" />
-                                <controls:KeyValueRowControl Label="用户名"
-                                                             Value="{Binding SelectedNode.UserName}"
-                                                             IsCode="True" />
-                                <controls:KeyValueRowControl Label="认证方式"
-                                                             Value="{Binding SelectedNode.Authentication}" />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="subtle-panel" Padding="12">
-                            <StackPanel Classes="info-section">
-                                <TextBlock Classes="group-label" Text="FRP 详情" />
-                                <controls:KeyValueRowControl Label="核心版本"
-                                                             Value="{Binding SelectedNode.FrpVersion}"
-                                                             IsCode="True" />
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="12"
-                                      MinHeight="22">
-                                    <TextBlock Classes="helper"
-                                               Text="进程状态" />
-                                    <controls:StatusBadgeControl Grid.Column="1"
-                                                                 HorizontalAlignment="Right"
-                                                                 DataContext="{Binding SelectedNode.FrpStatus}" />
-                                </Grid>
-                                <controls:KeyValueRowControl Label="运行时间"
-                                                             Value="{Binding SelectedNode.Uptime}" />
-                                <controls:KeyValueRowControl Label="配置路径"
-                                                             Value="{Binding SelectedNode.ConfigPath}"
-                                                             IsCode="True" />
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
@@ -202,88 +434,113 @@
 
         <Border Grid.Column="1"
                 Classes="panel"
+                ClipToBounds="True"
                 IsVisible="{Binding IsEditorOpen}">
-            <ScrollViewer>
-                <StackPanel Margin="16"
-                            Spacing="12">
-                    <TextBlock Classes="section-title"
-                               Text="{Binding EditorTitle}" />
-                    <TextBlock Classes="helper"
-                               Text="仅保存本地 SQLite 节点记录，不执行 SSH 测试、SFTP 上传或 FRP 操作。" />
+            <Grid RowDefinitions="*,Auto">
+                <ScrollViewer Grid.Row="0">
+                    <StackPanel Margin="16"
+                                Spacing="12">
+                        <TextBlock Classes="section-title"
+                                   Text="{Binding EditorTitle}" />
+                        <TextBlock Classes="helper"
+                                   Text="仅保存本地 SQLite 节点记录，不执行 SSH 测试、SFTP 上传或 FRP 操作。" />
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="节点名称" />
-                        <TextBox Text="{Binding FormName}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="Host" />
-                        <TextBox Classes="code"
-                                 Text="{Binding FormHost}" />
-                    </StackPanel>
-
-                    <Grid ColumnDefinitions="*,96"
-                          ColumnSpacing="8">
                         <StackPanel Spacing="6">
-                            <TextBlock Classes="helper" Text="用户名" />
-                            <TextBox Classes="code"
-                                     Text="{Binding FormUserName}" />
+                            <TextBlock Classes="helper" Text="节点名称" />
+                            <TextBox Classes="stitch-input"
+                                     Text="{Binding FormName}" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1"
-                                    Spacing="6">
-                            <TextBlock Classes="helper" Text="SSH 端口" />
-                            <TextBox Classes="code"
-                                     Text="{Binding FormSshPort}" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="Host" />
+                            <TextBox Classes="stitch-input code"
+                                     Text="{Binding FormHost}" />
                         </StackPanel>
-                    </Grid>
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="认证描述" />
-                        <TextBox Text="{Binding FormAuthentication}" />
+                        <Grid ColumnDefinitions="*,96"
+                              ColumnSpacing="8">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="helper" Text="用户名" />
+                                <TextBox Classes="stitch-input code"
+                                         PlaceholderText="{Binding DefaultUserNameText}"
+                                         Text="{Binding FormUserName}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Spacing="6">
+                                <TextBlock Classes="helper" Text="SSH 端口" />
+                                <TextBox Classes="stitch-input code"
+                                         PlaceholderText="{Binding DefaultSshPortText}"
+                                         Text="{Binding FormSshPort}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="认证描述" />
+                            <TextBox Classes="stitch-input"
+                                     PlaceholderText="{Binding DefaultAuthenticationText}"
+                                     Text="{Binding FormAuthentication}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="操作系统" />
+                            <ComboBox Classes="stitch-input"
+                                      ItemsSource="{Binding OperatingSystemOptions}"
+                                      SelectedItem="{Binding SelectedOperatingSystem}" />
+                            <TextBox Classes="stitch-input"
+                                     PlaceholderText="输入自定义操作系统，例如 OpenWrt 23.05"
+                                     Text="{Binding CustomOperatingSystem}"
+                                     IsVisible="{Binding IsCustomOperatingSystemSelected}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="FRP 版本" />
+                            <TextBox Classes="stitch-input code"
+                                     PlaceholderText="{Binding DefaultFrpVersionText}"
+                                     Text="{Binding FormFrpVersion}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="helper" Text="配置路径" />
+                            <TextBox Classes="stitch-input code"
+                                     PlaceholderText="{Binding DefaultConfigPathText}"
+                                     Text="{Binding FormConfigPath}" />
+                        </StackPanel>
+
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource Brush.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding FormErrorText}" />
                     </StackPanel>
+                </ScrollViewer>
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="操作系统" />
-                        <TextBox Text="{Binding FormOperatingSystem}" />
-                    </StackPanel>
+                <Border Grid.Row="1"
+                        Padding="16,12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="12">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <Button Classes="secondary stitch-command"
+                                    Content="取消"
+                                    Command="{Binding CancelEditCommand}" />
+                            <Button Classes="primary stitch-command"
+                                    Content="保存"
+                                    Command="{Binding SaveNodeCommand}" />
+                        </StackPanel>
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="FRP 版本" />
-                        <TextBox Classes="code"
-                                 Text="{Binding FormFrpVersion}" />
-                    </StackPanel>
+                        <Border Classes="settings-divider"
+                                IsVisible="{Binding IsEditingExistingNode}" />
 
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="helper" Text="配置路径" />
-                        <TextBox Classes="code"
-                                 Text="{Binding FormConfigPath}" />
-                    </StackPanel>
-
-                    <TextBlock Classes="helper"
-                               Foreground="{StaticResource Brush.Error}"
-                               TextWrapping="Wrap"
-                               Text="{Binding FormErrorText}" />
-
-                    <StackPanel Orientation="Horizontal"
+                        <Button Classes="danger stitch-command"
                                 HorizontalAlignment="Right"
-                                Spacing="8">
-                        <Button Classes="secondary"
-                                Content="取消"
-                                Command="{Binding CancelEditCommand}" />
-                        <Button Classes="primary"
-                                Content="保存"
-                                Command="{Binding SaveNodeCommand}" />
+                                Content="{Binding DeleteButtonText}"
+                                Command="{Binding DeleteSelectedNodeCommand}"
+                                IsVisible="{Binding IsEditingExistingNode}" />
                     </StackPanel>
-
-                    <Border Classes="settings-divider" />
-
-                    <Button Classes="secondary"
-                            HorizontalAlignment="Right"
-                            Foreground="{StaticResource Brush.Error}"
-                            Content="{Binding DeleteButtonText}"
-                            Command="{Binding DeleteSelectedNodeCommand}" />
-                </StackPanel>
-            </ScrollViewer>
+                </Border>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

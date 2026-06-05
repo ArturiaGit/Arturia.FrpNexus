@@ -14,6 +14,14 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class NodesPageViewModel : PageViewModel
 {
+    public const string DefaultSshPort = "22";
+    public const string DefaultUserName = "deploy";
+    public const string DefaultAuthentication = "密钥 (LOCAL_KEY)";
+    public const string DefaultOperatingSystem = "Ubuntu 22.04 LTS";
+    public const string DefaultFrpVersion = "v0.61.1";
+    public const string DefaultConfigPath = "/etc/frp/frpc.toml";
+    public const string OtherOperatingSystemOption = "其他";
+
     private readonly INodeManagementService _nodeManagementService;
     private readonly ISshConnectionService _sshConnectionService;
     private bool _isDeleteConfirmationPending;
@@ -29,6 +37,9 @@ public sealed partial class NodesPageViewModel : PageViewModel
     private bool _isEditorOpen;
 
     [ObservableProperty]
+    private bool _isEditingExistingNode;
+
+    [ObservableProperty]
     private string _editorTitle = "节点详情";
 
     [ObservableProperty]
@@ -38,22 +49,31 @@ public sealed partial class NodesPageViewModel : PageViewModel
     private string _formHost = string.Empty;
 
     [ObservableProperty]
-    private string _formSshPort = "22";
+    private string _formSshPort = string.Empty;
 
     [ObservableProperty]
     private string _formUserName = string.Empty;
 
     [ObservableProperty]
-    private string _formAuthentication = "密钥 (LOCAL_KEY)";
+    private string _formAuthentication = string.Empty;
 
     [ObservableProperty]
-    private string _formOperatingSystem = "Ubuntu 22.04 LTS";
+    private string _formOperatingSystem = DefaultOperatingSystem;
 
     [ObservableProperty]
-    private string _formFrpVersion = "v0.61.1";
+    private string _selectedOperatingSystem = DefaultOperatingSystem;
 
     [ObservableProperty]
-    private string _formConfigPath = "/etc/frp/frpc.toml";
+    private string _customOperatingSystem = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCustomOperatingSystemSelected;
+
+    [ObservableProperty]
+    private string _formFrpVersion = string.Empty;
+
+    [ObservableProperty]
+    private string _formConfigPath = string.Empty;
 
     [ObservableProperty]
     private string _formErrorText = string.Empty;
@@ -85,6 +105,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         _nodeManagementService = nodeManagementService;
         _sshConnectionService = sshConnectionService;
         Nodes = [];
+        NodeRows = [];
 
         _ = LoadNodesAsync();
     }
@@ -134,6 +155,28 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     public ObservableCollection<NodeProfile> Nodes { get; }
 
+    public ObservableCollection<NodeListItemViewModel> NodeRows { get; }
+
+    public string DefaultSshPortText => DefaultSshPort;
+
+    public string DefaultUserNameText => DefaultUserName;
+
+    public string DefaultAuthenticationText => DefaultAuthentication;
+
+    public string DefaultFrpVersionText => DefaultFrpVersion;
+
+    public string DefaultConfigPathText => DefaultConfigPath;
+
+    public IReadOnlyList<string> OperatingSystemOptions { get; } =
+    [
+        DefaultOperatingSystem,
+        "Debian 12",
+        "CentOS Stream 9",
+        "AlmaLinux 9",
+        "Rocky Linux 9",
+        OtherOperatingSystemOption
+    ];
+
     [RelayCommand]
     public async Task LoadNodesAsync(CancellationToken cancellationToken = default)
     {
@@ -179,13 +222,28 @@ public sealed partial class NodesPageViewModel : PageViewModel
         }
 
         Nodes.Clear();
+        NodeRows.Clear();
         foreach (var node in nodes)
         {
             Nodes.Add(node);
+            NodeRows.Add(new NodeListItemViewModel(node));
         }
 
         SelectedNode = Nodes.FirstOrDefault();
+        SyncSelectedRows();
         NodeCountText = $"共 {Nodes.Count} 个节点";
+    }
+
+    [RelayCommand]
+    private void SelectNode(NodeListItemViewModel? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedNode = row.Node;
+        IsEditorOpen = false;
     }
 
     [RelayCommand]
@@ -193,15 +251,18 @@ public sealed partial class NodesPageViewModel : PageViewModel
     {
         _editingOriginalName = null;
         ResetDeleteConfirmation();
+        IsEditingExistingNode = false;
         EditorTitle = "添加节点";
         FormName = string.Empty;
         FormHost = string.Empty;
-        FormSshPort = "22";
-        FormUserName = "deploy";
-        FormAuthentication = "密钥 (LOCAL_KEY)";
-        FormOperatingSystem = "Ubuntu 22.04 LTS";
-        FormFrpVersion = "v0.61.1";
-        FormConfigPath = "/etc/frp/frpc.toml";
+        FormSshPort = string.Empty;
+        FormUserName = string.Empty;
+        FormAuthentication = string.Empty;
+        FormOperatingSystem = DefaultOperatingSystem;
+        SelectedOperatingSystem = DefaultOperatingSystem;
+        CustomOperatingSystem = string.Empty;
+        FormFrpVersion = string.Empty;
+        FormConfigPath = string.Empty;
         FormErrorText = string.Empty;
         IsEditorOpen = true;
     }
@@ -217,6 +278,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
         _editingOriginalName = SelectedNode.Name;
         ResetDeleteConfirmation();
+        IsEditingExistingNode = true;
         EditorTitle = "编辑节点";
         FormName = SelectedNode.Name;
         FormHost = SelectedNode.Host;
@@ -224,6 +286,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         FormUserName = SelectedNode.UserName;
         FormAuthentication = SelectedNode.Authentication;
         FormOperatingSystem = SelectedNode.OperatingSystem;
+        SetOperatingSystemSelection(SelectedNode.OperatingSystem);
         FormFrpVersion = SelectedNode.FrpVersion;
         FormConfigPath = SelectedNode.ConfigPath;
         FormErrorText = string.Empty;
@@ -253,6 +316,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
             SelectedNode = Nodes.FirstOrDefault(item => item.Name == node.Name);
             IsEditorOpen = false;
+            IsEditingExistingNode = false;
             FormErrorText = string.Empty;
             _editingOriginalName = null;
         }
@@ -268,6 +332,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
     {
         ResetDeleteConfirmation();
         IsEditorOpen = false;
+        IsEditingExistingNode = false;
         FormErrorText = string.Empty;
         _editingOriginalName = null;
     }
@@ -295,6 +360,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
             ResetDeleteConfirmation();
             await LoadNodesAsync();
             IsEditorOpen = false;
+            IsEditingExistingNode = false;
             FormErrorText = string.Empty;
         }
         catch (Exception ex)
@@ -307,6 +373,26 @@ public sealed partial class NodesPageViewModel : PageViewModel
     partial void OnSelectedNodeChanged(NodeProfile? value)
     {
         ResetDeleteConfirmation();
+        SyncSelectedRows();
+    }
+
+    partial void OnSelectedOperatingSystemChanged(string value)
+    {
+        IsCustomOperatingSystemSelected = string.Equals(value, OtherOperatingSystemOption, StringComparison.Ordinal);
+        if (!IsCustomOperatingSystemSelected)
+        {
+            CustomOperatingSystem = string.Empty;
+            FormOperatingSystem = value;
+        }
+    }
+
+    private void SyncSelectedRows()
+    {
+        foreach (var row in NodeRows)
+        {
+            row.IsSelected = SelectedNode is not null
+                && string.Equals(row.Node.Name, SelectedNode.Name, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static IReadOnlyList<NodeProfile> CreateSeedNodes()
@@ -335,13 +421,9 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(FormUserName))
-        {
-            FormErrorText = "用户名不能为空。";
-            return false;
-        }
-
-        if (!int.TryParse(FormSshPort, out var sshPort) || sshPort is < 1 or > 65535)
+        var userName = ValueOrDefault(FormUserName, DefaultUserName);
+        var sshPortText = ValueOrDefault(FormSshPort, DefaultSshPort);
+        if (!int.TryParse(sshPortText, out var sshPort) || sshPort is < 1 or > 65535)
         {
             FormErrorText = "SSH 端口必须是 1 到 65535 之间的数字。";
             return false;
@@ -351,16 +433,46 @@ public sealed partial class NodesPageViewModel : PageViewModel
             FormName.Trim(),
             FormHost.Trim(),
             sshPort,
-            FormUserName.Trim(),
-            string.IsNullOrWhiteSpace(FormAuthentication) ? "密钥描述未设置" : FormAuthentication.Trim(),
-            string.IsNullOrWhiteSpace(FormOperatingSystem) ? "Linux" : FormOperatingSystem.Trim(),
+            userName,
+            ValueOrDefault(FormAuthentication, DefaultAuthentication),
+            ResolveOperatingSystem(),
             FrpNexusStatus.Offline,
             FrpNexusStatus.Stopped,
-            string.IsNullOrWhiteSpace(FormFrpVersion) ? "-" : FormFrpVersion.Trim(),
+            ValueOrDefault(FormFrpVersion, DefaultFrpVersion),
             "-",
-            string.IsNullOrWhiteSpace(FormConfigPath) ? "/etc/frp/frpc.toml" : FormConfigPath.Trim());
+            ValueOrDefault(FormConfigPath, DefaultConfigPath));
 
         return true;
+    }
+
+    private void SetOperatingSystemSelection(string operatingSystem)
+    {
+        if (OperatingSystemOptions.Contains(operatingSystem))
+        {
+            SelectedOperatingSystem = operatingSystem;
+            CustomOperatingSystem = string.Empty;
+            FormOperatingSystem = operatingSystem;
+            return;
+        }
+
+        SelectedOperatingSystem = OtherOperatingSystemOption;
+        CustomOperatingSystem = operatingSystem;
+        FormOperatingSystem = operatingSystem;
+    }
+
+    private string ResolveOperatingSystem()
+    {
+        if (string.Equals(SelectedOperatingSystem, OtherOperatingSystemOption, StringComparison.Ordinal))
+        {
+            return ValueOrDefault(CustomOperatingSystem, "Linux");
+        }
+
+        return ValueOrDefault(SelectedOperatingSystem, DefaultOperatingSystem);
+    }
+
+    private static string ValueOrDefault(string value, string defaultValue)
+    {
+        return string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
     }
 
     private bool TryCreateCredentialReference(out SshCredentialReference credential)
@@ -426,4 +538,57 @@ public sealed partial class NodesPageViewModel : PageViewModel
         _isDeleteConfirmationPending = false;
         DeleteButtonText = "删除";
     }
+}
+
+public sealed partial class NodeListItemViewModel : ObservableObject
+{
+    public NodeListItemViewModel(NodeProfile node)
+    {
+        Node = node;
+    }
+
+    public NodeProfile Node { get; }
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public string Name => Node.Name;
+
+    public string Host => Node.Host;
+
+    public string Version => string.IsNullOrWhiteSpace(Node.FrpVersion) ? "-" : Node.FrpVersion;
+
+    public string ConnectionStatusText => Node.ConnectionStatus == FrpNexusStatus.Online ? "在线" : "离线";
+
+    public bool IsConnectionSuccess => Node.ConnectionStatus == FrpNexusStatus.Online;
+
+    public bool IsConnectionError => !IsConnectionSuccess;
+
+    public string FrpServiceText
+    {
+        get
+        {
+            if (Version == "-")
+            {
+                return "未安装";
+            }
+
+            return Node.FrpStatus switch
+            {
+                FrpNexusStatus.Running => "运行中",
+                FrpNexusStatus.Stopped => "已停止",
+                FrpNexusStatus.Warning => "警告",
+                FrpNexusStatus.Error => "异常",
+                _ => "未知"
+            };
+        }
+    }
+
+    public bool IsFrpSuccess => Node.FrpStatus == FrpNexusStatus.Running && Version != "-";
+
+    public bool IsFrpWarning => Node.FrpStatus == FrpNexusStatus.Stopped && Version != "-";
+
+    public bool IsFrpError => Node.FrpStatus == FrpNexusStatus.Error;
+
+    public bool IsFrpNeutral => !IsFrpSuccess && !IsFrpWarning && !IsFrpError;
 }

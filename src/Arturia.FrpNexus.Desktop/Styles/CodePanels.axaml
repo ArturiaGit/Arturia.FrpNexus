@@ -28,6 +28,10 @@
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
+    <Style Selector="Border.log-line:pointerover">
+        <Setter Property="Background" Value="#0DFFFFFF" />
+    </Style>
+
     <Style Selector="Border.log-line.warning">
         <Setter Property="Background" Value="#24D97706" />
         <Setter Property="BorderBrush" Value="{StaticResource FrpStatusWarningBrush}" />
