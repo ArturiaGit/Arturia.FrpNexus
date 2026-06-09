@@ -424,6 +424,68 @@
         <Setter Property="Cursor" Value="Arrow" />
     </Style>
 
+    <Style Selector="CheckBox.stitch-checkbox">
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="18,*"
+                      ColumnSpacing="8"
+                      MinHeight="{TemplateBinding MinHeight}"
+                      Cursor="{TemplateBinding Cursor}">
+                    <Border x:Name="CheckBoxGlyph"
+                            Width="18"
+                            Height="18"
+                            Background="{StaticResource FrpSurfaceWhiteBrush}"
+                            BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource FrpRadiusSmall}"
+                            VerticalAlignment="Center">
+                        <PathIcon Width="12"
+                                  Height="12"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{StaticResource FrpOnPrimaryBrush}"
+                                  Data="M 10.6,3.4 L 5,9 L 2.4,6.4 L 1.4,7.4 L 5,11 L 11.6,4.4 Z"
+                                  IsVisible="{TemplateBinding IsChecked}" />
+                    </Border>
+                    <ContentPresenter Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="CheckBox.stitch-checkbox:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource FrpTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-checkbox:pointerover /template/ Border#CheckBoxGlyph">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpOutlineVariantBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-checkbox:checked /template/ Border#CheckBoxGlyph">
+        <Setter Property="Background" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-checkbox:disabled">
+        <Setter Property="Foreground" Value="{StaticResource FrpTextMutedBrush}" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <Style Selector="CheckBox.stitch-checkbox:disabled /template/ Border#CheckBoxGlyph">
+        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+    </Style>
+
     <Style Selector="Button.node-row">
         <Setter Property="Height" Value="40" />
         <Setter Property="MinHeight" Value="40" />
@@ -560,7 +622,7 @@
         <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
         <Setter Property="CaretBrush" Value="{StaticResource FrpPrimaryBrush}" />
         <Setter Property="Cursor" Value="IBeam" />
-        <Setter Property="SelectionBrush" Value="{StaticResource FrpSelectionSubtleBrush}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource FrpInputSelectionBrush}" />
         <Setter Property="SelectionForegroundBrush" Value="{StaticResource FrpTextPrimaryBrush}" />
         <Setter Property="Template">
             <ControlTemplate>
@@ -577,15 +639,21 @@
                                        Cursor="IBeam"
                                        IsHitTestVisible="True"
                                        Text="{TemplateBinding Text}"
+                                       PasswordChar="{TemplateBinding PasswordChar}"
+                                       RevealPassword="{TemplateBinding RevealPassword}"
                                        CaretBrush="{TemplateBinding CaretBrush}"
+                                       CaretIndex="{TemplateBinding CaretIndex}"
+                                       SelectionStart="{TemplateBinding SelectionStart}"
+                                       SelectionEnd="{TemplateBinding SelectionEnd}"
                                        SelectionBrush="{TemplateBinding SelectionBrush}"
-                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}" />
-                        <TextBlock Name="PART_Watermark"
+                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                       ShowSelectionHighlight="True" />
+                        <TextBlock Name="PART_PlaceholderText"
                                    Margin="{TemplateBinding Padding}"
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource FrpTextSecondaryBrush}"
                                    Opacity="0.75"
-                                   Text="{TemplateBinding Watermark}"
+                                   Text="{TemplateBinding PlaceholderText}"
                                    Cursor="IBeam"
                                    IsHitTestVisible="False" />
                     </Grid>
@@ -612,7 +680,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
     </Style>
 
-    <Style Selector="TextBox.stitch-input:not(:empty) /template/ TextBlock#PART_Watermark">
+    <Style Selector="TextBox.stitch-input:not(:empty) /template/ TextBlock#PART_PlaceholderText">
         <Setter Property="IsVisible" Value="False" />
     </Style>
 

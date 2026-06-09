@@ -18,6 +18,9 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     public const string DefaultStatusDetail = "本地记录";
 
     private readonly ITunnelManagementService _tunnelManagementService;
+    private readonly INodeManagementService _nodeManagementService;
+    private readonly ILocalFrpcProcessService _localFrpcProcessService;
+    private readonly HashSet<string> _availableNodeNames = new(System.StringComparer.OrdinalIgnoreCase);
     private bool _isDeleteConfirmationPending;
     private string? _editingOriginalName;
 
@@ -69,12 +72,25 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     [ObservableProperty]
     private string _deleteButtonText = "删除";
 
-    public TunnelsPageViewModel(ITunnelManagementService tunnelManagementService)
+    [ObservableProperty]
+    private string _runtimeStatusText = "启动/停止隧道会通过 frpc 热重载应用配置，不重启其他同节点隧道。";
+
+    [ObservableProperty]
+    private bool _isTunnelRuntimeBusy;
+
+    public TunnelsPageViewModel(
+        ITunnelManagementService tunnelManagementService,
+        INodeManagementService nodeManagementService,
+        ITomlConfigurationService tomlConfigurationService,
+        ILocalFrpcProcessService localFrpcProcessService)
         : base("隧道管理", "创建和检查 TCP、UDP、HTTP、HTTPS 隧道配置")
     {
         _tunnelManagementService = tunnelManagementService;
+        _nodeManagementService = nodeManagementService;
+        _localFrpcProcessService = localFrpcProcessService;
         Tunnels = [];
         TunnelRows = [];
+        NodeOptions = [];
 
         _ = LoadTunnelsAsync();
     }
@@ -82,6 +98,8 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     public ObservableCollection<TunnelProfile> Tunnels { get; }
 
     public ObservableCollection<TunnelListItemViewModel> TunnelRows { get; }
+
+    public ObservableCollection<string> NodeOptions { get; }
 
     public const string AllProtocolFilter = "所有协议";
 
@@ -104,17 +122,9 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     public async Task LoadTunnelsAsync(CancellationToken cancellationToken = default)
     {
+        await LoadNodeOptionsAsync(cancellationToken);
+
         var tunnels = await _tunnelManagementService.ListTunnelsAsync(cancellationToken);
-
-        if (tunnels.Count == 0)
-        {
-            tunnels = CreateSeedTunnels();
-
-            foreach (var tunnel in tunnels)
-            {
-                await _tunnelManagementService.SaveTunnelAsync(tunnel, cancellationToken);
-            }
-        }
 
         Tunnels.Clear();
         foreach (var tunnel in tunnels)
@@ -138,42 +148,46 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void StartEditTunnel(TunnelListItemViewModel? row)
+    private async Task StartEditTunnelAsync(TunnelListItemViewModel? row)
     {
         if (row is not null)
         {
             SelectedTunnel = row.Tunnel;
         }
 
-        StartEditSelectedTunnel();
+        await StartEditSelectedTunnelAsync();
     }
 
     [RelayCommand]
-    private void StartCreateTunnel()
+    private async Task StartCreateTunnelAsync(CancellationToken cancellationToken = default)
     {
+        await LoadNodeOptionsAsync(cancellationToken);
+
         _editingOriginalName = null;
         ResetDeleteConfirmation();
         IsEditingExistingTunnel = false;
         EditorTitle = "新建隧道";
         FormName = string.Empty;
         FormProtocol = TunnelProtocol.Http;
-        FormNodeName = string.Empty;
+        FormNodeName = NodeOptions.FirstOrDefault() ?? string.Empty;
         FormLocalAddress = string.Empty;
         FormLocalPort = string.Empty;
         FormRemoteEndpoint = string.Empty;
         FormStatusDetail = string.Empty;
-        FormErrorText = string.Empty;
+        FormErrorText = NodeOptions.Count == 0 ? "请先在节点页面创建节点。" : string.Empty;
         IsEditorOpen = true;
     }
 
     [RelayCommand]
-    private void StartEditSelectedTunnel()
+    private async Task StartEditSelectedTunnelAsync(CancellationToken cancellationToken = default)
     {
         if (SelectedTunnel is null)
         {
             FormErrorText = "请先选择一条隧道记录。";
             return;
         }
+
+        await LoadNodeOptionsAsync(cancellationToken);
 
         _editingOriginalName = SelectedTunnel.Name;
         ResetDeleteConfirmation();
@@ -182,6 +196,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         FormName = SelectedTunnel.Name;
         FormProtocol = SelectedTunnel.Protocol;
         FormNodeName = SelectedTunnel.NodeName;
+        EnsureSelectedNodeOptionVisible(FormNodeName);
         FormLocalAddress = SelectedTunnel.LocalAddress;
         FormLocalPort = SelectedTunnel.LocalPort.ToString();
         FormRemoteEndpoint = SelectedTunnel.RemoteEndpoint;
@@ -251,6 +266,21 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         FormErrorText = string.Empty;
     }
 
+    [RelayCommand]
+    private async Task ToggleTunnelRuntimeAsync(TunnelListItemViewModel? row, CancellationToken cancellationToken = default)
+    {
+        if (row is null)
+        {
+            RuntimeStatusText = "请先选择一条隧道。";
+            return;
+        }
+
+        SelectedTunnel = row.Tunnel;
+
+        var shouldStop = row.Tunnel.Status == FrpNexusStatus.Running;
+        await ApplyNodeRuntimeAsync(row.Tunnel, shouldStop ? FrpNexusStatus.Stopped : FrpNexusStatus.Running, cancellationToken);
+    }
+
     partial void OnSelectedTunnelChanged(TunnelProfile? value)
     {
         ResetDeleteConfirmation();
@@ -267,15 +297,38 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         ApplyFilters();
     }
 
-    private static IReadOnlyList<TunnelProfile> CreateSeedTunnels()
+    private async Task LoadNodeOptionsAsync(CancellationToken cancellationToken = default)
     {
-        return
-        [
-            new("web-dev-portal", TunnelProtocol.Http, "Node-Alpha-HK", "127.0.0.1", 8080, "dev.example.com", FrpNexusStatus.Running, "运行中"),
-            new("ssh-bastion", TunnelProtocol.Tcp, "Node-Beta-SG", "127.0.0.1", 22, "60022", FrpNexusStatus.Running, "运行中"),
-            new("database-test", TunnelProtocol.Tcp, "Node-Alpha-HK", "127.0.0.1", 3306, "13306", FrpNexusStatus.Stopped, "已停止"),
-            new("udp-game-server", TunnelProtocol.Udp, "Node-Gamma-JP", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口被占用")
-        ];
+        var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
+        var nodeNames = nodes
+            .Select(node => node.Name.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(System.StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, System.StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _availableNodeNames.Clear();
+        foreach (var nodeName in nodeNames)
+        {
+            _availableNodeNames.Add(nodeName);
+        }
+
+        NodeOptions.Clear();
+        foreach (var nodeName in nodeNames)
+        {
+            NodeOptions.Add(nodeName);
+        }
+    }
+
+    private void EnsureSelectedNodeOptionVisible(string nodeName)
+    {
+        if (string.IsNullOrWhiteSpace(nodeName)
+            || NodeOptions.Contains(nodeName, System.StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        NodeOptions.Insert(0, nodeName);
     }
 
     private void ApplyFilters()
@@ -300,11 +353,87 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         TunnelRows.Clear();
         foreach (var tunnel in rows)
         {
-            TunnelRows.Add(new TunnelListItemViewModel(tunnel));
+            TunnelRows.Add(new TunnelListItemViewModel(ApplyLocalRuntimeStatus(tunnel)));
         }
 
         SyncSelectedRows();
         TunnelCountText = $"共 {TunnelRows.Count} 条记录";
+    }
+
+    private async Task ApplyNodeRuntimeAsync(
+        TunnelProfile tunnel,
+        FrpNexusStatus desiredStatus,
+        CancellationToken cancellationToken)
+    {
+        var node = await _nodeManagementService.GetNodeAsync(tunnel.NodeName, cancellationToken);
+        if (node is null)
+        {
+            RuntimeStatusText = $"未找到关联节点 {tunnel.NodeName}，请先修正隧道关联节点。";
+            await SaveTunnelRuntimeStatusAsync(tunnel, FrpNexusStatus.Error, RuntimeStatusText, cancellationToken);
+            return;
+        }
+
+        var enabledTunnels = BuildEnabledTunnelsForNode(tunnel, desiredStatus);
+
+        IsTunnelRuntimeBusy = true;
+        RuntimeStatusText = desiredStatus == FrpNexusStatus.Running
+            ? $"正在应用节点 {node.Name} 的本地 frpc 配置。"
+            : $"正在停止隧道 {tunnel.Name} 并热重载节点 {node.Name}。";
+
+        try
+        {
+            var result = enabledTunnels.Count == 0
+                ? await _localFrpcProcessService.StopNodeAsync(node.Name, cancellationToken)
+                : await _localFrpcProcessService.ApplyNodeTunnelsAsync(
+                    new LocalFrpcProcessRequest(node, enabledTunnels),
+                    cancellationToken);
+
+            RuntimeStatusText = result.Message;
+            var nextStatus = result.Status == FrpNexusStatus.Error
+                ? FrpNexusStatus.Error
+                : desiredStatus;
+
+            await SaveTunnelRuntimeStatusAsync(tunnel, nextStatus, result.Message, cancellationToken);
+        }
+        finally
+        {
+            IsTunnelRuntimeBusy = false;
+        }
+    }
+
+    private async Task SaveTunnelRuntimeStatusAsync(
+        TunnelProfile tunnel,
+        FrpNexusStatus status,
+        string statusDetail,
+        CancellationToken cancellationToken)
+    {
+        var updated = tunnel with
+        {
+            Status = status,
+            StatusDetail = statusDetail
+        };
+        await _tunnelManagementService.SaveTunnelAsync(updated, cancellationToken);
+        await LoadTunnelsAsync(cancellationToken);
+        SelectedTunnel = Tunnels.FirstOrDefault(item => item.Name == tunnel.Name);
+    }
+
+    private TunnelProfile ApplyLocalRuntimeStatus(TunnelProfile tunnel)
+    {
+        var snapshot = _localFrpcProcessService.GetNodeStatus(tunnel.NodeName);
+        return snapshot.Status == FrpNexusStatus.Running && tunnel.Status == FrpNexusStatus.Running
+            ? tunnel with { Status = FrpNexusStatus.Running, StatusDetail = "本地 frpc 正在运行" }
+            : tunnel;
+    }
+
+    private IReadOnlyList<TunnelProfile> BuildEnabledTunnelsForNode(TunnelProfile changedTunnel, FrpNexusStatus desiredStatus)
+    {
+        return Tunnels
+            .Where(item => string.Equals(item.NodeName, changedTunnel.NodeName, System.StringComparison.OrdinalIgnoreCase))
+            .Select(item => string.Equals(item.Name, changedTunnel.Name, System.StringComparison.OrdinalIgnoreCase)
+                ? item with { Status = desiredStatus }
+                : item)
+            .Where(item => item.Status == FrpNexusStatus.Running)
+            .ToArray();
     }
 
     private void SyncSelectedRows()
@@ -345,9 +474,9 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(FormNodeName))
+        if (string.IsNullOrWhiteSpace(FormNodeName) || !_availableNodeNames.Contains(FormNodeName.Trim()))
         {
-            FormErrorText = "关联节点不能为空。";
+            FormErrorText = "请选择一个已创建的节点。";
             return false;
         }
 

@@ -63,6 +63,15 @@ public sealed class PhaseOneNodeManagementService : INodeManagementService
         return Task.CompletedTask;
     }
 
+    public Task UpdateLastConnectionAsync(
+        string nodeName,
+        DateTimeOffset connectedAt,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
+
     public Task UpdateConnectionTestResultAsync(
         string nodeName,
         FrpNexusStatus status,
@@ -89,6 +98,17 @@ public sealed class PhaseOneSshConnectionService : ISshConnectionService
 
 public sealed class PhaseOneRemoteFileTransferService : IRemoteFileTransferService
 {
+    public Task<RemoteFilePresenceResult> CheckRemoteFilesAsync(RemoteFilePresenceRequest request, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new RemoteFilePresenceResult(
+            request.Node.Name,
+            request.RemotePaths.Select(path => new RemoteFilePresenceEntry(path, false)).ToArray(),
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            "SFTP 远程文件检查占位服务尚未接入。"));
+    }
+
     public Task<RemoteFileTransferResult> UploadFrpBinaryAsync(RemoteFileUploadRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -109,6 +129,18 @@ public sealed class PhaseOneRemoteFileTransferService : IRemoteFileTransferServi
             FrpNexusStatus.Pending,
             DateTimeOffset.UtcNow,
             "SFTP 配置上传占位服务尚未接入。"));
+    }
+
+    public Task<RemoteFileDeleteResult> DeleteRemoteFilesAsync(RemoteFileDeleteRequest request, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new RemoteFileDeleteResult(
+            request.Node.Name,
+            [],
+            request.RemotePaths,
+            FrpNexusStatus.Pending,
+            DateTimeOffset.UtcNow,
+            "SFTP 远程文件清理占位服务尚未接入。"));
     }
 }
 
@@ -144,6 +176,29 @@ public sealed class PhaseOneTomlConfigurationService : ITomlConfigurationService
     public string GenerateProxyToml(ConfigurationPreview preview)
     {
         return preview.Toml;
+    }
+
+    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels, int webServerPort)
+    {
+        return string.Join(
+            Environment.NewLine,
+            tunnels.Select(tunnel => GenerateProxyToml(new ConfigurationPreview(
+                tunnel.Name,
+                tunnel.Protocol,
+                tunnel.LocalAddress,
+                tunnel.LocalPort,
+                tunnel.RemoteEndpoint,
+                string.Empty))));
+    }
+
+    public string GenerateServerToml(int bindPort)
+    {
+        if (bindPort is < 1 or > 65535)
+        {
+            throw new InvalidOperationException("frps 监听端口必须是 1 到 65535 之间的数字。");
+        }
+
+        return $"bindPort = {bindPort}";
     }
 
     public Task ValidateAsync(string tomlContent, CancellationToken cancellationToken = default)

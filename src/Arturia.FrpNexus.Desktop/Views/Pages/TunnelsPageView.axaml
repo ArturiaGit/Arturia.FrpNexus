@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:attached="using:Arturia.FrpNexus.Desktop.AttachedProperties"
              xmlns:controls="using:Arturia.FrpNexus.Desktop.Controls"
              xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
              xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
@@ -10,7 +11,9 @@
         <converters:MetricIconConverter x:Key="MetricIconConverter" />
     </UserControl.Resources>
 
-    <Grid>
+    <Grid attached:DismissOnOutsidePointerPressed.IsEnabled="{Binding IsEditorOpen}"
+          attached:DismissOnOutsidePointerPressed.DismissTarget="{Binding #EditorPanel}"
+          attached:DismissOnOutsidePointerPressed.DismissCommand="{Binding CancelEditCommand}">
         <Grid RowDefinitions="Auto,*"
               RowSpacing="12">
             <Grid ColumnDefinitions="Auto,*"
@@ -233,7 +236,9 @@
                                                             Width="28"
                                                             Height="28"
                                                             MinHeight="28"
-                                                            AutomationProperties.Name="{Binding RuntimeActionLabel}">
+                                                            AutomationProperties.Name="{Binding RuntimeActionLabel}"
+                                                            Command="{Binding #Root.DataContext.ToggleTunnelRuntimeCommand}"
+                                                            CommandParameter="{Binding}">
                                                         <ToolTip.Tip>
                                                             <ToolTip Classes="stitch-tooltip"
                                                                      Placement="Top"
@@ -262,12 +267,18 @@
                             Background="{StaticResource FrpSurfaceLowBrush}"
                             BorderBrush="{StaticResource FrpBorderDefaultBrush}"
                             BorderThickness="0,1,0,0">
-                        <Grid ColumnDefinitions="*,Auto"
+                        <Grid ColumnDefinitions="Auto,*,Auto"
                               VerticalAlignment="Center">
                             <TextBlock Classes="helper"
                                        VerticalAlignment="Center"
                                        Text="{Binding TunnelCountText}" />
-                            <StackPanel Grid.Column="1"
+                            <TextBlock Grid.Column="1"
+                                       Classes="helper"
+                                       Margin="12,0"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding RuntimeStatusText}" />
+                            <StackPanel Grid.Column="2"
                                         Orientation="Horizontal"
                                         Spacing="8"
                                         VerticalAlignment="Center">
@@ -299,7 +310,8 @@
             </Border>
         </Grid>
 
-        <Border Width="320"
+        <Border x:Name="EditorPanel"
+                Width="320"
                 HorizontalAlignment="Right"
                 Classes="panel"
                 ClipToBounds="True"
@@ -348,9 +360,10 @@
                                     <TextBlock Classes="required-badge-text" Text="必填" />
                                 </Border>
                             </StackPanel>
-                            <TextBox Classes="stitch-input"
-                                     PlaceholderText="例如 Node-Alpha-HK"
-                                     Text="{Binding FormNodeName}" />
+                            <ComboBox Classes="stitch-input"
+                                      PlaceholderText="请选择已创建节点"
+                                      ItemsSource="{Binding NodeOptions}"
+                                      SelectedItem="{Binding FormNodeName}" />
                         </StackPanel>
 
                         <Grid ColumnDefinitions="*,104"

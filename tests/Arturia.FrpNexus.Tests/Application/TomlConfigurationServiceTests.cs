@@ -91,4 +91,25 @@ public sealed class TomlConfigurationServiceTests
 
         Assert.Equal("TCP/UDP 隧道的远程端点必须是 1 到 65535 之间的远程端口。", exception.Message);
     }
+    [Fact]
+    public void GenerateServerToml_ShouldGenerateBindPort()
+    {
+        var service = new TomlConfigurationService();
+
+        var toml = service.GenerateServerToml(7000);
+
+        Assert.Equal("bindPort = 7000", toml);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(65536)]
+    public void GenerateServerToml_ShouldRejectInvalidBindPort(int bindPort)
+    {
+        var service = new TomlConfigurationService();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.GenerateServerToml(bindPort));
+
+        Assert.Contains("65535", exception.Message);
+    }
 }

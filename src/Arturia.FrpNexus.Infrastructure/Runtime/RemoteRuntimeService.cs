@@ -16,7 +16,7 @@ public sealed class RemoteRuntimeService(
         var result = await remoteCommandAdapter.ExecuteAsync(
             request.Node,
             request.Credential,
-            "pgrep -a 'frpc|frps' || true",
+            "ps -eo pid=,etime=,args= | awk '/[f]rpc|[f]rps/ { pid=$1; etime=$2; $1=\"\"; $2=\"\"; sub(/^  */, \"\", $0); print pid \"|\" etime \"|\" $0 }' || true",
             cancellationToken);
 
         var processes = ParseProcesses(request.Node.Name, result.Output);
@@ -82,7 +82,7 @@ public sealed class RemoteRuntimeService(
                     request,
                     FrpNexusStatus.Error,
                     completedAt,
-                    $"远程命令执行失败：{SanitizeMessage(result.Error)}",
+                    BuildCommandFailureMessage(result),
                     cancellationToken);
             }
 
@@ -103,7 +103,7 @@ public sealed class RemoteRuntimeService(
                 request,
                 FrpNexusStatus.Error,
                 completedAt,
-                $"远程命令执行失败：{SanitizeMessage(exception.Message)}",
+                BuildCommandFailureMessage(exception.Message),
                 cancellationToken);
         }
     }
@@ -152,6 +152,45 @@ public sealed class RemoteRuntimeService(
 
     private static RuntimeProcess? ParseProcess(string nodeName, string line)
     {
+        var parts = line.Split('|', 3, StringSplitOptions.TrimEntries);
+        if (parts.Length == 3)
+        {
+            return ParseDelimitedProcess(nodeName, parts[0], parts[1], parts[2]);
+        }
+
+        return ParseLegacyProcess(nodeName, line);
+    }
+
+    private static RuntimeProcess? ParseDelimitedProcess(string nodeName, string processId, string uptime, string command)
+    {
+        if (string.IsNullOrWhiteSpace(processId)
+            || string.IsNullOrWhiteSpace(command)
+            || !IsFrpProcessCommand(command))
+        {
+            return null;
+        }
+
+        var processKind = ResolveProcessKind(command);
+        var name = $"{processKind}-{processId}";
+
+        return new RuntimeProcess(
+            name,
+            nodeName,
+            processKind,
+            FrpNexusStatus.Running,
+            processId,
+            string.IsNullOrWhiteSpace(uptime) ? "-" : uptime,
+            "-");
+    }
+
+    private static RuntimeProcess? ParseLegacyProcess(string nodeName, string line)
+    {
+        var psEfProcess = ParsePsEfProcess(nodeName, line);
+        if (psEfProcess is not null)
+        {
+            return psEfProcess;
+        }
+
         var firstSpace = line.IndexOf(' ', StringComparison.Ordinal);
         if (firstSpace <= 0)
         {
@@ -160,8 +199,12 @@ public sealed class RemoteRuntimeService(
 
         var processId = line[..firstSpace].Trim();
         var command = line[(firstSpace + 1)..].Trim();
-        var fileName = Path.GetFileName(command.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? command);
-        var processKind = fileName.Contains("frps", StringComparison.OrdinalIgnoreCase) ? "frps" : "frpc";
+        if (!IsFrpProcessCommand(command))
+        {
+            return null;
+        }
+
+        var processKind = ResolveProcessKind(command);
         var name = $"{processKind}-{processId}";
 
         return new RuntimeProcess(
@@ -174,10 +217,121 @@ public sealed class RemoteRuntimeService(
             "-");
     }
 
+    private static RuntimeProcess? ParsePsEfProcess(string nodeName, string line)
+    {
+        var columns = line.Split(' ', 8, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (columns.Length < 8 || !int.TryParse(columns[1], out _))
+        {
+            return null;
+        }
+
+        var processId = columns[1];
+        var startOrTime = columns[4];
+        var command = columns[7];
+        if (!IsFrpProcessCommand(command))
+        {
+            return null;
+        }
+
+        var processKind = ResolveProcessKind(command);
+        var name = $"{processKind}-{processId}";
+        return new RuntimeProcess(
+            name,
+            nodeName,
+            processKind,
+            FrpNexusStatus.Running,
+            processId,
+            LooksLikeElapsedTime(startOrTime) ? startOrTime : "-",
+            "-");
+    }
+
+    private static string ResolveProcessKind(string command)
+    {
+        var fileName = Path.GetFileName(command.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? command);
+        return fileName.Contains("frps", StringComparison.OrdinalIgnoreCase)
+            || command.Contains("frps", StringComparison.OrdinalIgnoreCase)
+                ? "frps"
+                : "frpc";
+    }
+
+    private static bool IsFrpProcessCommand(string command)
+    {
+        if (string.IsNullOrWhiteSpace(command)
+            || command.Contains("grep", StringComparison.OrdinalIgnoreCase)
+            || command.Contains("awk", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return command.Contains("frps", StringComparison.OrdinalIgnoreCase)
+            || command.Contains("frpc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeElapsedTime(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var normalized = value.Trim();
+        var daySeparator = normalized.IndexOf('-', StringComparison.Ordinal);
+        if (daySeparator >= 0)
+        {
+            if (!int.TryParse(normalized[..daySeparator], out _))
+            {
+                return false;
+            }
+
+            normalized = normalized[(daySeparator + 1)..];
+        }
+
+        var parts = normalized.Split(':');
+        return parts is { Length: 2 or 3 }
+            && parts.All(part => int.TryParse(part, out _));
+    }
+
     private static string SanitizeMessage(string message)
     {
         return string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
             : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+    }
+
+    private static string BuildCommandFailureMessage(RemoteCommandResult result)
+    {
+        var detail = BuildReadableDiagnostic(result);
+        return BuildCommandFailureMessage(detail);
+    }
+
+    private static string BuildCommandFailureMessage(string detail)
+    {
+        if (IsExecutableFormatFailure(detail))
+        {
+            return "frps 核心无法在当前 VPS 上执行，请确认上传的是匹配该 VPS 架构的 Linux frps，例如 linux_amd64 或 linux_arm64。";
+        }
+
+        return $"远程命令执行失败：{SanitizeMessage(detail)}";
+    }
+
+    private static string BuildReadableDiagnostic(RemoteCommandResult result)
+    {
+        if (string.IsNullOrWhiteSpace(result.Output))
+        {
+            return result.Error;
+        }
+
+        if (string.IsNullOrWhiteSpace(result.Error))
+        {
+            return result.Output;
+        }
+
+        return $"{result.Error}{Environment.NewLine}{result.Output}";
+    }
+
+    private static bool IsExecutableFormatFailure(string message)
+    {
+        return message.Contains("cannot execute binary file", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Exec format error", StringComparison.OrdinalIgnoreCase);
     }
 }

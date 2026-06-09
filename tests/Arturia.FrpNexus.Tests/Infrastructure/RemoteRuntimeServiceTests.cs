@@ -12,16 +12,57 @@ public sealed class RemoteRuntimeServiceTests
     {
         var runtimeRecordService = new FakeRuntimeRecordService();
         var service = new RemoteRuntimeService(
-            new FakeRemoteCommandAdapter(new RemoteCommandResult(0, "2048 /opt/frp/frpc -c /etc/frp/frpc.toml\n4096 /opt/frp/frps -c /etc/frp/frps.toml", string.Empty)),
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "2048|00:13|/opt/frp/frpc -c /etc/frp/frpc.toml\n4096|01:45|/opt/frp/frps -c /etc/frp/frps.toml\n8192|1-02:03:04|/opt/frp/frps -c /opt/frp/frps.toml",
+                string.Empty)),
             runtimeRecordService,
             Logger.None);
 
         var processes = await service.GetProcessesAsync(CreateQueryRequest());
 
-        Assert.Equal(2, processes.Count);
-        Assert.Contains(processes, process => process.ProcessKind == "frpc" && process.ProcessId == "2048");
-        Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "4096");
-        Assert.Equal(2, runtimeRecordService.SavedProcesses.Count);
+        Assert.Equal(3, processes.Count);
+        Assert.Contains(processes, process => process.ProcessKind == "frpc" && process.ProcessId == "2048" && process.Uptime == "00:13");
+        Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "4096" && process.Uptime == "01:45");
+        Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "8192" && process.Uptime == "1-02:03:04");
+        Assert.Equal(3, runtimeRecordService.SavedProcesses.Count);
+    }
+
+    [Fact]
+    public async Task GetProcessesAsync_ShouldParsePsEfFrpsProcessAndIgnoreGrep()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "root 1812494 1 0 00:33 ? 00:00:00 /opt/frp/frps -c /opt/frp/frps.toml\nroot 1812536 1811382 0 00:33 pts/0 00:00:00 grep --color=auto frps",
+                string.Empty)),
+            runtimeRecordService,
+            Logger.None);
+
+        var processes = await service.GetProcessesAsync(CreateQueryRequest());
+
+        var process = Assert.Single(processes);
+        Assert.Equal("frps", process.ProcessKind);
+        Assert.Equal("1812494", process.ProcessId);
+        Assert.Equal("00:33", process.Uptime);
+        Assert.Equal("frps-1812494", process.Name);
+        Assert.DoesNotContain(processes, item => item.Name.Contains("grep", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task GetProcessesAsync_ShouldReturnEmptyListWhenNoFrpProcessExists()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(0, string.Empty, string.Empty)),
+            runtimeRecordService,
+            Logger.None);
+
+        var processes = await service.GetProcessesAsync(CreateQueryRequest());
+
+        Assert.Empty(processes);
+        Assert.Empty(runtimeRecordService.SavedProcesses);
     }
 
     [Fact]
@@ -54,6 +95,39 @@ public sealed class RemoteRuntimeServiceTests
         Assert.Equal("远程命令执行失败：permission denied", result.Message);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
         Assert.Equal(FrpNexusStatus.Error, runtimeRecordService.SavedProcesses.Single().Status);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldUseStdoutDiagnosticWhenStderrIsEmpty()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(1, "frps 启动后未保持运行。", string.Empty)),
+            runtimeRecordService,
+            Logger.None);
+
+        var result = await service.StartAsync(CreateCommandRequest("nohup /opt/frp/frps -c /etc/frp/frps.toml &"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("远程命令执行失败：frps 启动后未保持运行。", result.Message);
+    }
+
+    [Theory]
+    [InlineData("/opt/frp/frps: /opt/frp/frps: cannot execute binary file")]
+    [InlineData("-bash: /opt/frp/frps: cannot execute binary file: Exec format error")]
+    public async Task StartAsync_ShouldMapExecutableFormatFailureToArchitectureHint(string diagnostic)
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(1, diagnostic, string.Empty)),
+            runtimeRecordService,
+            Logger.None);
+
+        var result = await service.StartAsync(CreateCommandRequest("nohup /opt/frp/frps -c /etc/frp/frps.toml &"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("frps 核心无法在当前 VPS 上执行，请确认上传的是匹配该 VPS 架构的 Linux frps，例如 linux_amd64 或 linux_arm64。", result.Message);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
     }
 
     private static RemoteRuntimeQueryRequest CreateQueryRequest()

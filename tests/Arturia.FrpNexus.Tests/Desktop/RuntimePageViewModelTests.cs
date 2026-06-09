@@ -23,19 +23,17 @@ public sealed class RuntimePageViewModelTests
     }
 
     [Fact]
-    public async Task LoadRuntimeProcessesAsync_ShouldSeedSafeSampleProcessesWhenDatabaseIsEmpty()
+    public async Task LoadRuntimeProcessesAsync_ShouldKeepEmptyStateWhenDatabaseIsEmpty()
     {
         var service = new FakeRuntimeRecordService([]);
         var viewModel = CreateViewModel(service, new FakeDeploymentRecordService([]));
 
         await viewModel.LoadRuntimeProcessesAsync();
 
-        Assert.Equal(4, viewModel.Processes.Count);
-        Assert.Contains(viewModel.Processes, process => process.Status == FrpNexusStatus.Running);
-        Assert.Contains(viewModel.Processes, process => process.Status == FrpNexusStatus.Stopped);
-        Assert.Contains(viewModel.Processes, process => process.Status == FrpNexusStatus.Error);
-        Assert.DoesNotContain(service.SavedProcesses, process => process.Name.Contains("password", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(service.SavedProcesses, process => process.Name.Contains("token", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(viewModel.Processes);
+        Assert.Null(viewModel.SelectedProcess);
+        Assert.Equal("共 0 条本地运行记录", viewModel.ProcessCountText);
+        Assert.Empty(service.SavedProcesses);
     }
 
     [Fact]
@@ -262,6 +260,11 @@ public sealed class RuntimePageViewModelTests
         public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
         {
             _nodes.RemoveAll(node => node.Name == nodeName);
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateLastConnectionAsync(string nodeName, DateTimeOffset connectedAt, CancellationToken cancellationToken = default)
+        {
             return Task.CompletedTask;
         }
 

@@ -205,6 +205,11 @@ public sealed class LogsPageViewModelTests
             return Task.CompletedTask;
         }
 
+        public Task UpdateLastConnectionAsync(string nodeName, DateTimeOffset connectedAt, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task UpdateConnectionTestResultAsync(string nodeName, FrpNexusStatus status, DateTimeOffset testedAt, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
@@ -254,6 +259,11 @@ public sealed class LogsPageViewModelTests
         }
 
         public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点数据库不可用");
+        }
+
+        public Task UpdateLastConnectionAsync(string nodeName, DateTimeOffset connectedAt, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("节点数据库不可用");
         }

@@ -1,6 +1,8 @@
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Renci.SshNet.Common;
 using Serilog;
+using System.Net.Sockets;
 
 namespace Arturia.FrpNexus.Infrastructure.Ssh;
 
@@ -61,14 +63,31 @@ public sealed class SshConnectionService(
                 request.Node.Name,
                 FrpNexusStatus.Error,
                 testedAt,
-                $"SSH 连接测试失败：{SanitizeMessage(exception.Message)}");
+                GetFailureMessage(exception));
         }
+    }
+
+    private static string GetFailureMessage(Exception exception)
+    {
+        return exception switch
+        {
+            SshAuthenticationException => "SSH 认证失败，请检查用户名、密码、私钥或服务器认证策略。",
+            SshConnectionException => "SSH 连接失败，请检查主机、端口、防火墙或网络。",
+            SocketException => "SSH 连接失败，请检查主机、端口、防火墙或网络。",
+            TimeoutException => "SSH 连接超时，请检查网络和服务器状态。",
+            NotSupportedException => "SSH Agent 认证暂未接入。",
+            _ => $"SSH 连接测试失败：{SanitizeMessage(exception.Message)}",
+        };
     }
 
     private static string SanitizeMessage(string message)
     {
-        return string.IsNullOrWhiteSpace(message)
+        var sanitized = string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
             : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+
+        return sanitized.Length > 160
+            ? sanitized[..160]
+            : sanitized;
     }
 }

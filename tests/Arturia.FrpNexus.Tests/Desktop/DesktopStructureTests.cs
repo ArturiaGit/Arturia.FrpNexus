@@ -80,6 +80,60 @@ public sealed class DesktopStructureTests
         Assert.Equal("Arturia.FrpNexus.Desktop.ViewModels", typeof(MainWindowViewModel).Namespace);
     }
 
+    [Fact]
+    public void NodeConnectionWorkflowDialogView_ShouldNotContainRuntimeCommandButtons()
+    {
+        var dialogXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Dialogs",
+            "NodeConnectionWorkflowDialogView.axaml"));
+
+        Assert.DoesNotContain("StartRemoteFrpsCommand", dialogXaml);
+        Assert.DoesNotContain("StopRemoteFrpsCommand", dialogXaml);
+        Assert.DoesNotContain("RestartRemoteFrpsCommand", dialogXaml);
+        Assert.DoesNotContain("RefreshRemoteFrpsStatusCommand", dialogXaml);
+    }
+
+    [Fact]
+    public void NodeConnectionWorkflowDialog_ShouldBeHostedInsideMainWindow()
+    {
+        var desktopProject = GetDesktopProjectPath();
+        var serviceCode = File.ReadAllText(Path.Combine(
+            desktopProject,
+            "Services",
+            "AvaloniaNodeConnectionWorkflowDialogService.cs"));
+        var mainWindowXaml = File.ReadAllText(Path.Combine(desktopProject, "Views", "MainWindow.axaml"));
+
+        Assert.DoesNotContain("NodeConnectionWorkflowWindow", serviceCode);
+        Assert.DoesNotContain(".Show(", serviceCode);
+        Assert.Contains("CurrentModalDialog", mainWindowXaml);
+        Assert.Contains("IsModalDialogVisible", mainWindowXaml);
+        Assert.Contains("ZIndex=\"1001\"", mainWindowXaml);
+        Assert.Contains("MaxHeight=\"680\"", mainWindowXaml);
+        Assert.Contains("VerticalAlignment=\"Stretch\"", mainWindowXaml);
+        Assert.Contains("HorizontalAlignment=\"Stretch\"", mainWindowXaml);
+    }
+
+    [Fact]
+    public void NodeConnectionWorkflowDialogView_ShouldKeepFooterOutsideScrollableContent()
+    {
+        var dialogXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Dialogs",
+            "NodeConnectionWorkflowDialogView.axaml"));
+
+        Assert.Contains("Grid RowDefinitions=\"Auto,*,Auto\"", dialogXaml);
+        Assert.Contains("<ScrollViewer Grid.Row=\"1\"", dialogXaml);
+        Assert.Contains("VerticalAlignment=\"Stretch\"", dialogXaml);
+        Assert.Contains("Padding=\"16,16,16,0\"", dialogXaml);
+        Assert.Contains("ClipToBounds=\"True\"", dialogXaml);
+        Assert.Contains("Height=\"72\"", dialogXaml);
+        Assert.Contains("<Border Grid.Row=\"2\"", dialogXaml);
+        Assert.Contains("Command=\"{Binding CloseCommand}\"", dialogXaml);
+    }
+
     private static string GetDesktopProjectPath()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

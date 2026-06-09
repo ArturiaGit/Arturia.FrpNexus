@@ -88,30 +88,6 @@ public sealed partial class RuntimePageViewModel : PageViewModel
             return;
         }
 
-        if (processes.Count == 0)
-        {
-            processes = CreateSeedProcesses();
-
-            foreach (var process in processes)
-            {
-                try
-                {
-                    await _runtimeRecordService.SaveRuntimeProcessAsync(process, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    StatusText = "运行样例写入已取消。";
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    ProcessCountText = "运行记录加载失败";
-                    StatusText = ViewModelErrorText.ForUser("运行样例写入", ex);
-                    return;
-                }
-            }
-        }
-
         Processes.Clear();
         foreach (var process in processes)
         {
@@ -232,17 +208,6 @@ public sealed partial class RuntimePageViewModel : PageViewModel
         {
             DeploymentSteps.Add(new RuntimeStepViewModel(record.StepName, record.Description, record.Status));
         }
-    }
-
-    private static IReadOnlyList<RuntimeProcess> CreateSeedProcesses()
-    {
-        return
-        [
-            new("frps-main", "Web-Server-HK", "frps", FrpNexusStatus.Running, "14022", "4d 12h 30m", "0.0.0.0:7000"),
-            new("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Running, "14090", "4d 10h 12m", "127.0.0.1:8080"),
-            new("frpc-db", "DB-Node-SH", "frpc", FrpNexusStatus.Stopped, "-", "-", "127.0.0.1:3306"),
-            new("frpc-edge", "Edge-Router-BJ", "frpc", FrpNexusStatus.Error, "-", "连接失败", "127.0.0.1:7777")
-        ];
     }
 
     private static IReadOnlyList<DeploymentRecord> CreateSeedDeploymentRecords()

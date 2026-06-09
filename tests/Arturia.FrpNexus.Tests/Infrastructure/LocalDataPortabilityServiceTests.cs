@@ -187,6 +187,8 @@ public sealed class LocalDataPortabilityServiceTests
             return Task.CompletedTask;
         }
 
+        public Task UpdateLastConnectionAsync(string nodeName, DateTimeOffset connectedAt, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task UpdateConnectionTestResultAsync(string nodeName, FrpNexusStatus status, DateTimeOffset testedAt, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 

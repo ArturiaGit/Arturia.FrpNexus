@@ -1,0 +1,337 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+             xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.NodeConnectionWorkflowDialogView"
+             x:DataType="dialogs:NodeConnectionWorkflowViewModel"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <UserControl.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+    </UserControl.Resources>
+
+    <Border Classes="panel"
+            ClipToBounds="True"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+        <Grid RowDefinitions="Auto,*,Auto"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+            <Border Padding="16"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="section-title"
+                                   Text="连接节点" />
+                        <TextBlock Classes="helper"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding NodeSummaryText}" />
+                    </StackPanel>
+                    <Border Grid.Column="1"
+                            Padding="10,4"
+                            CornerRadius="6"
+                            Classes="status-badge"
+                            Classes.success="{Binding IsConnected}"
+                            Classes.neutral="{Binding !IsConnected}">
+                        <TextBlock Text="{Binding ConnectionBadgeText}" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="1"
+                          Padding="16,16,16,0"
+                          VerticalAlignment="Stretch"
+                          ClipToBounds="True"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="14">
+                    <Border Padding="14"
+                            Classes="panel">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="group-label"
+                                       Text="SSH 凭据" />
+                            <Grid ColumnDefinitions="*,*"
+                                  ColumnSpacing="10">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="form-label"
+                                               Text="节点" />
+                                    <TextBox Classes="stitch-input code"
+                                             IsReadOnly="True"
+                                             Text="{Binding Node.Name}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1"
+                                            Spacing="6">
+                                    <TextBlock Classes="form-label"
+                                               Text="地址" />
+                                    <TextBox Classes="stitch-input code"
+                                             IsReadOnly="True"
+                                             Text="{Binding NodeSummaryText}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="form-label"
+                                           Text="认证方式" />
+                                <ComboBox Classes="stitch-input"
+                                          ItemsSource="{Binding SshAuthenticationModeOptions}"
+                                          SelectedItem="{Binding SelectedSshAuthenticationMode}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="6"
+                                        IsVisible="{Binding IsSessionPasswordMode}">
+                                <TextBlock Classes="form-label"
+                                           Text="会话密码" />
+                                <TextBox Classes="stitch-input"
+                                         PasswordChar="*"
+                                         PlaceholderText="输入本次 SSH 密码，或留空使用已保存密码"
+                                         Text="{Binding SshSessionPassword}" />
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <CheckBox Content="记住密码"
+                                              IsChecked="{Binding RememberSessionPassword}" />
+                                    <Button Grid.Column="1"
+                                            Classes="secondary stitch-command"
+                                            Command="{Binding ClearSavedSessionPasswordCommand}"
+                                            IsEnabled="{Binding HasSavedSessionPassword}">
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="6">
+                                            <PathIcon Width="16"
+                                                      Height="16"
+                                                      Data="{Binding Source=delete, Converter={StaticResource MetricIconConverter}}" />
+                                            <TextBlock Text="清除保存密码" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Classes="helper"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding SavedSessionPasswordText}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="6"
+                                        IsVisible="{Binding IsPrivateKeyMode}">
+                                <TextBlock Classes="form-label"
+                                           Text="私钥文件路径" />
+                                <TextBox Classes="stitch-input code"
+                                         PlaceholderText="C:\Users\...\id_rsa"
+                                         Text="{Binding SshPrivateKeyPath}" />
+                                <TextBlock Classes="form-label"
+                                           Text="Passphrase" />
+                                <TextBox Classes="stitch-input"
+                                         PasswordChar="*"
+                                         PlaceholderText="如私钥无 passphrase 可留空"
+                                         Text="{Binding SshPrivateKeyPassphrase}" />
+                            </StackPanel>
+
+                            <Border Padding="10"
+                                    BorderThickness="3,1,1,1"
+                                    CornerRadius="6"
+                                    Classes="status-callout"
+                                    Classes.info="{Binding IsConnectionInfo}"
+                                    Classes.success="{Binding IsConnectionSuccess}"
+                                    Classes.warning="{Binding IsConnectionWarning}"
+                                    Classes.error="{Binding IsConnectionError}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="10">
+                                    <PathIcon Width="18"
+                                              Height="18"
+                                              Margin="0,2,0,0"
+                                              Data="{Binding Source=link, Converter={StaticResource MetricIconConverter}}"
+                                              Classes="status-callout-icon"
+                                              Classes.info="{Binding IsConnectionInfo}"
+                                              Classes.success="{Binding IsConnectionSuccess}"
+                                              Classes.warning="{Binding IsConnectionWarning}"
+                                              Classes.error="{Binding IsConnectionError}" />
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="3">
+                                        <TextBlock Classes="group-label"
+                                                   Text="{Binding ConnectionStatusTitle}" />
+                                        <TextBlock Classes="helper"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding ConnectionStatusText}" />
+                                        <ProgressBar Height="3"
+                                                     Margin="0,5,0,0"
+                                                     IsIndeterminate="True"
+                                                     IsVisible="{Binding IsConnectionProgressVisible}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Button Classes="primary stitch-command"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding ConnectCommand}"
+                                    IsEnabled="{Binding CanConnect}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=login, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="{Binding ConnectButtonText}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="14"
+                            Classes="panel"
+                            IsVisible="{Binding IsDeploymentVisible}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="group-label"
+                                       Text="部署文件" />
+                            <TextBlock Classes="helper"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding RemoteFilePresenceText}" />
+
+                            <StackPanel Spacing="12"
+                                        IsVisible="{Binding IsDeploymentPreparationVisible}">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <TextBox Classes="stitch-input code"
+                                             IsReadOnly="True"
+                                             Text="{Binding SelectedLocalCoreFileName}" />
+                                    <Button Grid.Column="1"
+                                            Classes="secondary stitch-command"
+                                            Command="{Binding PickLocalCoreFileCommand}"
+                                            IsEnabled="{Binding CanPickLocalCoreFile}">
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="6">
+                                            <PathIcon Width="16"
+                                                      Height="16"
+                                                      Data="{Binding Source=upload_file, Converter={StaticResource MetricIconConverter}}" />
+                                            <TextBlock Text="选择 frps" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <TextBox Classes="stitch-input code"
+                                             PlaceholderText="/opt/frp"
+                                             Text="{Binding RemoteCoreDirectory}" />
+                                    <Button Grid.Column="1"
+                                            Classes="secondary stitch-command"
+                                            Command="{Binding PickRemoteCoreDirectoryCommand}"
+                                            IsEnabled="{Binding CanPickRemoteCoreDirectory}">
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="6">
+                                            <PathIcon Width="16"
+                                                      Height="16"
+                                                      Data="{Binding Source=folder, Converter={StaticResource MetricIconConverter}}" />
+                                            <TextBlock Text="选择目录" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="92,*"
+                                      RowDefinitions="Auto,Auto"
+                                      RowSpacing="6"
+                                      ColumnSpacing="8">
+                                    <TextBlock Classes="helper"
+                                               Text="frps" />
+                                    <TextBlock Grid.Column="1"
+                                               Classes="helper code"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding RemoteCorePath}" />
+                                    <TextBlock Grid.Row="1"
+                                               Classes="helper"
+                                               Text="frps.toml" />
+                                    <TextBlock Grid.Row="1"
+                                               Grid.Column="1"
+                                               Classes="helper code"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding RemoteServerConfigPath}" />
+                                </Grid>
+
+                                <TextBox Classes="technical-input code"
+                                         MinHeight="86"
+                                         MaxHeight="112"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         Text="{Binding ServerTomlPreview}" />
+
+                                <Grid ColumnDefinitions="*,*"
+                                      ColumnSpacing="8">
+                                    <Button Classes="primary stitch-command"
+                                            Command="{Binding UploadCoreCommand}"
+                                            IsEnabled="{Binding CanUploadCore}">
+                                        <TextBlock Text="{Binding UploadCoreButtonText}" />
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="secondary stitch-command"
+                                            Command="{Binding UploadServerTomlCommand}"
+                                            IsEnabled="{Binding CanUploadServerToml}">
+                                        <TextBlock Text="{Binding UploadServerTomlButtonText}" />
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+
+                            <Button Classes="danger stitch-command"
+                                    HorizontalAlignment="Left"
+                                    Command="{Binding DeleteRemoteFrpFilesCommand}"
+                                    IsVisible="{Binding IsRemoteFileDeleteVisible}"
+                                    IsEnabled="{Binding CanDeleteRemoteFrpFiles}">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <PathIcon Width="16"
+                                              Height="16"
+                                              Data="{Binding Source=delete, Converter={StaticResource MetricIconConverter}}" />
+                                    <TextBlock Text="{Binding DeleteRemoteFrpFilesButtonText}" />
+                                </StackPanel>
+                            </Button>
+
+                            <Border Padding="10"
+                                    BorderThickness="3,1,1,1"
+                                    CornerRadius="6"
+                                    Classes="status-callout"
+                                    Classes.info="{Binding IsDeploymentInfo}"
+                                    Classes.success="{Binding IsDeploymentSuccess}"
+                                    Classes.warning="{Binding IsDeploymentWarning}"
+                                    Classes.error="{Binding IsDeploymentError}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="10">
+                                    <PathIcon Width="18"
+                                              Height="18"
+                                              Margin="0,2,0,0"
+                                              Data="{Binding Source=cloud_upload, Converter={StaticResource MetricIconConverter}}"
+                                              Classes="status-callout-icon"
+                                              Classes.info="{Binding IsDeploymentInfo}"
+                                              Classes.success="{Binding IsDeploymentSuccess}"
+                                              Classes.warning="{Binding IsDeploymentWarning}"
+                                              Classes.error="{Binding IsDeploymentError}" />
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="3">
+                                        <TextBlock Classes="group-label"
+                                                   Text="{Binding DeploymentStatusTitle}" />
+                                        <TextBlock Classes="helper"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding DeploymentStatusText}" />
+                                        <ProgressBar Height="3"
+                                                     Margin="0,5,0,0"
+                                                     IsIndeterminate="True"
+                                                     IsVisible="{Binding IsDeploymentStatusProgressVisible}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Height="72"
+                            IsHitTestVisible="False" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2"
+                    Padding="16"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="0,1,0,0">
+                <Button Classes="secondary stitch-command"
+                        HorizontalAlignment="Right"
+                        Content="关闭"
+                        Command="{Binding CloseCommand}" />
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

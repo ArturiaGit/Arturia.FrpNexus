@@ -5,6 +5,7 @@ using Arturia.FrpNexus.Desktop;
 using Arturia.FrpNexus.Desktop.Composition;
 using Arturia.FrpNexus.Desktop.Converters;
 using Arturia.FrpNexus.Desktop.Logging;
+using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
@@ -89,16 +90,13 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public void ConfigurationPreview_ShouldContainTomlProxyFields()
+    public void ConfigurationPreview_ShouldStartEmptyUntilGenerated()
     {
         var configurations = (ConfigurationsPageViewModel)CreateMainWindowViewModel()
             .NavigationItems.Single(item => item.Title == "配置").Page;
-        var toml = configurations.Preview.Toml;
-
-        Assert.Contains("[[proxies]]", toml);
-        Assert.Contains("type = \"http\"", toml);
-        Assert.Contains("localPort = 8080", toml);
-        Assert.Contains("customDomains = [\"example.com\"]", toml);
+        Assert.Empty(configurations.TomlPreview);
+        Assert.Single(configurations.TomlPreviewLines);
+        Assert.Contains("TOML", configurations.TomlPreviewLines[0].Tokens[0].Text);
     }
 
     [Fact]
@@ -126,13 +124,20 @@ public sealed class MainWindowViewModelTests
     {
         var locator = new ViewLocator();
 
-        Assert.IsType<DashboardPageView>(locator.Build(new DashboardPageViewModel()));
-        Assert.IsType<NodesPageView>(locator.Build(CreateNodesPageViewModel()));
-        Assert.IsType<TunnelsPageView>(locator.Build(CreateTunnelsPageViewModel()));
-        Assert.IsType<ConfigurationsPageView>(locator.Build(CreateConfigurationsPageViewModel()));
-        Assert.IsType<RuntimePageView>(locator.Build(CreateRuntimePageViewModel()));
-        Assert.IsType<LogsPageView>(locator.Build(CreateLogsPageViewModel()));
-        Assert.IsType<SettingsPageView>(locator.Build(CreateSettingsPageViewModel()));
+        Assert.True(locator.Match(CreateDashboardPageViewModel()));
+        Assert.True(locator.Match(CreateNodesPageViewModel()));
+        Assert.True(locator.Match(CreateTunnelsPageViewModel()));
+        Assert.True(locator.Match(CreateConfigurationsPageViewModel()));
+        Assert.True(locator.Match(CreateRuntimePageViewModel()));
+        Assert.True(locator.Match(CreateLogsPageViewModel()));
+        Assert.True(locator.Match(CreateSettingsPageViewModel()));
+        Assert.NotNull(typeof(DashboardPageView));
+        Assert.NotNull(typeof(NodesPageView));
+        Assert.NotNull(typeof(TunnelsPageView));
+        Assert.NotNull(typeof(ConfigurationsPageView));
+        Assert.NotNull(typeof(RuntimePageView));
+        Assert.NotNull(typeof(LogsPageView));
+        Assert.NotNull(typeof(SettingsPageView));
     }
 
     [Fact]
@@ -152,12 +157,17 @@ public sealed class MainWindowViewModelTests
         using var serviceProvider = DesktopCompositionRoot.BuildServiceProvider();
 
         Assert.NotNull(serviceProvider.GetRequiredService<INodeManagementService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<INodeConnectionSessionService>());
         Assert.NotNull(serviceProvider.GetRequiredService<ISshConnectionService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IFrpReleaseService>());
         Assert.NotNull(serviceProvider.GetRequiredService<ITomlConfigurationService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IFilePickerService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IClipboardService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IModalOverlayService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IModalDialogHostService>());
         Assert.IsType<SqliteNodeManagementService>(serviceProvider.GetRequiredService<INodeManagementService>());
         Assert.IsType<SqliteTunnelManagementService>(serviceProvider.GetRequiredService<ITunnelManagementService>());
         Assert.IsType<SqliteConfigurationVersionService>(serviceProvider.GetRequiredService<IConfigurationVersionService>());
@@ -165,6 +175,9 @@ public sealed class MainWindowViewModelTests
         Assert.IsType<SqliteDeploymentRecordService>(serviceProvider.GetRequiredService<IDeploymentRecordService>());
         Assert.IsType<SqliteSettingsService>(serviceProvider.GetRequiredService<ISettingsService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IThemeService>());
+        Assert.IsType<ModalOverlayService>(serviceProvider.GetRequiredService<IModalOverlayService>());
+        Assert.IsType<ModalDialogHostService>(serviceProvider.GetRequiredService<IModalDialogHostService>());
+        Assert.IsType<NodeConnectionSessionService>(serviceProvider.GetRequiredService<INodeConnectionSessionService>());
         Assert.IsType<SshConnectionService>(serviceProvider.GetRequiredService<ISshConnectionService>());
         Assert.IsType<RemoteFileTransferService>(serviceProvider.GetRequiredService<IRemoteFileTransferService>());
         Assert.IsType<FrpReleaseService>(serviceProvider.GetRequiredService<IFrpReleaseService>());
@@ -184,6 +197,37 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ModalOverlayState_ShouldNotifyMainWindowBinding()
+    {
+        var modalOverlayService = new ModalOverlayService();
+        var viewModel = CreateMainWindowViewModel(modalOverlayService);
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName);
+
+        using var overlay = modalOverlayService.ShowOverlay();
+
+        Assert.True(viewModel.IsModalOverlayVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsModalOverlayVisible), changedProperties);
+    }
+
+    [Fact]
+    public void ModalDialogHostState_ShouldNotifyMainWindowBinding()
+    {
+        var modalDialogHostService = new ModalDialogHostService();
+        var viewModel = CreateMainWindowViewModel(modalDialogHostService: modalDialogHostService);
+        var dialog = new object();
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName);
+
+        modalDialogHostService.ShowDialog(dialog);
+
+        Assert.True(viewModel.IsModalDialogVisible);
+        Assert.Same(dialog, viewModel.CurrentModalDialog);
+        Assert.Contains(nameof(MainWindowViewModel.IsModalDialogVisible), changedProperties);
+        Assert.Contains(nameof(MainWindowViewModel.CurrentModalDialog), changedProperties);
+    }
+
+    [Fact]
     public void DesktopLogPath_ShouldUseLocalApplicationData()
     {
         var logPath = DesktopLogPaths.GetWarningLogPath();
@@ -194,31 +238,67 @@ public sealed class MainWindowViewModelTests
         Assert.EndsWith("frpnexus-.log", logPath);
     }
 
-    private static MainWindowViewModel CreateMainWindowViewModel()
+    private static MainWindowViewModel CreateMainWindowViewModel(
+        IModalOverlayService? modalOverlayService = null,
+        IModalDialogHostService? modalDialogHostService = null)
     {
         return new MainWindowViewModel(
-            new DashboardPageViewModel(),
+            CreateDashboardPageViewModel(),
             CreateNodesPageViewModel(),
             CreateTunnelsPageViewModel(),
             CreateConfigurationsPageViewModel(),
             CreateRuntimePageViewModel(),
             CreateLogsPageViewModel(),
-            CreateSettingsPageViewModel());
+            CreateSettingsPageViewModel(),
+            new FakeNavigationRequestService(),
+            modalOverlayService ?? new ModalOverlayService(),
+            modalDialogHostService ?? new ModalDialogHostService());
+    }
+
+    private static DashboardPageViewModel CreateDashboardPageViewModel()
+    {
+        return new DashboardPageViewModel(
+            new FakeNodeManagementService(),
+            new FakeTunnelManagementService(),
+            new FakeRuntimeRecordService(),
+            new FakeDeploymentRecordService(),
+            new FakeNodeConnectionSessionService(),
+            new FakeNavigationRequestService());
     }
 
     private static NodesPageViewModel CreateNodesPageViewModel()
     {
-        return new NodesPageViewModel(new FakeNodeManagementService(), new FakeSshConnectionService());
+        return new NodesPageViewModel(
+            new FakeNodeManagementService(),
+            new FakeNodeConnectionSessionService(),
+            new FakeRemoteRuntimeService(),
+            new FakeRemoteFileTransferService(),
+            new Arturia.FrpNexus.Application.Configuration.TomlConfigurationService(),
+            new FakeFilePickerService(),
+            new FakeRemoteDirectoryPickerService(),
+            new FakeNodeCredentialSecretService(),
+            new FakeDeploymentRecordService(),
+            new FakeNodeConnectionWorkflowDialogService());
     }
 
     private static TunnelsPageViewModel CreateTunnelsPageViewModel()
     {
-        return new TunnelsPageViewModel(new FakeTunnelManagementService());
+        return new TunnelsPageViewModel(
+            new FakeTunnelManagementService(),
+            new FakeNodeManagementService(),
+            new TomlConfigurationService(),
+            new FakeLocalFrpcProcessService());
     }
 
     private static ConfigurationsPageViewModel CreateConfigurationsPageViewModel()
     {
-        return new ConfigurationsPageViewModel(new TomlConfigurationService(), new FakeConfigurationVersionService());
+        return new ConfigurationsPageViewModel(
+            new TomlConfigurationService(),
+            new FakeNodeManagementService(),
+            new FakeTunnelManagementService(),
+            new FakeNodeConnectionSessionService(),
+            new FakeRemoteFileTransferService(),
+            new FakeClipboardService());
     }
 
     private static RuntimePageViewModel CreateRuntimePageViewModel()
@@ -274,6 +354,16 @@ public sealed class MainWindowViewModelTests
         }
     }
 
+    private sealed class FakeNavigationRequestService : INavigationRequestService
+    {
+        public event EventHandler<string>? NavigationRequested;
+
+        public void RequestNavigation(string pageKey)
+        {
+            NavigationRequested?.Invoke(this, pageKey);
+        }
+    }
+
     private sealed class FakeNodeManagementService : INodeManagementService
     {
         private readonly List<NodeProfile> _nodes =
@@ -306,6 +396,20 @@ public sealed class MainWindowViewModelTests
             return Task.CompletedTask;
         }
 
+        public Task UpdateLastConnectionAsync(
+            string nodeName,
+            DateTimeOffset connectedAt,
+            CancellationToken cancellationToken = default)
+        {
+            var index = _nodes.FindIndex(node => node.Name == nodeName);
+            if (index >= 0)
+            {
+                _nodes[index] = _nodes[index] with { LastConnectionTestedAt = connectedAt };
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task UpdateConnectionTestResultAsync(
             string nodeName,
             FrpNexusStatus status,
@@ -327,15 +431,165 @@ public sealed class MainWindowViewModelTests
         }
     }
 
-    private sealed class FakeSshConnectionService : ISshConnectionService
+    private sealed class FakeNodeConnectionSessionService : INodeConnectionSessionService
     {
-        public Task<SshConnectionTestResult> TestConnectionAsync(SshConnectionTestRequest request, CancellationToken cancellationToken = default)
+        public Task<NodeConnectionSessionResult> ConnectAsync(
+            NodeProfile node,
+            SshCredentialReference credential,
+            CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new SshConnectionTestResult(
-                request.Node.Name,
-                FrpNexusStatus.Online,
+            return Task.FromResult(new NodeConnectionSessionResult(
+                node.Name,
+                NodeConnectionSessionState.Online,
                 DateTimeOffset.UtcNow,
-                "SSH 连接测试成功。"));
+                "SSH 节点连接成功。"));
+        }
+
+        public Task<NodeConnectionSessionResult> DisconnectAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new NodeConnectionSessionResult(
+                nodeName,
+                NodeConnectionSessionState.Disconnected,
+                null,
+                "SSH 节点连接已断开。"));
+        }
+
+        public NodeConnectionSessionSnapshot GetSessionStatus(string nodeName)
+        {
+            return new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "尚未连接。");
+        }
+
+        public SshCredentialReference? GetConnectedCredential(string nodeName)
+        {
+            return null;
+        }
+    }
+
+    private sealed class FakeRemoteFileTransferService : IRemoteFileTransferService
+    {
+        public Task<RemoteFilePresenceResult> CheckRemoteFilesAsync(
+            RemoteFilePresenceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<RemoteFilePresenceEntry> files = request.RemotePaths
+                .Select(path => new RemoteFilePresenceEntry(path, true))
+                .ToArray();
+            return Task.FromResult(new RemoteFilePresenceResult(
+                request.Node.Name,
+                files,
+                FrpNexusStatus.Ready,
+                DateTimeOffset.UtcNow,
+                "远程文件已就绪。"));
+        }
+
+        public Task<RemoteFileTransferResult> UploadFrpBinaryAsync(
+            RemoteFileUploadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RemoteFileTransferResult(
+                request.Node.Name,
+                request.RemotePath,
+                FrpNexusStatus.Ready,
+                DateTimeOffset.UtcNow,
+                "FRP 核心上传成功。"));
+        }
+
+        public Task<RemoteFileTransferResult> UploadConfigurationAsync(
+            RemoteConfigurationUploadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RemoteFileTransferResult(
+                request.Node.Name,
+                request.RemotePath,
+                FrpNexusStatus.Ready,
+                DateTimeOffset.UtcNow,
+                "TOML 配置上传成功。"));
+        }
+
+        public Task<RemoteFileDeleteResult> DeleteRemoteFilesAsync(
+            RemoteFileDeleteRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RemoteFileDeleteResult(
+                request.Node.Name,
+                request.RemotePaths,
+                [],
+                FrpNexusStatus.Ready,
+                DateTimeOffset.UtcNow,
+                "远程文件已清理。"));
+        }
+    }
+
+    private sealed class FakeFilePickerService : IFilePickerService
+    {
+        public Task<string?> PickFrpBinaryAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+    }
+
+    private sealed class FakeClipboardService : IClipboardService
+    {
+        public Task SetTextAsync(string text, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRemoteDirectoryPickerService : IRemoteDirectoryPickerService
+    {
+        public Task<string?> PickRemoteDirectoryAsync(
+            NodeProfile node,
+            SshCredentialReference credential,
+            string initialDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+    }
+
+    private sealed class FakeNodeConnectionWorkflowDialogService : INodeConnectionWorkflowDialogService
+    {
+        public Task<NodeConnectionWorkflowResult> ShowAsync(
+            NodeProfile node,
+            NodeConnectionWorkflowOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new NodeConnectionWorkflowResult(node.Name, false, false, false));
+        }
+    }
+
+    private sealed class FakeNodeCredentialSecretService : INodeCredentialSecretService
+    {
+        public Task<bool> HasSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<string?> GetSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public Task SaveSessionPasswordAsync(
+            string nodeName,
+            string password,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 
@@ -470,7 +724,7 @@ public sealed class MainWindowViewModelTests
         {
             IReadOnlyList<RuntimeProcess> processes =
             [
-                new("frpc-web", request.Node.Name, "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")
+                new("frps-main", request.Node.Name, "frps", FrpNexusStatus.Running, "2048", "1h", "0.0.0.0:7000")
             ];
 
             return Task.FromResult(processes);
@@ -499,6 +753,38 @@ public sealed class MainWindowViewModelTests
                 status,
                 DateTimeOffset.UtcNow,
                 message));
+        }
+    }
+
+    private sealed class FakeLocalFrpcProcessService : ILocalFrpcProcessService
+    {
+        private readonly HashSet<string> _runningNodes = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task<LocalFrpcProcessResult> ApplyNodeTunnelsAsync(LocalFrpcProcessRequest request, CancellationToken cancellationToken = default)
+        {
+            _runningNodes.Add(request.Node.Name);
+            return Task.FromResult(new LocalFrpcProcessResult(
+                request.Node.Name,
+                FrpNexusStatus.Running,
+                DateTimeOffset.UtcNow,
+                "本地 frpc 已按节点应用配置。"));
+        }
+
+        public Task<LocalFrpcProcessResult> StopNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            _runningNodes.Remove(nodeName);
+            return Task.FromResult(new LocalFrpcProcessResult(
+                nodeName,
+                FrpNexusStatus.Stopped,
+                DateTimeOffset.UtcNow,
+                "该节点本地 frpc 已停止。"));
+        }
+
+        public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName)
+        {
+            return _runningNodes.Contains(nodeName)
+                ? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Running, "本地 frpc 正在运行。")
+                : new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
         }
     }
 

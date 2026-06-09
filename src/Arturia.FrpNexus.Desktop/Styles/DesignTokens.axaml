@@ -22,6 +22,7 @@
     <Color x:Key="FrpPrimaryHoverColor">#0053DB</Color>
     <Color x:Key="FrpOnPrimaryColor">#FFFFFF</Color>
     <Color x:Key="FrpSelectionSubtleColor">#D9DFF5</Color>
+    <Color x:Key="FrpInputSelectionColor">#BFDBFE</Color>
     <Color x:Key="FrpInverseSurfaceColor">#2D3133</Color>
     <Color x:Key="FrpInverseTextColor">#EFF1F3</Color>
     <Color x:Key="FrpTerminalSurfaceColor">#141B2B</Color>
@@ -55,6 +56,7 @@
     <SolidColorBrush x:Key="FrpPrimaryHoverBrush" Color="{StaticResource FrpPrimaryHoverColor}" />
     <SolidColorBrush x:Key="FrpOnPrimaryBrush" Color="{StaticResource FrpOnPrimaryColor}" />
     <SolidColorBrush x:Key="FrpSelectionSubtleBrush" Color="{StaticResource FrpSelectionSubtleColor}" />
+    <SolidColorBrush x:Key="FrpInputSelectionBrush" Color="{StaticResource FrpInputSelectionColor}" />
     <SolidColorBrush x:Key="FrpInverseSurfaceBrush" Color="{StaticResource FrpInverseSurfaceColor}" />
     <SolidColorBrush x:Key="FrpInverseTextBrush" Color="{StaticResource FrpInverseTextColor}" />
     <SolidColorBrush x:Key="FrpTerminalSurfaceBrush" Color="{StaticResource FrpTerminalSurfaceColor}" />
@@ -78,6 +80,7 @@
     <SolidColorBrush x:Key="FrpStatusNeutralSoftBrush" Color="#F1F5F9" />
     <SolidColorBrush x:Key="FrpCodeTextBrush" Color="#C9D1D9" />
     <SolidColorBrush x:Key="FrpCodeMutedBrush" Color="#94A3B8" />
+    <SolidColorBrush x:Key="FrpModalOverlayBrush" Color="#000000" Opacity="0.42" />
 
     <FontFamily x:Key="Font.Ui">Segoe UI, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC, sans-serif</FontFamily>
     <FontFamily x:Key="Font.Code">JetBrains Mono, Cascadia Code, Consolas, monospace</FontFamily>
@@ -138,6 +141,7 @@
     <StaticResource x:Key="Brush.Terminal" ResourceKey="FrpCodePanelBackgroundBrush" />
     <StaticResource x:Key="Brush.TerminalHeader" ResourceKey="FrpTerminalSurfaceBrush" />
     <StaticResource x:Key="Brush.TerminalText" ResourceKey="FrpCodeTextBrush" />
+    <StaticResource x:Key="Brush.ModalOverlay" ResourceKey="FrpModalOverlayBrush" />
     <StaticResource x:Key="Brush.SidebarText" ResourceKey="FrpSidebarTextBrush" />
     <StaticResource x:Key="Brush.SidebarMuted" ResourceKey="FrpSidebarMutedBrush" />
     <StaticResource x:Key="Brush.SidebarSelected" ResourceKey="FrpSidebarSelectedBrush" />

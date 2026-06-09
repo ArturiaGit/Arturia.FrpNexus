@@ -55,6 +55,35 @@ public sealed class SqliteRuntimeRecordServiceTests
     }
 
     [Fact]
+    public async Task ListRuntimeProcessesAsync_ShouldRemoveLegacySampleProcessesOnly()
+    {
+        var service = CreateService();
+        var realSameName = new RuntimeProcess(
+            "frpc-web",
+            "真实节点",
+            "frpc",
+            FrpNexusStatus.Running,
+            "4096",
+            "00:13",
+            "127.0.0.1:8080");
+        var realProcess = CreateProcess("frpc-real", FrpNexusStatus.Running);
+
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frps-main", "Web-Server-HK", "frps", FrpNexusStatus.Running, "14022", "4d 12h 30m", "0.0.0.0:7000"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frpc-web", "Web-Server-HK", "frpc", FrpNexusStatus.Running, "14090", "4d 10h 12m", "127.0.0.1:8080"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frpc-db", "DB-Node-SH", "frpc", FrpNexusStatus.Stopped, "-", "-", "127.0.0.1:3306"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frpc-edge", "Edge-Router-BJ", "frpc", FrpNexusStatus.Error, "-", "连接失败", "127.0.0.1:7777"));
+        await service.SaveRuntimeProcessAsync(realSameName);
+        await service.SaveRuntimeProcessAsync(realProcess);
+
+        var processes = await service.ListRuntimeProcessesAsync();
+
+        Assert.Equal(2, processes.Count);
+        Assert.Contains(processes, process => process == realSameName);
+        Assert.Contains(processes, process => process == realProcess);
+        Assert.DoesNotContain(processes, process => process.NodeName is "Web-Server-HK" or "DB-Node-SH" or "Edge-Router-BJ");
+    }
+
+    [Fact]
     public void RuntimeProcess_ShouldNotExposeSensitiveCredentialFields()
     {
         var properties = typeof(RuntimeProcess)

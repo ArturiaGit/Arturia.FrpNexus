@@ -2,8 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels"
         xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+        xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
         xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
         xmlns:desktopModels="using:Arturia.FrpNexus.Desktop.Models"
+        xmlns:dialogViews="using:Arturia.FrpNexus.Desktop.Views.Dialogs"
         xmlns:pageViews="using:Arturia.FrpNexus.Desktop.Views.Pages"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -43,6 +45,9 @@
         </DataTemplate>
         <DataTemplate DataType="pages:SettingsPageViewModel">
             <pageViews:SettingsPageView />
+        </DataTemplate>
+        <DataTemplate DataType="dialogs:NodeConnectionWorkflowViewModel">
+            <dialogViews:NodeConnectionWorkflowDialogView />
         </DataTemplate>
     </Window.DataTemplates>
 
@@ -199,6 +204,33 @@
             <ContentControl Grid.Row="1"
                             Margin="{StaticResource FrpPageMargin}"
                             Content="{Binding CurrentPage}" />
+        </Grid>
+
+        <Border Grid.ColumnSpan="2"
+                Background="{StaticResource Brush.ModalOverlay}"
+                IsHitTestVisible="True"
+                IsVisible="{Binding IsModalOverlayVisible}"
+                ZIndex="1000" />
+
+        <Grid Grid.ColumnSpan="2"
+              Margin="0,24"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Stretch"
+              IsVisible="{Binding IsModalDialogVisible}"
+              ZIndex="1001">
+            <Border Width="640"
+                    MaxHeight="680"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <ContentControl HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                Content="{Binding CurrentModalDialog}" />
+            </Border>
         </Grid>
     </Grid>
 </Window>

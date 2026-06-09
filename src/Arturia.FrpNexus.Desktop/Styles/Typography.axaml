@@ -1,0 +1,52 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <FontFamily x:Key="FrpNexusUiFontFamily">Segoe UI Variable, Microsoft YaHei</FontFamily>
+        <FontFamily x:Key="FrpNexusCodeFontFamily">Cascadia Code, Consolas</FontFamily>
+
+        <x:Double x:Key="FrpNexusTitleLargeFontSize">28</x:Double>
+        <x:Double x:Key="FrpNexusBodyMediumFontSize">14</x:Double>
+        <x:Double x:Key="FrpNexusLabelSmallFontSize">12</x:Double>
+        <x:Double x:Key="FrpNexusTerminalFontSize">13</x:Double>
+    </Styles.Resources>
+
+    <Style Selector="TextBlock.frpnexus-title-large">
+        <Setter Property="FontFamily" Value="{StaticResource FrpNexusUiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FrpNexusTitleLargeFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LineHeight" Value="36" />
+        <Setter Property="Foreground" Value="{StaticResource FrpNexusTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.frpnexus-body-medium">
+        <Setter Property="FontFamily" Value="{StaticResource FrpNexusUiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FrpNexusBodyMediumFontSize}" />
+        <Setter Property="FontWeight" Value="Regular" />
+        <Setter Property="LineHeight" Value="20" />
+        <Setter Property="Foreground" Value="{StaticResource FrpNexusTextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.frpnexus-body-secondary">
+        <Setter Property="FontFamily" Value="{StaticResource FrpNexusUiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FrpNexusBodyMediumFontSize}" />
+        <Setter Property="FontWeight" Value="Regular" />
+        <Setter Property="LineHeight" Value="20" />
+        <Setter Property="Foreground" Value="{StaticResource FrpNexusTextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.frpnexus-label-small">
+        <Setter Property="FontFamily" Value="{StaticResource FrpNexusUiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FrpNexusLabelSmallFontSize}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="LineHeight" Value="16" />
+        <Setter Property="Foreground" Value="{StaticResource FrpNexusTextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.frpnexus-terminal-text">
+        <Setter Property="FontFamily" Value="{StaticResource FrpNexusCodeFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FrpNexusTerminalFontSize}" />
+        <Setter Property="FontWeight" Value="Regular" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="Foreground" Value="{StaticResource FrpNexusTerminalTextBrush}" />
+    </Style>
+</Styles>

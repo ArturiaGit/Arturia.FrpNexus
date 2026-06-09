@@ -44,6 +44,42 @@
         <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
     </Style>
 
+    <Style Selector="Border.status-callout.info">
+        <Setter Property="Background" Value="{StaticResource FrpStatusInfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusInfoBrush}" />
+    </Style>
+
+    <Style Selector="Border.status-callout.success">
+        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusSuccessBrush}" />
+    </Style>
+
+    <Style Selector="Border.status-callout.warning">
+        <Setter Property="Background" Value="{StaticResource FrpStatusWarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusWarningBrush}" />
+    </Style>
+
+    <Style Selector="Border.status-callout.error">
+        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
+    <Style Selector="PathIcon.status-callout-icon.info">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+    </Style>
+
+    <Style Selector="PathIcon.status-callout-icon.success">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusSuccessBrush}" />
+    </Style>
+
+    <Style Selector="PathIcon.status-callout-icon.warning">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+    </Style>
+
+    <Style Selector="PathIcon.status-callout-icon.error">
+        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+    </Style>
+
     <Style Selector="TextBlock.status-text">
         <Setter Property="FontSize" Value="12" />
         <Setter Property="LineHeight" Value="16" />

@@ -496,6 +496,7 @@ This gate validates whether FrpNexus can complete one real remote FRP deployment
 - [ ] Verify at least one real HTTP or TCP tunnel reaches a local test service through the remote endpoint.
 - [ ] Verify app restart preserves ordinary settings, nodes, tunnels, configuration versions, runtime records, and deployment records.
 - [ ] Verify SQLite data, local logs, and export snapshots do not contain SSH passwords, tokens, private key contents, or private key passphrases.
+- [x] Add explicit remembered SSH session password support through Windows DPAPI `CurrentUser`, outside ordinary SQLite models and export snapshots.
 - [ ] Run `dotnet build`.
 - [ ] Run full `dotnet test`.
 - [blocked] Do not publish or package a preview release until this gate passes and the user explicitly re-enables publishing.

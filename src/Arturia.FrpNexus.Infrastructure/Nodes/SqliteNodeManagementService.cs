@@ -168,6 +168,28 @@ public sealed class SqliteNodeManagementService(
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task UpdateLastConnectionAsync(
+        string nodeName,
+        DateTimeOffset connectedAt,
+        CancellationToken cancellationToken = default)
+    {
+        await databaseInitializer.InitializeAsync(cancellationToken);
+
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE nodes
+            SET last_connection_tested_at = $last_connection_tested_at
+            WHERE name = $name;
+            """;
+        command.Parameters.AddWithValue("$name", nodeName);
+        command.Parameters.AddWithValue("$last_connection_tested_at", connectedAt.ToString("O"));
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
     {
         await databaseInitializer.InitializeAsync(cancellationToken);

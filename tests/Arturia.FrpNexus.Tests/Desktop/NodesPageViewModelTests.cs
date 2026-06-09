@@ -19,27 +19,25 @@ public sealed class NodesPageViewModelTests
 
         Assert.Single(viewModel.Nodes);
         Assert.Single(viewModel.NodeRows);
-        Assert.Equal("本地测试节点", viewModel.SelectedNode?.Name);
-        Assert.True(viewModel.NodeRows.Single().IsSelected);
+        Assert.Null(viewModel.SelectedNode);
+        Assert.False(viewModel.NodeRows.Single().IsSelected);
         Assert.Equal("共 1 个节点", viewModel.NodeCountText);
     }
 
     [Fact]
-    public async Task LoadNodesAsync_ShouldSeedSafeSampleNodesWhenDatabaseIsEmpty()
+    public async Task LoadNodesAsync_ShouldKeepNodeListEmptyWhenDatabaseIsEmpty()
     {
         var service = new FakeNodeManagementService([]);
         var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
 
         await viewModel.LoadNodesAsync();
 
-        Assert.Equal(3, viewModel.Nodes.Count);
-        Assert.Equal(3, viewModel.NodeRows.Count);
-        Assert.Equal("共 3 个节点", viewModel.NodeCountText);
-        Assert.NotNull(viewModel.SelectedNode);
-        Assert.Equal("未安装", viewModel.NodeRows.Single(row => row.Name == "Edge-Router-BJ").FrpServiceText);
-        Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("密码", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("Token", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(service.SavedNodes, node => node.Authentication.Contains("私钥内容", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(viewModel.Nodes);
+        Assert.Empty(viewModel.NodeRows);
+        Assert.Equal("共 0 个节点", viewModel.NodeCountText);
+        Assert.Null(viewModel.SelectedNode);
+        Assert.True(viewModel.IsNodeListEmpty);
+        Assert.Empty(service.SavedNodes);
     }
 
     [Fact]
@@ -166,6 +164,44 @@ public sealed class NodesPageViewModelTests
         Assert.Equal("203.0.113.88", node.Host);
         Assert.Equal(22022, node.SshPort);
         Assert.Equal("/opt/frpnexus/frpc.toml", node.ConfigPath);
+        Assert.Equal("/opt/frpnexus", viewModel.RemoteCoreDirectory);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldSaveCustomConfigPathWhenCreatingNode()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "自定义配置路径节点";
+        viewModel.FormHost = "203.0.113.27";
+        viewModel.FormConfigPath = @" \srv\frpnexus\server.toml ";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        var saved = Assert.Single(service.SavedNodes.Where(node => node.Name == "自定义配置路径节点"));
+        Assert.Equal("/srv/frpnexus/server.toml", saved.ConfigPath);
+        Assert.Equal("/srv/frpnexus", viewModel.RemoteCoreDirectory);
+    }
+
+    [Fact]
+    public async Task SaveNodeCommand_ShouldRejectConfigPathWithoutFileName()
+    {
+        var service = new FakeNodeManagementService([]);
+        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        await viewModel.LoadNodesAsync();
+
+        viewModel.StartCreateNodeCommand.Execute(null);
+        viewModel.FormName = "配置目录节点";
+        viewModel.FormHost = "203.0.113.28";
+        viewModel.FormConfigPath = "/etc";
+
+        await viewModel.SaveNodeCommand.ExecuteAsync(null);
+
+        Assert.Equal("配置路径必须包含文件名，例如 /etc/frp/frps.toml。", viewModel.FormErrorText);
+        Assert.DoesNotContain(service.SavedNodes, node => node.Name == "配置目录节点");
     }
 
     [Fact]
@@ -241,6 +277,7 @@ public sealed class NodesPageViewModelTests
         var sshService = new FakeSshConnectionService();
         var viewModel = new NodesPageViewModel(service, sshService);
         await viewModel.LoadNodesAsync();
+        viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
         viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
 
@@ -263,11 +300,12 @@ public sealed class NodesPageViewModelTests
         var sshService = new FakeSshConnectionService();
         var viewModel = new NodesPageViewModel(service, sshService);
         await viewModel.LoadNodesAsync();
+        viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
 
         await viewModel.TestSelectedNodeConnectionCommand.ExecuteAsync(null);
 
-        Assert.Equal("请输入本次会话使用的 SSH 密码，密码不会保存到 SQLite。", viewModel.ConnectionTestStatusText);
+        Assert.Equal("请输入本次会话使用的 SSH 密码，或使用已保存的会话密码。", viewModel.ConnectionTestStatusText);
         Assert.Null(sshService.LastRequest);
     }
 
@@ -294,12 +332,13 @@ public sealed class NodesPageViewModelTests
         ]);
         var viewModel = new NodesPageViewModel(service, new FailingSshConnectionService());
         await viewModel.LoadNodesAsync();
+        viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
         viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
 
         await viewModel.TestSelectedNodeConnectionCommand.ExecuteAsync(null);
 
-        Assert.Equal("SSH 连接测试失败，请检查输入、网络或本地数据状态后重试。", viewModel.ConnectionTestStatusText);
+        Assert.Equal("SSH 节点连接失败，请检查输入、网络或本地数据状态后重试。", viewModel.ConnectionTestStatusText);
         Assert.Equal(string.Empty, viewModel.SshSessionPassword);
         Assert.False(viewModel.IsTestingConnection);
     }
@@ -330,6 +369,20 @@ public sealed class NodesPageViewModelTests
         public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
         {
             _nodes.RemoveAll(node => node.Name == nodeName);
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateLastConnectionAsync(
+            string nodeName,
+            DateTimeOffset connectedAt,
+            CancellationToken cancellationToken = default)
+        {
+            var index = _nodes.FindIndex(node => node.Name == nodeName);
+            if (index >= 0)
+            {
+                _nodes[index] = _nodes[index] with { LastConnectionTestedAt = connectedAt };
+            }
+
             return Task.CompletedTask;
         }
 
@@ -387,6 +440,14 @@ public sealed class NodesPageViewModelTests
         }
 
         public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        public Task UpdateLastConnectionAsync(
+            string nodeName,
+            DateTimeOffset connectedAt,
+            CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException(message);
         }

@@ -75,6 +75,28 @@ public sealed class SqliteNodeManagementServiceTests
     }
 
     [Fact]
+    public async Task UpdateLastConnectionAsync_ShouldPersistTimestampOnly()
+    {
+        var service = CreateService();
+        var node = CreateNode("最后连接节点") with
+        {
+            ConnectionStatus = FrpNexusStatus.Offline,
+            LastConnectionTestedAt = DateTimeOffset.Parse("2026-06-01T08:00:00+00:00")
+        };
+        var connectedAt = DateTimeOffset.Parse("2026-06-05T12:34:56+00:00");
+
+        await service.SaveNodeAsync(node);
+        await service.UpdateLastConnectionAsync(node.Name, connectedAt);
+
+        var actual = await service.GetNodeAsync(node.Name);
+
+        Assert.NotNull(actual);
+        Assert.Equal(FrpNexusStatus.Offline, actual.ConnectionStatus);
+        Assert.Equal(connectedAt, actual.LastConnectionTestedAt);
+        Assert.Equal(node.Authentication, actual.Authentication);
+    }
+
+    [Fact]
     public void NodeProfile_ShouldNotExposeSensitiveCredentialFields()
     {
         var properties = typeof(NodeProfile)

@@ -15,6 +15,8 @@ public sealed class SqliteRuntimeRecordService(
         await using var connection = connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
+        await DeleteLegacySampleProcessesAsync(connection, cancellationToken);
+
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT name,
@@ -123,6 +125,22 @@ public sealed class SqliteRuntimeRecordService(
         await using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM runtime_processes WHERE name = $name;";
         command.Parameters.AddWithValue("$name", processName);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task DeleteLegacySampleProcessesAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            DELETE FROM runtime_processes
+            WHERE (name = 'frps-main' AND node_name = 'Web-Server-HK')
+               OR (name = 'frpc-web' AND node_name = 'Web-Server-HK')
+               OR (name = 'frpc-db' AND node_name = 'DB-Node-SH')
+               OR (name = 'frpc-edge' AND node_name = 'Edge-Router-BJ');
+            """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

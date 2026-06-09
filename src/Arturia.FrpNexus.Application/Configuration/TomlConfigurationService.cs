@@ -7,33 +7,66 @@ namespace Arturia.FrpNexus.Application.Configuration;
 
 public sealed class TomlConfigurationService : ITomlConfigurationService
 {
+    private const int DefaultFrpsServerPort = 7000;
+
     public string GenerateProxyToml(ConfigurationPreview preview)
     {
         ValidatePreview(preview);
 
         var builder = new StringBuilder();
-        builder.AppendLine("[[proxies]]");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"name = \"{EscapeTomlString(preview.ProxyName.Trim())}\"");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"type = \"{ToFrpProtocol(preview.Protocol)}\"");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"localIP = \"{EscapeTomlString(preview.LocalAddress.Trim())}\"");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"localPort = {preview.LocalPort}");
+        AppendProxyToml(builder, preview);
 
-        var endpoint = preview.RemoteEndpoint.Trim();
-        if (preview.Protocol is TunnelProtocol.Http or TunnelProtocol.Https)
+        return builder.ToString().TrimEnd();
+    }
+
+    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels, int webServerPort)
+    {
+        if (string.IsNullOrWhiteSpace(node.Host))
         {
-            builder.AppendLine(CultureInfo.InvariantCulture, $"customDomains = [\"{EscapeTomlString(endpoint)}\"]");
+            throw new InvalidOperationException("节点 Host 不能为空。");
         }
-        else
-        {
-            if (!int.TryParse(endpoint, out var remotePort) || remotePort is < 1 or > 65535)
-            {
-                throw new InvalidOperationException("TCP/UDP 隧道的远程端点必须是 1 到 65535 之间的远程端口。");
-            }
 
-            builder.AppendLine(CultureInfo.InvariantCulture, $"remotePort = {remotePort}");
+        if (webServerPort is < 1 or > 65535)
+        {
+            throw new InvalidOperationException("frpc 管理端口必须是 1 到 65535 之间的数字。");
+        }
+
+        if (tunnels.Count == 0)
+        {
+            throw new InvalidOperationException("至少需要一条启用隧道。");
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine(CultureInfo.InvariantCulture, $"serverAddr = \"{EscapeTomlString(node.Host.Trim())}\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"serverPort = {DefaultFrpsServerPort}");
+        builder.AppendLine();
+        builder.AppendLine("[webServer]");
+        builder.AppendLine("addr = \"127.0.0.1\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"port = {webServerPort}");
+
+        foreach (var tunnel in tunnels)
+        {
+            builder.AppendLine();
+            AppendProxyToml(builder, new ConfigurationPreview(
+                tunnel.Name,
+                tunnel.Protocol,
+                tunnel.LocalAddress,
+                tunnel.LocalPort,
+                tunnel.RemoteEndpoint,
+                string.Empty));
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    public string GenerateServerToml(int bindPort)
+    {
+        if (bindPort is < 1 or > 65535)
+        {
+            throw new InvalidOperationException("frps 监听端口必须是 1 到 65535 之间的数字。");
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"bindPort = {bindPort}");
     }
 
     public Task ValidateAsync(string tomlContent, CancellationToken cancellationToken = default)
@@ -92,6 +125,31 @@ public sealed class TomlConfigurationService : ITomlConfigurationService
         {
             throw new InvalidOperationException("远程配置不能为空。");
         }
+    }
+
+    private static void AppendProxyToml(StringBuilder builder, ConfigurationPreview preview)
+    {
+        ValidatePreview(preview);
+
+        builder.AppendLine("[[proxies]]");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"name = \"{EscapeTomlString(preview.ProxyName.Trim())}\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"type = \"{ToFrpProtocol(preview.Protocol)}\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"localIP = \"{EscapeTomlString(preview.LocalAddress.Trim())}\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"localPort = {preview.LocalPort}");
+
+        var endpoint = preview.RemoteEndpoint.Trim();
+        if (preview.Protocol is TunnelProtocol.Http or TunnelProtocol.Https)
+        {
+            builder.AppendLine(CultureInfo.InvariantCulture, $"customDomains = [\"{EscapeTomlString(endpoint)}\"]");
+            return;
+        }
+
+        if (!int.TryParse(endpoint, out var remotePort) || remotePort is < 1 or > 65535)
+        {
+            throw new InvalidOperationException("TCP/UDP 隧道的远程端点必须是 1 到 65535 之间的远程端口。");
+        }
+
+        builder.AppendLine(CultureInfo.InvariantCulture, $"remotePort = {remotePort}");
     }
 
     private static string ToFrpProtocol(TunnelProtocol protocol)

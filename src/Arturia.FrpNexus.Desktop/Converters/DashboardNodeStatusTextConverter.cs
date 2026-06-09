@@ -13,6 +13,7 @@ public sealed class DashboardNodeStatusTextConverter : IValueConverter
         {
             FrpNexusStatus.Running or FrpNexusStatus.Online => "运行中",
             FrpNexusStatus.Offline or FrpNexusStatus.Stopped => "已离线",
+            FrpNexusStatus.Pending => "连接中",
             FrpNexusStatus.Warning => "负载较高",
             FrpNexusStatus.Error => "异常",
             _ => "未知"

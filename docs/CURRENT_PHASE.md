@@ -44,7 +44,8 @@ Do not implement:
 - Automatic update installation without a separate explicit design.
 - Installer/MSIX packaging before the folder-based preview package is stable.
 - Legacy INI as the MVP default configuration format.
-- Persistent storage of SSH passwords, tokens, private key contents, or private key passphrases.
+- Persistent storage of SSH passwords, tokens, private key contents, or private key passphrases in ordinary SQLite models, logs, exports, backups, or plain-text configuration.
+- SSH session passwords may only be remembered when the user explicitly opts in, and only through the approved DPAPI `CurrentUser` credential secret service. The protected secret itself must stay out of local export and backup snapshots.
 - Logging of SSH passwords, tokens, private key contents, private key passphrases, or secret-bearing command lines.
 
 ## Phase Rule

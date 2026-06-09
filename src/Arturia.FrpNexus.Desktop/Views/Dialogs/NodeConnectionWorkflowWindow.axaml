@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+        xmlns:dialogViews="using:Arturia.FrpNexus.Desktop.Views.Dialogs"
+        x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.NodeConnectionWorkflowWindow"
+        x:DataType="dialogs:NodeConnectionWorkflowViewModel"
+        Title="连接节点"
+        Width="640"
+        Height="660"
+        MinWidth="600"
+        MinHeight="620"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Brush.AppBackground}">
+    <Border Margin="16">
+        <dialogViews:NodeConnectionWorkflowDialogView />
+    </Border>
+</Window>

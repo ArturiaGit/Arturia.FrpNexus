@@ -28,6 +28,14 @@ SQLite must not store:
 - Raw credential JSON.
 - Full secret-bearing connection strings.
 
+Approved secure-storage exception:
+
+- A node session password may be remembered only when the user explicitly enables `记住此节点密码`.
+- The password must be stored through `INodeCredentialSecretService`, protected with Windows DPAPI `ProtectedData.Protect` and `DataProtectionScope.CurrentUser`.
+- Ordinary SQLite node/settings/runtime/export models must not contain the plaintext password or the protected ciphertext blob.
+- Local export and backup snapshots must not include credential secret files.
+- Saved session passwords are Windows-current-user secrets and are not portable across machines or Windows users.
+
 ## Recommended Authentication Modes
 
 ### Private Key File Path
@@ -49,12 +57,16 @@ Use when available.
 
 ### Session Password
 
-Use only as a temporary session input.
+Use as a temporary session input by default. A narrow remembered-password path is allowed only through the approved DPAPI service.
 
 - Do not write the password to SQLite.
 - Do not write the password to logs.
 - Do not keep it in long-lived view model state longer than the operation requires.
 - Clear password values after command completion or cancellation.
+- If `记住此节点密码` is enabled and the connection succeeds, store or overwrite the password through DPAPI.
+- If the connection fails, do not overwrite an existing saved password.
+- Do not auto-fill the real saved password back into the password input; show a saved-password status instead.
+- Delete the saved password when the node is deleted or when the user clicks `清除已保存密码`.
 
 ## UI Rules
 

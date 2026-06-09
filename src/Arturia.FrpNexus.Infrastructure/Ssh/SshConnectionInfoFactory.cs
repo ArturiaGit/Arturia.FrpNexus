@@ -24,11 +24,24 @@ internal static class SshConnectionInfoFactory
             throw new InvalidOperationException("请输入本次会话使用的 SSH 密码。");
         }
 
-        return new PasswordConnectionInfo(
+        var passwordMethod = new PasswordAuthenticationMethod(
+            node.UserName,
+            credential.SessionPassword);
+        var keyboardInteractiveMethod = new KeyboardInteractiveAuthenticationMethod(node.UserName);
+        keyboardInteractiveMethod.AuthenticationPrompt += (_, args) =>
+        {
+            foreach (var prompt in args.Prompts)
+            {
+                prompt.Response = credential.SessionPassword;
+            }
+        };
+
+        return new ConnectionInfo(
             node.Host,
             node.SshPort,
             node.UserName,
-            credential.SessionPassword);
+            passwordMethod,
+            keyboardInteractiveMethod);
     }
 
     private static ConnectionInfo CreatePrivateKeyConnectionInfo(NodeProfile node, SshCredentialReference credential)

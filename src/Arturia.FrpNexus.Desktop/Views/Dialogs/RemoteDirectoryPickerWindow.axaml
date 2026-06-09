@@ -1,0 +1,211 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
+        xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+        x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.RemoteDirectoryPickerWindow"
+        x:Name="Root"
+        x:DataType="dialogs:RemoteDirectoryPickerViewModel"
+        Title="选择远程目录"
+        Width="560"
+        Height="520"
+        MinWidth="520"
+        MinHeight="460"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Brush.AppBackground}">
+    <Window.Resources>
+        <converters:MetricIconConverter x:Key="MetricIconConverter" />
+    </Window.Resources>
+
+    <Border Margin="16"
+            Classes="panel"
+            ClipToBounds="True">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <Border Padding="16"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="0,0,0,1">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="section-title"
+                               Text="选择远程目录" />
+                    <TextBlock Classes="helper"
+                               TextWrapping="Wrap"
+                               Text="浏览当前节点的 SFTP 目录，选择或创建用于上传 frpc / frps 的远程目录。" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Grid.Row="1"
+                        Margin="16,14,16,12"
+                        Spacing="10">
+                <Grid ColumnDefinitions="Auto,*"
+                      ColumnSpacing="8">
+                    <Button Classes="secondary stitch-command"
+                            Command="{Binding NavigateUpCommand}"
+                            IsEnabled="{Binding CanNavigateUp}">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6">
+                            <PathIcon Width="16"
+                                      Height="16"
+                                      Data="{Binding Source=arrow_upward, Converter={StaticResource MetricIconConverter}}" />
+                            <TextBlock Text="上级" />
+                        </StackPanel>
+                    </Button>
+                    <TextBox Grid.Column="1"
+                             Classes="stitch-input code"
+                             IsReadOnly="True"
+                             Text="{Binding CurrentPath}" />
+                </Grid>
+
+                <Border Padding="10"
+                        BorderThickness="3,1,1,1"
+                        CornerRadius="6"
+                        Classes="status-callout"
+                        Classes.info="{Binding IsStatusInfo}"
+                        Classes.success="{Binding IsStatusSuccess}"
+                        Classes.warning="{Binding IsStatusWarning}"
+                        Classes.error="{Binding IsStatusError}">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="10">
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Margin="0,2,0,0"
+                                  Data="{Binding Source=folder, Converter={StaticResource MetricIconConverter}}"
+                                  Classes="status-callout-icon"
+                                  Classes.info="{Binding IsStatusInfo}"
+                                  Classes.success="{Binding IsStatusSuccess}"
+                                  Classes.warning="{Binding IsStatusWarning}"
+                                  Classes.error="{Binding IsStatusError}" />
+                        <StackPanel Grid.Column="1"
+                                    Spacing="3">
+                            <TextBlock Classes="group-label"
+                                       Text="{Binding StatusTitle}" />
+                            <TextBlock Classes="helper"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding StatusText}" />
+                            <ProgressBar Height="3"
+                                         Margin="0,5,0,0"
+                                         IsIndeterminate="True"
+                                         IsVisible="{Binding IsBusy}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Row="2"
+                    Margin="16,0"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <Grid>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding HasDirectories}">
+                        <ItemsControl ItemsSource="{Binding Directories}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="dialogs:RemoteDirectoryEntryViewModel">
+                                    <Button Classes="node-row"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding #Root.DataContext.OpenDirectoryCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Grid RowDefinitions="*,Auto">
+                                            <Grid ColumnDefinitions="32,*"
+                                                  Margin="12,0"
+                                                  MinHeight="40"
+                                                  ColumnSpacing="8">
+                                                <PathIcon Width="18"
+                                                          Height="18"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="{StaticResource FrpPrimaryBrush}"
+                                                          Data="{Binding Source=folder, Converter={StaticResource MetricIconConverter}}" />
+                                                <StackPanel Grid.Column="1"
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock FontWeight="SemiBold"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding Name}" />
+                                                    <TextBlock Classes="helper code"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding FullPath}" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border Grid.Row="1"
+                                                    Height="1"
+                                                    Background="{StaticResource FrpBorderDefaultBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="8"
+                                IsVisible="{Binding !HasDirectories}">
+                        <PathIcon Width="28"
+                                  Height="28"
+                                  HorizontalAlignment="Center"
+                                  Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                  Data="{Binding Source=folder_open, Converter={StaticResource MetricIconConverter}}" />
+                        <TextBlock Classes="group-label"
+                                   HorizontalAlignment="Center"
+                                   Text="当前目录没有子目录" />
+                        <TextBlock Classes="helper"
+                                   Width="260"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Text="可以直接选择当前目录，或在下方创建一个新目录。" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3"
+                    Padding="16"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="0,1,0,0">
+                <Grid RowDefinitions="Auto,Auto"
+                      RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <TextBox Classes="stitch-input"
+                                 PlaceholderText="新目录名称，例如 frp"
+                                 Text="{Binding NewDirectoryName}" />
+                        <Button Grid.Column="1"
+                                Classes="secondary stitch-command"
+                                Command="{Binding CreateDirectoryCommand}"
+                                IsEnabled="{Binding CanCreateDirectory}">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=create_new_folder, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="新建目录" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Spacing="8">
+                        <Button Classes="secondary stitch-command"
+                                Content="取消"
+                                Command="{Binding CancelCommand}" />
+                        <Button Classes="primary stitch-command"
+                                Command="{Binding SelectCurrentDirectoryCommand}">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=check, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="选择此目录" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
