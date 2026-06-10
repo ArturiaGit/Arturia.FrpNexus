@@ -18,14 +18,17 @@ public sealed class RemoteRuntimeServiceTests
                 string.Empty)),
             runtimeRecordService,
             Logger.None);
+        var request = CreateQueryRequest();
 
-        var processes = await service.GetProcessesAsync(CreateQueryRequest());
+        var processes = await service.GetProcessesAsync(request);
 
         Assert.Equal(3, processes.Count);
         Assert.Contains(processes, process => process.ProcessKind == "frpc" && process.ProcessId == "2048" && process.Uptime == "00:13");
         Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "4096" && process.Uptime == "01:45");
         Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "8192" && process.Uptime == "1-02:03:04");
         Assert.Equal(3, runtimeRecordService.SavedProcesses.Count);
+        Assert.Equal(request.Node.Name, runtimeRecordService.ReplacementNodeName);
+        Assert.Equal(3, runtimeRecordService.ReplacementProcesses.Count);
     }
 
     [Fact]
@@ -183,6 +186,10 @@ public sealed class RemoteRuntimeServiceTests
     {
         public List<RuntimeProcess> SavedProcesses { get; } = [];
 
+        public string? ReplacementNodeName { get; private set; }
+
+        public IReadOnlyList<RuntimeProcess> ReplacementProcesses { get; private set; } = [];
+
         public Task<IReadOnlyList<RuntimeProcess>> ListRuntimeProcessesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<RuntimeProcess>>(SavedProcesses);
@@ -197,6 +204,21 @@ public sealed class RemoteRuntimeServiceTests
         {
             SavedProcesses.RemoveAll(item => item.Name == process.Name);
             SavedProcesses.Add(process);
+            return Task.CompletedTask;
+        }
+
+        public Task ReplaceRuntimeProcessesForNodeAsync(
+            string nodeName,
+            IReadOnlyList<RuntimeProcess> processes,
+            CancellationToken cancellationToken = default)
+        {
+            ReplacementNodeName = nodeName;
+            ReplacementProcesses = processes;
+            SavedProcesses.RemoveAll(process =>
+                string.Equals(process.NodeName, nodeName, StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(process.ProcessKind, "frpc", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase)));
+            SavedProcesses.AddRange(processes);
             return Task.CompletedTask;
         }
 
