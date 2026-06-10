@@ -252,7 +252,7 @@ public sealed partial class DashboardPageViewModel : PageViewModel
                 new IncidentViewModel(
                     ToStatusTitle(tunnel.Status),
                     "本地记录",
-                    $"{tunnel.NodeName}：隧道 {tunnel.Name} {tunnel.StatusDetail}",
+                    $"{tunnel.NodeName}：隧道 {tunnel.Name} {ToTunnelStatusText(tunnel.Status)}",
                     tunnel.Status))));
 
         incidents.AddRange(nodes
@@ -312,7 +312,7 @@ public sealed partial class DashboardPageViewModel : PageViewModel
                     ToLogLevel(tunnel.Status),
                     tunnel.NodeName,
                     tunnel.Protocol.ToString().ToLowerInvariant(),
-                    $"{tunnel.Name} -> {tunnel.RemoteEndpoint}，{tunnel.StatusDetail}",
+                    $"{tunnel.Name} -> {tunnel.RemoteEndpoint}，{ToTunnelStatusText(tunnel.Status)}",
                     tunnel.Status)))
             .Take(8)
             .ToArray();
@@ -353,16 +353,33 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         };
     }
 
+    private static string ToTunnelStatusText(FrpNexusStatus status)
+    {
+        return status switch
+        {
+            FrpNexusStatus.Running => "运行中",
+            FrpNexusStatus.Stopped => "已停止",
+            FrpNexusStatus.Warning => "警告",
+            FrpNexusStatus.Error => "异常",
+            _ => "未刷新"
+        };
+    }
+
     private static string ProcessStatusText(RuntimeProcess process)
     {
         return process.Status switch
         {
             FrpNexusStatus.Running => $"运行中，PID {process.ProcessId}",
             FrpNexusStatus.Stopped => "已停止",
-            FrpNexusStatus.Warning => "警告",
-            FrpNexusStatus.Error => "异常",
+            FrpNexusStatus.Warning => HasRuntimeDetail(process.Uptime) ? $"警告：{process.Uptime}" : "警告",
+            FrpNexusStatus.Error => HasRuntimeDetail(process.Uptime) ? $"异常：{process.Uptime}" : "异常",
             _ => "状态未知"
         };
+    }
+
+    private static bool HasRuntimeDetail(string value)
+    {
+        return !string.IsNullOrWhiteSpace(value) && value.Trim() != "-";
     }
 
     private static string ToLogLevel(FrpNexusStatus status)

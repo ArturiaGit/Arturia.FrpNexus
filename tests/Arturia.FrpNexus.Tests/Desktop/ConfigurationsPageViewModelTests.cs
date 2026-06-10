@@ -89,8 +89,9 @@ public sealed class ConfigurationsPageViewModelTests
 
         Assert.Contains("serverAddr = \"203.0.113.10\"", viewModel.TomlPreview);
         Assert.Contains("serverPort = 7000", viewModel.TomlPreview);
-        Assert.Contains("[webServer]", viewModel.TomlPreview);
-        Assert.Contains("port = 7400", viewModel.TomlPreview);
+        Assert.DoesNotContain("[webServer]", viewModel.TomlPreview);
+        Assert.DoesNotContain("addr = \"127.0.0.1\"", viewModel.TomlPreview);
+        Assert.DoesNotContain("port = 7400", viewModel.TomlPreview);
         Assert.Contains("name = \"web_proxy_01\"", viewModel.TomlPreview);
         Assert.Contains("customDomains = [\"example.com\"]", viewModel.TomlPreview);
         Assert.Contains("name = \"ssh_bastion\"", viewModel.TomlPreview);

@@ -24,7 +24,7 @@ public sealed class SqliteTunnelManagementService(
                    local_port,
                    remote_endpoint,
                    status,
-                   status_detail
+                   remark
             FROM tunnels
             ORDER BY name;
             """;
@@ -56,7 +56,7 @@ public sealed class SqliteTunnelManagementService(
                    local_port,
                    remote_endpoint,
                    status,
-                   status_detail
+                   remark
             FROM tunnels
             WHERE name = $name;
             """;
@@ -85,7 +85,7 @@ public sealed class SqliteTunnelManagementService(
                 local_port,
                 remote_endpoint,
                 status,
-                status_detail
+                remark
             )
             VALUES (
                 $name,
@@ -95,7 +95,7 @@ public sealed class SqliteTunnelManagementService(
                 $local_port,
                 $remote_endpoint,
                 $status,
-                $status_detail
+                $remark
             )
             ON CONFLICT(name) DO UPDATE SET
                 protocol = excluded.protocol,
@@ -104,7 +104,7 @@ public sealed class SqliteTunnelManagementService(
                 local_port = excluded.local_port,
                 remote_endpoint = excluded.remote_endpoint,
                 status = excluded.status,
-                status_detail = excluded.status_detail;
+                remark = excluded.remark;
             """;
 
         command.Parameters.AddWithValue("$name", tunnel.Name);
@@ -114,7 +114,7 @@ public sealed class SqliteTunnelManagementService(
         command.Parameters.AddWithValue("$local_port", tunnel.LocalPort);
         command.Parameters.AddWithValue("$remote_endpoint", tunnel.RemoteEndpoint);
         command.Parameters.AddWithValue("$status", tunnel.Status.ToString());
-        command.Parameters.AddWithValue("$status_detail", tunnel.StatusDetail);
+        command.Parameters.AddWithValue("$remark", tunnel.Remark);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

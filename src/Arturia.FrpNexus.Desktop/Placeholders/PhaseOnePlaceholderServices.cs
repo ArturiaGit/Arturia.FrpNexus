@@ -178,7 +178,7 @@ public sealed class PhaseOneTomlConfigurationService : ITomlConfigurationService
         return preview.Toml;
     }
 
-    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels, int webServerPort)
+    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels)
     {
         return string.Join(
             Environment.NewLine,

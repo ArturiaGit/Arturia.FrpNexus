@@ -94,13 +94,25 @@ public sealed class DashboardPageViewModelTests
         [
             new("上传核心", "node-a", "权限不足", FrpNexusStatus.Warning, new DateTimeOffset(2026, 6, 6, 12, 0, 0, TimeSpan.Zero))
         ]);
-        var viewModel = CreateViewModel(tunnelService: tunnels, deploymentService: deployments);
+        var runtime = new FakeRuntimeRecordService(
+        [
+            new(
+                "local-frpc:node-a",
+                "node-a",
+                "frpc",
+                FrpNexusStatus.Error,
+                "-",
+                "当前系统需要选择 Windows 版 frpc.exe，请重新选择核心文件。",
+                "-")
+        ]);
+        var viewModel = CreateViewModel(tunnelService: tunnels, runtimeService: runtime, deploymentService: deployments);
 
         await viewModel.LoadDashboardAsync();
 
         Assert.True(viewModel.HasIncidents);
         Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("权限不足", StringComparison.Ordinal));
-        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("端口占用", StringComparison.Ordinal));
+        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("Windows 版 frpc.exe", StringComparison.Ordinal));
+        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("隧道 udp 异常", StringComparison.Ordinal));
     }
 
     [Fact]

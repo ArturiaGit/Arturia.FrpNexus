@@ -3099,6 +3099,18 @@ public sealed partial class NodesPageViewModel : PageViewModel
         {
             return Task.FromResult<string?>(null);
         }
+
+        public Task<string?> PickLocalFrpcBinaryAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public Task<string?> PickLocalFrpcConfigPathAsync(
+            string suggestedFileName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
     }
 
     private sealed class LegacyRemoteDirectoryPickerService : IRemoteDirectoryPickerService

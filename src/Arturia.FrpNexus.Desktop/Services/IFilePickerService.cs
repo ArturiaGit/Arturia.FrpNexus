@@ -6,4 +6,10 @@ namespace Arturia.FrpNexus.Desktop.Services;
 public interface IFilePickerService
 {
     Task<string?> PickFrpBinaryAsync(CancellationToken cancellationToken = default);
+
+    Task<string?> PickLocalFrpcBinaryAsync(CancellationToken cancellationToken = default);
+
+    Task<string?> PickLocalFrpcConfigPathAsync(
+        string suggestedFileName,
+        CancellationToken cancellationToken = default);
 }

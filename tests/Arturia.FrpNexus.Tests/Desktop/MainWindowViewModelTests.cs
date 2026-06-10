@@ -286,8 +286,10 @@ public sealed class MainWindowViewModelTests
         return new TunnelsPageViewModel(
             new FakeTunnelManagementService(),
             new FakeNodeManagementService(),
-            new TomlConfigurationService(),
-            new FakeLocalFrpcProcessService());
+            new FakeLocalFrpcProcessService(),
+            new FakeLocalFrpcConfigurationService(),
+            new FakeRuntimeRecordService(),
+            new FakeFilePickerService());
     }
 
     private static ConfigurationsPageViewModel CreateConfigurationsPageViewModel()
@@ -527,6 +529,52 @@ public sealed class MainWindowViewModelTests
         public Task<string?> PickFrpBinaryAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<string?>(null);
+        }
+
+        public Task<string?> PickLocalFrpcBinaryAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public Task<string?> PickLocalFrpcConfigPathAsync(
+            string suggestedFileName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+    }
+
+    private sealed class FakeLocalFrpcConfigurationService : ILocalFrpcConfigurationService
+    {
+        public Task<LocalFrpcConfigurationSnapshot> GetConfigurationAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            var configPath = GetDefaultNodeConfigPath(nodeName);
+            return Task.FromResult(new LocalFrpcConfigurationSnapshot(
+                string.Empty,
+                configPath,
+                configPath));
+        }
+
+        public Task SaveFrpcBinaryPathAsync(
+            string frpcBinaryPath,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task SaveNodeConfigPathAsync(
+            string nodeName,
+            string frpcConfigPath,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public string GetDefaultNodeConfigPath(string nodeName)
+        {
+            return Path.Combine(Path.GetTempPath(), "FrpNexusTests", $"{nodeName}.frpc.toml");
         }
     }
 
@@ -780,14 +828,13 @@ public sealed class MainWindowViewModelTests
                 "该节点本地 frpc 已停止。"));
         }
 
-        public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName)
+        public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName, string? expectedConfigPath = null)
         {
             return _runningNodes.Contains(nodeName)
-                ? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Running, "本地 frpc 正在运行。")
+                ? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Running, "本地 frpc 正在运行。", 4321, expectedConfigPath)
                 : new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
         }
     }
-
     private sealed class FakeRemoteLogService : IRemoteLogService
     {
         public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(RemoteLogReadRequest request, CancellationToken cancellationToken = default)
