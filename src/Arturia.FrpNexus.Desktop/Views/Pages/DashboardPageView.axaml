@@ -75,7 +75,7 @@
                                 <PathIcon Width="18"
                                           Height="18"
                                           Data="{Binding Source=autorenew, Converter={StaticResource MetricIconConverter}}" />
-                                <TextBlock Text="查看配置" />
+                                <TextBlock Text="预览配置" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
