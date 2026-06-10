@@ -172,6 +172,19 @@ public sealed class RuntimePageViewModelTests
             return Task.CompletedTask;
         }
 
+        public Task ReplaceRuntimeProcessesForNodeAsync(
+            string nodeName,
+            IReadOnlyList<RuntimeProcess> replacementProcesses,
+            CancellationToken cancellationToken = default)
+        {
+            _processes.RemoveAll(process =>
+                string.Equals(process.NodeName, nodeName, StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(process.ProcessKind, "frpc", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase)));
+            _processes.AddRange(replacementProcesses);
+            return Task.CompletedTask;
+        }
+
         public Task DeleteRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
         {
             _processes.RemoveAll(process => process.Name == processName);

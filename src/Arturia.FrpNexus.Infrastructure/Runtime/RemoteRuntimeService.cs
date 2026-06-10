@@ -20,10 +20,10 @@ public sealed class RemoteRuntimeService(
             cancellationToken);
 
         var processes = ParseProcesses(request.Node.Name, result.Output);
-        foreach (var process in processes)
-        {
-            await runtimeRecordService.SaveRuntimeProcessAsync(process, cancellationToken);
-        }
+        await runtimeRecordService.ReplaceRuntimeProcessesForNodeAsync(
+            request.Node.Name,
+            processes,
+            cancellationToken);
 
         logger.Information(
             "Remote runtime status read for node {NodeName}: {ProcessCount} processes",
