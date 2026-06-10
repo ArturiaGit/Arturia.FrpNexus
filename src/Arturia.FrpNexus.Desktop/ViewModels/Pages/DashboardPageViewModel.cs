@@ -19,6 +19,8 @@ public sealed partial class DashboardPageViewModel : PageViewModel
     private readonly IRuntimeRecordService _runtimeRecordService;
     private readonly IDeploymentRecordService _deploymentRecordService;
     private readonly INodeConnectionSessionService _nodeConnectionSessionService;
+    private readonly ILocalFrpcProcessService _localFrpcProcessService;
+    private readonly IFrpLifecycleStateService _frpLifecycleStateService;
     private readonly INavigationRequestService _navigationRequestService;
 
     [ObservableProperty]
@@ -39,6 +41,8 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         IRuntimeRecordService runtimeRecordService,
         IDeploymentRecordService deploymentRecordService,
         INodeConnectionSessionService nodeConnectionSessionService,
+        ILocalFrpcProcessService localFrpcProcessService,
+        IFrpLifecycleStateService frpLifecycleStateService,
         INavigationRequestService navigationRequestService)
         : base("仪表盘概览", "查看节点、隧道、运行状态和近期告警")
     {
@@ -47,6 +51,8 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         _runtimeRecordService = runtimeRecordService;
         _deploymentRecordService = deploymentRecordService;
         _nodeConnectionSessionService = nodeConnectionSessionService;
+        _localFrpcProcessService = localFrpcProcessService;
+        _frpLifecycleStateService = frpLifecycleStateService;
         _navigationRequestService = navigationRequestService;
 
         Metrics = [];
@@ -154,7 +160,7 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         }
 
         RefreshMetrics(nodes, tunnels, processes);
-        RefreshRecentNodes(nodes, processes);
+        RefreshRecentNodes(nodes);
         RefreshIncidents(nodes, tunnels, processes, deployments);
         RefreshLogs(tunnels, processes, deployments);
 
@@ -170,11 +176,24 @@ public sealed partial class DashboardPageViewModel : PageViewModel
     {
         var onlineNodes = nodes.Count(node =>
             _nodeConnectionSessionService.GetSessionStatus(node.Name).State == NodeConnectionSessionState.Online);
-        var runningProcesses = processes.Count(process => process.Status == FrpNexusStatus.Running);
+        var runningProcesses = CountKnownRunningFrpProcesses();
         var activeTunnels = tunnels.Count(tunnel =>
             tunnel.Status is FrpNexusStatus.Running or FrpNexusStatus.Online or FrpNexusStatus.Ready);
 
         SetMetrics(nodes.Count, onlineNodes, runningProcesses, activeTunnels);
+    }
+
+    private int CountKnownRunningFrpProcesses()
+    {
+        var localFrpcCount = _localFrpcProcessService
+            .ListManagedSessions()
+            .Count(session => session.Status == FrpNexusStatus.Running && session.IsManaged);
+
+        var remoteFrpsCount = _frpLifecycleStateService
+            .ListRemoteFrpsSnapshots()
+            .Count(snapshot => snapshot.IsSshOnline && snapshot.FrpsStatus == FrpNexusStatus.Running);
+
+        return localFrpcCount + remoteFrpsCount;
     }
 
     private void SetMetrics(int nodeCount, int onlineNodeCount, int runningProcessCount, int activeTunnelCount)
@@ -186,15 +205,8 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         Metrics.Add(new("活跃隧道", activeTunnelCount.ToString("N0"), "rebase_edit", FrpNexusStatus.Ready));
     }
 
-    private void RefreshRecentNodes(
-        IReadOnlyList<NodeProfile> nodes,
-        IReadOnlyList<RuntimeProcess> processes)
+    private void RefreshRecentNodes(IReadOnlyList<NodeProfile> nodes)
     {
-        var processByNode = processes
-            .Where(process => process.Status == FrpNexusStatus.Running)
-            .GroupBy(process => process.NodeName, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-
         var rows = nodes
             .OrderByDescending(node => node.LastConnectionTestedAt.HasValue)
             .ThenByDescending(node => node.LastConnectionTestedAt)
@@ -203,8 +215,7 @@ public sealed partial class DashboardPageViewModel : PageViewModel
             .Select(node =>
             {
                 var session = _nodeConnectionSessionService.GetSessionStatus(node.Name);
-                processByNode.TryGetValue(node.Name, out var process);
-                return new DashboardNodeRowViewModel(node, session, process);
+                return new DashboardNodeRowViewModel(node, session);
             })
             .ToArray();
 
@@ -416,12 +427,11 @@ public sealed partial class DashboardNodeRowViewModel : ObservableObject
 {
     public DashboardNodeRowViewModel(
         NodeProfile node,
-        NodeConnectionSessionSnapshot session,
-        RuntimeProcess? runningProcess)
+        NodeConnectionSessionSnapshot session)
     {
         Name = node.Name;
         Host = node.Host;
-        Uptime = ResolveUptime(node, runningProcess);
+        Uptime = ResolveUptime(node, session);
         ConnectionStatus = ToStatus(session.State);
     }
 
@@ -433,16 +443,16 @@ public sealed partial class DashboardNodeRowViewModel : ObservableObject
 
     public FrpNexusStatus ConnectionStatus { get; }
 
-    private static string ResolveUptime(NodeProfile node, RuntimeProcess? runningProcess)
+    private static string ResolveUptime(NodeProfile node, NodeConnectionSessionSnapshot session)
     {
-        if (runningProcess is not null && !string.IsNullOrWhiteSpace(runningProcess.Uptime) && runningProcess.Uptime != "-")
+        if (session.State != NodeConnectionSessionState.Online)
         {
-            return runningProcess.Uptime;
+            return "未运行";
         }
 
         return node.FrpStatus == FrpNexusStatus.Running && !string.IsNullOrWhiteSpace(node.Uptime) && node.Uptime != "-"
             ? node.Uptime
-            : "未运行";
+            : "未刷新";
     }
 
     private static FrpNexusStatus ToStatus(NodeConnectionSessionState state)

@@ -75,7 +75,50 @@ public sealed class SqliteRuntimeRecordService(
         await using var connection = connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
+        await SaveRuntimeProcessAsync(connection, process, transaction: null, cancellationToken);
+    }
+
+    public async Task ReplaceRuntimeProcessesForNodeAsync(
+        string nodeName,
+        IReadOnlyList<RuntimeProcess> processes,
+        CancellationToken cancellationToken = default)
+    {
+        await databaseInitializer.InitializeAsync(cancellationToken);
+
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var transaction = connection.BeginTransaction();
+
+        await using (var deleteCommand = connection.CreateCommand())
+        {
+            deleteCommand.Transaction = transaction;
+            deleteCommand.CommandText = """
+                DELETE FROM runtime_processes
+                WHERE node_name = $node_name
+                  AND process_kind IN ('frpc', 'frps');
+                """;
+            deleteCommand.Parameters.AddWithValue("$node_name", nodeName);
+
+            await deleteCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        foreach (var process in processes)
+        {
+            await SaveRuntimeProcessAsync(connection, process, transaction, cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task SaveRuntimeProcessAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        RuntimeProcess process,
+        Microsoft.Data.Sqlite.SqliteTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             INSERT INTO runtime_processes (
                 name,

@@ -326,6 +326,8 @@ public sealed class MainWindowViewModelTests
             new FakeRuntimeRecordService(),
             new FakeDeploymentRecordService(),
             new FakeNodeConnectionSessionService(),
+            new FakeLocalFrpcProcessService(),
+            new FakeFrpLifecycleStateService(),
             new FakeNavigationRequestService());
     }
 
@@ -790,6 +792,19 @@ public sealed class MainWindowViewModelTests
         {
             _processes.RemoveAll(item => item.Name == process.Name);
             _processes.Add(process);
+            return Task.CompletedTask;
+        }
+
+        public Task ReplaceRuntimeProcessesForNodeAsync(
+            string nodeName,
+            IReadOnlyList<RuntimeProcess> processes,
+            CancellationToken cancellationToken = default)
+        {
+            _processes.RemoveAll(process =>
+                string.Equals(process.NodeName, nodeName, StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(process.ProcessKind, "frpc", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase)));
+            _processes.AddRange(processes);
             return Task.CompletedTask;
         }
 

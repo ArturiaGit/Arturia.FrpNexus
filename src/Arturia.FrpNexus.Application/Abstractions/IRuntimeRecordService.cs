@@ -10,5 +10,16 @@ public interface IRuntimeRecordService
 
     Task SaveRuntimeProcessAsync(RuntimeProcess process, CancellationToken cancellationToken = default);
 
+    async Task ReplaceRuntimeProcessesForNodeAsync(
+        string nodeName,
+        IReadOnlyList<RuntimeProcess> processes,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var process in processes)
+        {
+            await SaveRuntimeProcessAsync(process, cancellationToken);
+        }
+    }
+
     Task DeleteRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default);
 }

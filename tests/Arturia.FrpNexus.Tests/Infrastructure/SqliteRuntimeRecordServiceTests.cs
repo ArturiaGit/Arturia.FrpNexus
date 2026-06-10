@@ -84,6 +84,28 @@ public sealed class SqliteRuntimeRecordServiceTests
     }
 
     [Fact]
+    public async Task ReplaceRuntimeProcessesForNodeAsync_ShouldReplaceOnlyCurrentNodeFrpRecords()
+    {
+        var service = CreateService();
+
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frps-100", "Node-Alpha-HK", "frps", FrpNexusStatus.Running, "100", "10m", "-"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frpc-101", "Node-Alpha-HK", "frpc", FrpNexusStatus.Running, "101", "9m", "-"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("ssh-keep", "Node-Alpha-HK", "ssh", FrpNexusStatus.Running, "102", "8m", "-"));
+        await service.SaveRuntimeProcessAsync(new RuntimeProcess("frps-other", "Node-Beta-SG", "frps", FrpNexusStatus.Running, "200", "7m", "-"));
+
+        await service.ReplaceRuntimeProcessesForNodeAsync(
+            "Node-Alpha-HK",
+            [new RuntimeProcess("frps-300", "Node-Alpha-HK", "frps", FrpNexusStatus.Running, "300", "1m", "-")]);
+
+        var processes = await service.ListRuntimeProcessesAsync();
+
+        Assert.DoesNotContain(processes, process => process.Name is "frps-100" or "frpc-101");
+        Assert.Contains(processes, process => process.Name == "frps-300" && process.NodeName == "Node-Alpha-HK");
+        Assert.Contains(processes, process => process.Name == "ssh-keep" && process.NodeName == "Node-Alpha-HK");
+        Assert.Contains(processes, process => process.Name == "frps-other" && process.NodeName == "Node-Beta-SG");
+    }
+
+    [Fact]
     public void RuntimeProcess_ShouldNotExposeSensitiveCredentialFields()
     {
         var properties = typeof(RuntimeProcess)

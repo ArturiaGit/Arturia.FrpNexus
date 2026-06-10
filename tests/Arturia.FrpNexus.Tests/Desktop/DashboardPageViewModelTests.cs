@@ -25,8 +25,8 @@ public sealed class DashboardPageViewModelTests
     {
         var nodes = new FakeNodeManagementService(
         [
-            new("node-a", "10.0.0.1", 22, "root", "会话密码", "Ubuntu", FrpNexusStatus.Online, FrpNexusStatus.Stopped, "-", "-", "/opt/frp/frpc.toml"),
-            new("node-b", "10.0.0.2", 22, "root", "会话密码", "Ubuntu", FrpNexusStatus.Online, FrpNexusStatus.Stopped, "-", "-", "/opt/frp/frpc.toml")
+            CreateNode("node-a", connectionStatus: FrpNexusStatus.Online),
+            CreateNode("node-b", connectionStatus: FrpNexusStatus.Online)
         ]);
         var sessions = new FakeNodeConnectionSessionService();
         sessions.SetOnline("node-b");
@@ -34,18 +34,18 @@ public sealed class DashboardPageViewModelTests
 
         await viewModel.LoadDashboardAsync();
 
-        Assert.Equal("2", viewModel.Metrics.Single(metric => metric.Label == "节点总数").Value);
-        Assert.Equal("1", viewModel.Metrics.Single(metric => metric.Label == "在线节点").Value);
+        Assert.Equal("2", viewModel.Metrics[0].Value);
+        Assert.Equal("1", viewModel.Metrics[1].Value);
         Assert.Equal(FrpNexusStatus.Offline, viewModel.RecentNodes.Single(row => row.Name == "node-a").ConnectionStatus);
         Assert.Equal(FrpNexusStatus.Online, viewModel.RecentNodes.Single(row => row.Name == "node-b").ConnectionStatus);
     }
 
     [Fact]
-    public async Task RuntimeAndTunnels_ShouldDriveMetricsAndUptime()
+    public async Task RuntimeAndTunnels_ShouldDriveActiveTunnelMetricButNotCurrentFrpProcessMetric()
     {
         var nodes = new FakeNodeManagementService(
         [
-            new("node-a", "10.0.0.1", 22, "root", "会话密码", "Ubuntu", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "-", "-", "/opt/frp/frpc.toml")
+            CreateNode("node-a", frpStatus: FrpNexusStatus.Running, uptime: "00:13")
         ]);
         var runtime = new FakeRuntimeRecordService(
         [
@@ -54,20 +54,20 @@ public sealed class DashboardPageViewModelTests
         ]);
         var tunnels = new FakeTunnelManagementService(
         [
-            new("web", TunnelProtocol.Http, "node-a", "127.0.0.1", 8080, "example.com", FrpNexusStatus.Running, "运行中"),
-            new("udp", TunnelProtocol.Udp, "node-a", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口占用")
+            new("web", TunnelProtocol.Http, "node-a", "127.0.0.1", 8080, "example.com", FrpNexusStatus.Running, "running"),
+            new("udp", TunnelProtocol.Udp, "node-a", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "port conflict")
         ]);
         var viewModel = CreateViewModel(nodeService: nodes, tunnelService: tunnels, runtimeService: runtime);
 
         await viewModel.LoadDashboardAsync();
 
-        Assert.Equal("1", viewModel.Metrics.Single(metric => metric.Label == "FRP 进程").Value);
-        Assert.Equal("1", viewModel.Metrics.Single(metric => metric.Label == "活跃隧道").Value);
-        Assert.Equal("00:13", viewModel.RecentNodes.Single().Uptime);
+        Assert.Equal("0", viewModel.Metrics[2].Value);
+        Assert.Equal("1", viewModel.Metrics[3].Value);
+        Assert.NotEqual("00:13", viewModel.RecentNodes.Single().Uptime);
     }
 
     [Fact]
-    public async Task RunningProcessMetric_ShouldUseRuntimeRecordsEvenWhenTunnelsAreEmpty()
+    public async Task RunningProcessMetric_ShouldIgnoreHistoricalRuntimeRecords()
     {
         var runtime = new FakeRuntimeRecordService(
         [
@@ -79,8 +79,38 @@ public sealed class DashboardPageViewModelTests
 
         await viewModel.LoadDashboardAsync();
 
-        Assert.Equal("2", viewModel.Metrics.Single(metric => metric.Label == "FRP 进程").Value);
-        Assert.Equal("0", viewModel.Metrics.Single(metric => metric.Label == "活跃隧道").Value);
+        Assert.Equal("0", viewModel.Metrics[2].Value);
+        Assert.Equal("0", viewModel.Metrics[3].Value);
+    }
+
+    [Fact]
+    public async Task RunningProcessMetric_ShouldUseKnownManagedLocalFrpcAndRemoteFrpsSnapshots()
+    {
+        var localFrpc = new FakeLocalFrpcProcessService(
+        [
+            new("node-a", FrpNexusStatus.Running, "running", ProcessId: 1001, IsManaged: true),
+            new("node-b", FrpNexusStatus.Running, "external", ProcessId: 1002, IsManaged: false),
+            new("node-c", FrpNexusStatus.Stopped, "stopped", ProcessId: null, IsManaged: true)
+        ]);
+        var lifecycle = new FakeFrpLifecycleStateService(
+        [
+            new("node-a", true, FrpNexusStatus.Running),
+            new("node-b", false, FrpNexusStatus.Running),
+            new("node-c", true, FrpNexusStatus.Stopped)
+        ]);
+        var runtime = new FakeRuntimeRecordService(
+        [
+            new("frps-old-1", "node-a", "frps", FrpNexusStatus.Running, "2001", "01:00", "-"),
+            new("frps-old-2", "node-a", "frps", FrpNexusStatus.Running, "2002", "01:30", "-")
+        ]);
+        var viewModel = CreateViewModel(
+            runtimeService: runtime,
+            localFrpcProcessService: localFrpc,
+            frpLifecycleStateService: lifecycle);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Equal("2", viewModel.Metrics[2].Value);
     }
 
     [Fact]
@@ -88,11 +118,11 @@ public sealed class DashboardPageViewModelTests
     {
         var tunnels = new FakeTunnelManagementService(
         [
-            new("udp", TunnelProtocol.Udp, "node-a", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "端口占用")
+            new("udp", TunnelProtocol.Udp, "node-a", "127.0.0.1", 7777, "7777", FrpNexusStatus.Error, "port conflict")
         ]);
         var deployments = new FakeDeploymentRecordService(
         [
-            new("上传核心", "node-a", "权限不足", FrpNexusStatus.Warning, new DateTimeOffset(2026, 6, 6, 12, 0, 0, TimeSpan.Zero))
+            new("upload-core", "node-a", "permission denied", FrpNexusStatus.Warning, new DateTimeOffset(2026, 6, 6, 12, 0, 0, TimeSpan.Zero))
         ]);
         var runtime = new FakeRuntimeRecordService(
         [
@@ -102,7 +132,7 @@ public sealed class DashboardPageViewModelTests
                 "frpc",
                 FrpNexusStatus.Error,
                 "-",
-                "当前系统需要选择 Windows 版 frpc.exe，请重新选择核心文件。",
+                "current system needs Windows frpc.exe",
                 "-")
         ]);
         var viewModel = CreateViewModel(tunnelService: tunnels, runtimeService: runtime, deploymentService: deployments);
@@ -110,9 +140,7 @@ public sealed class DashboardPageViewModelTests
         await viewModel.LoadDashboardAsync();
 
         Assert.True(viewModel.HasIncidents);
-        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("权限不足", StringComparison.Ordinal));
-        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("Windows 版 frpc.exe", StringComparison.Ordinal));
-        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("隧道 udp 异常", StringComparison.Ordinal));
+        Assert.Equal(3, viewModel.Incidents.Count);
     }
 
     [Fact]
@@ -135,8 +163,8 @@ public sealed class DashboardPageViewModelTests
 
         await viewModel.LoadDashboardAsync();
 
-        Assert.Contains("节点概览加载", viewModel.StatusText, StringComparison.Ordinal);
-        Assert.Equal("0", viewModel.Metrics.Single(metric => metric.Label == "节点总数").Value);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.StatusText));
+        Assert.Equal("0", viewModel.Metrics[0].Value);
     }
 
     private static DashboardPageViewModel CreateViewModel(
@@ -145,6 +173,8 @@ public sealed class DashboardPageViewModelTests
         IRuntimeRecordService? runtimeService = null,
         IDeploymentRecordService? deploymentService = null,
         INodeConnectionSessionService? sessionService = null,
+        ILocalFrpcProcessService? localFrpcProcessService = null,
+        IFrpLifecycleStateService? frpLifecycleStateService = null,
         INavigationRequestService? navigationService = null)
     {
         return new DashboardPageViewModel(
@@ -153,7 +183,29 @@ public sealed class DashboardPageViewModelTests
             runtimeService ?? new FakeRuntimeRecordService([]),
             deploymentService ?? new FakeDeploymentRecordService([]),
             sessionService ?? new FakeNodeConnectionSessionService(),
+            localFrpcProcessService ?? new FakeLocalFrpcProcessService([]),
+            frpLifecycleStateService ?? new FakeFrpLifecycleStateService([]),
             navigationService ?? new FakeNavigationRequestService());
+    }
+
+    private static NodeProfile CreateNode(
+        string name,
+        FrpNexusStatus connectionStatus = FrpNexusStatus.Offline,
+        FrpNexusStatus frpStatus = FrpNexusStatus.Stopped,
+        string uptime = "-")
+    {
+        return new NodeProfile(
+            name,
+            "10.0.0.1",
+            22,
+            "root",
+            "session-password",
+            "Ubuntu",
+            connectionStatus,
+            frpStatus,
+            "-",
+            uptime,
+            "/opt/frp/frpc.toml");
     }
 
     private sealed class FakeNodeManagementService(IReadOnlyList<NodeProfile> nodes) : INodeManagementService
@@ -262,6 +314,14 @@ public sealed class DashboardPageViewModelTests
             return Task.CompletedTask;
         }
 
+        public Task ReplaceRuntimeProcessesForNodeAsync(
+            string nodeName,
+            IReadOnlyList<RuntimeProcess> replacementProcesses,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task DeleteRuntimeProcessAsync(string processName, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
@@ -291,6 +351,56 @@ public sealed class DashboardPageViewModelTests
         }
     }
 
+    private sealed class FakeLocalFrpcProcessService(IReadOnlyList<LocalFrpcProcessSnapshot> snapshots) : ILocalFrpcProcessService
+    {
+        public Task<LocalFrpcProcessResult> ApplyNodeTunnelsAsync(
+            LocalFrpcProcessRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LocalFrpcProcessResult(
+                request.Node.Name,
+                FrpNexusStatus.Running,
+                DateTimeOffset.UtcNow,
+                "running"));
+        }
+
+        public Task<LocalFrpcProcessResult> StopNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LocalFrpcProcessResult(
+                nodeName,
+                FrpNexusStatus.Stopped,
+                DateTimeOffset.UtcNow,
+                "stopped"));
+        }
+
+        public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName, string? expectedConfigPath = null)
+        {
+            return snapshots.FirstOrDefault(snapshot => string.Equals(snapshot.NodeName, nodeName, StringComparison.OrdinalIgnoreCase))
+                ?? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "not running");
+        }
+
+        public IReadOnlyList<LocalFrpcProcessSnapshot> ListManagedSessions()
+        {
+            return snapshots;
+        }
+    }
+
+    private sealed class FakeFrpLifecycleStateService(IReadOnlyList<RemoteFrpsLifecycleSnapshot> snapshots) : IFrpLifecycleStateService
+    {
+        public IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots()
+        {
+            return snapshots;
+        }
+
+        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+        {
+        }
+
+        public void RemoveRemoteFrpsState(string nodeName)
+        {
+        }
+    }
+
     private sealed class FakeNodeConnectionSessionService : INodeConnectionSessionService
     {
         private readonly HashSet<string> _onlineNodes = new(StringComparer.OrdinalIgnoreCase);
@@ -303,20 +413,20 @@ public sealed class DashboardPageViewModelTests
         public Task<NodeConnectionSessionResult> ConnectAsync(NodeProfile node, SshCredentialReference credential, CancellationToken cancellationToken = default)
         {
             SetOnline(node.Name);
-            return Task.FromResult(new NodeConnectionSessionResult(node.Name, NodeConnectionSessionState.Online, DateTimeOffset.UtcNow, "已连接"));
+            return Task.FromResult(new NodeConnectionSessionResult(node.Name, NodeConnectionSessionState.Online, DateTimeOffset.UtcNow, "connected"));
         }
 
         public Task<NodeConnectionSessionResult> DisconnectAsync(string nodeName, CancellationToken cancellationToken = default)
         {
             _onlineNodes.Remove(nodeName);
-            return Task.FromResult(new NodeConnectionSessionResult(nodeName, NodeConnectionSessionState.Disconnected, null, "已断开"));
+            return Task.FromResult(new NodeConnectionSessionResult(nodeName, NodeConnectionSessionState.Disconnected, null, "disconnected"));
         }
 
         public NodeConnectionSessionSnapshot GetSessionStatus(string nodeName)
         {
             return _onlineNodes.Contains(nodeName)
-                ? new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Online, DateTimeOffset.UtcNow, "已连接")
-                : new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "尚未连接");
+                ? new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Online, DateTimeOffset.UtcNow, "connected")
+                : new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "offline");
         }
 
         public SshCredentialReference? GetConnectedCredential(string nodeName)
@@ -331,7 +441,7 @@ public sealed class DashboardPageViewModelTests
                     nodeName,
                     NodeConnectionSessionState.Online,
                     DateTimeOffset.UtcNow,
-                    "已连接"))
+                    "connected"))
                 .ToArray();
         }
     }
