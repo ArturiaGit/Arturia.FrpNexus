@@ -15,6 +15,8 @@ public interface INodeConnectionSessionService
 
     NodeConnectionSessionSnapshot GetSessionStatus(string nodeName);
 
+    IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions();
+
     SshCredentialReference? GetConnectedCredential(string nodeName);
 }
 

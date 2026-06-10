@@ -534,6 +534,13 @@ public sealed class ConfigurationsPageViewModelTests
         {
             return credential;
         }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return state == NodeConnectionSessionState.Online
+                ? [new NodeConnectionSessionSnapshot("node", state, DateTimeOffset.UtcNow, "SSH 在线。")]
+                : [];
+        }
     }
 
     private sealed class FakeRemoteFileTransferService(

@@ -29,9 +29,25 @@ public static class DesktopCompositionRoot
         services.AddSingleton<INavigationRequestService, NavigationRequestService>();
         services.AddSingleton<IModalOverlayService, ModalOverlayService>();
         services.AddSingleton<IModalDialogHostService, ModalDialogHostService>();
+        services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
+        services.AddSingleton<IFrpLifecycleStateService, FrpLifecycleStateService>();
 
         services.AddSingleton<MainWindow>();
-        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton(sp => new MainWindowViewModel(
+            sp.GetRequiredService<DashboardPageViewModel>(),
+            sp.GetRequiredService<NodesPageViewModel>(),
+            sp.GetRequiredService<TunnelsPageViewModel>(),
+            sp.GetRequiredService<ConfigurationsPageViewModel>(),
+            sp.GetRequiredService<RuntimePageViewModel>(),
+            sp.GetRequiredService<LogsPageViewModel>(),
+            sp.GetRequiredService<SettingsPageViewModel>(),
+            sp.GetRequiredService<INavigationRequestService>(),
+            sp.GetRequiredService<INodeConnectionSessionService>(),
+            sp.GetRequiredService<ILocalFrpcProcessService>(),
+            sp.GetRequiredService<IFrpLifecycleStateService>(),
+            sp.GetRequiredService<IConfirmationDialogService>(),
+            sp.GetRequiredService<IModalOverlayService>(),
+            sp.GetRequiredService<IModalDialogHostService>()));
 
         services.AddSingleton<ITomlConfigurationService, TomlConfigurationService>();
         services.AddTransient<DashboardPageViewModel>();
@@ -45,7 +61,9 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<IRemoteDirectoryPickerService>(),
             sp.GetRequiredService<INodeCredentialSecretService>(),
             sp.GetRequiredService<IDeploymentRecordService>(),
-            sp.GetRequiredService<INodeConnectionWorkflowDialogService>()));
+            sp.GetRequiredService<INodeConnectionWorkflowDialogService>(),
+            sp.GetRequiredService<IConfirmationDialogService>(),
+            sp.GetRequiredService<IFrpLifecycleStateService>()));
         services.AddTransient(sp => new TunnelsPageViewModel(
             sp.GetRequiredService<ITunnelManagementService>(),
             sp.GetRequiredService<INodeManagementService>(),
