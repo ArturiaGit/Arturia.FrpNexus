@@ -299,6 +299,13 @@ public sealed class NodeConnectionWorkflowViewModelTests
         {
             return _credentials.TryGetValue(nodeName, out var credential) ? credential : null;
         }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return _snapshots.Values
+                .Where(snapshot => snapshot.State == NodeConnectionSessionState.Online)
+                .ToArray();
+        }
     }
 
     private sealed class FakeRemoteFileTransferService(IReadOnlySet<string> existingPaths)

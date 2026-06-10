@@ -49,6 +49,9 @@
         <DataTemplate DataType="dialogs:NodeConnectionWorkflowViewModel">
             <dialogViews:NodeConnectionWorkflowDialogView />
         </DataTemplate>
+        <DataTemplate DataType="dialogs:ConfirmationDialogViewModel">
+            <dialogViews:ConfirmationDialogView />
+        </DataTemplate>
     </Window.DataTemplates>
 
     <Grid ColumnDefinitions="212,*">
@@ -213,10 +216,28 @@
                 ZIndex="1000" />
 
         <Grid Grid.ColumnSpan="2"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              IsVisible="{Binding IsConfirmationDialogVisible}"
+              ZIndex="1001">
+            <Border Width="460"
+                    MaxHeight="360"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModalDialog}" />
+            </Border>
+        </Grid>
+
+        <Grid Grid.ColumnSpan="2"
               Margin="0,24"
               HorizontalAlignment="Center"
               VerticalAlignment="Stretch"
-              IsVisible="{Binding IsModalDialogVisible}"
+              IsVisible="{Binding IsWorkflowDialogVisible}"
               ZIndex="1001">
             <Border Width="640"
                     MaxHeight="680"

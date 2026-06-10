@@ -141,6 +141,21 @@ public sealed class NodeConnectionSessionService(
         return disconnected;
     }
 
+    public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+    {
+        var snapshots = new List<NodeConnectionSessionSnapshot>();
+        foreach (var item in _sessions.ToArray())
+        {
+            var snapshot = GetSessionStatus(item.Key);
+            if (snapshot.State == NodeConnectionSessionState.Online)
+            {
+                snapshots.Add(snapshot);
+            }
+        }
+
+        return snapshots;
+    }
+
     public SshCredentialReference? GetConnectedCredential(string nodeName)
     {
         var status = GetSessionStatus(nodeName);

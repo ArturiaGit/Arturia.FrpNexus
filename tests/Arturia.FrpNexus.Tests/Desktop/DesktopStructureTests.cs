@@ -108,11 +108,37 @@ public sealed class DesktopStructureTests
         Assert.DoesNotContain("NodeConnectionWorkflowWindow", serviceCode);
         Assert.DoesNotContain(".Show(", serviceCode);
         Assert.Contains("CurrentModalDialog", mainWindowXaml);
-        Assert.Contains("IsModalDialogVisible", mainWindowXaml);
+        Assert.Contains("IsWorkflowDialogVisible", mainWindowXaml);
         Assert.Contains("ZIndex=\"1001\"", mainWindowXaml);
+        Assert.Contains("Width=\"640\"", mainWindowXaml);
         Assert.Contains("MaxHeight=\"680\"", mainWindowXaml);
         Assert.Contains("VerticalAlignment=\"Stretch\"", mainWindowXaml);
         Assert.Contains("HorizontalAlignment=\"Stretch\"", mainWindowXaml);
+    }
+
+    [Fact]
+    public void MainWindow_ShouldExposeConfirmationDialogTemplate()
+    {
+        var desktopProject = GetDesktopProjectPath();
+        var mainWindowXaml = File.ReadAllText(Path.Combine(desktopProject, "Views", "MainWindow.axaml"));
+        var confirmationXaml = File.ReadAllText(Path.Combine(
+            desktopProject,
+            "Views",
+            "Dialogs",
+            "ConfirmationDialogView.axaml"));
+
+        Assert.Contains("ConfirmationDialogViewModel", mainWindowXaml);
+        Assert.Contains("ConfirmationDialogView", mainWindowXaml);
+        Assert.Contains("IsConfirmationDialogVisible", mainWindowXaml);
+        Assert.Contains("Width=\"460\"", mainWindowXaml);
+        Assert.Contains("MaxHeight=\"360\"", mainWindowXaml);
+        Assert.Contains("VerticalAlignment=\"Center\"", mainWindowXaml);
+        Assert.Contains("ConfirmCommand", confirmationXaml);
+        Assert.Contains("CancelCommand", confirmationXaml);
+        Assert.Contains("ConfirmButtonText", confirmationXaml);
+        Assert.Contains("CancelButtonText", confirmationXaml);
+        Assert.DoesNotContain("Width=\"640\"", confirmationXaml);
+        Assert.DoesNotContain("MaxHeight=\"680\"", confirmationXaml);
     }
 
     [Fact]

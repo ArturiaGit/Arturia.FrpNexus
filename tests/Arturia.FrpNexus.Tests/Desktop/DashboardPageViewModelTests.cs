@@ -323,6 +323,17 @@ public sealed class DashboardPageViewModelTests
         {
             return null;
         }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return _onlineNodes
+                .Select(nodeName => new NodeConnectionSessionSnapshot(
+                    nodeName,
+                    NodeConnectionSessionState.Online,
+                    DateTimeOffset.UtcNow,
+                    "已连接"))
+                .ToArray();
+        }
     }
 
     private sealed class FakeNavigationRequestService : INavigationRequestService

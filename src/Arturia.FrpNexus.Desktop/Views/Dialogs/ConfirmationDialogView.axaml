@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.ConfirmationDialogView"
+             x:DataType="vm:ConfirmationDialogViewModel">
+    <Border Padding="20"
+            Background="{StaticResource FrpSurfaceWhiteBrush}">
+        <Grid RowDefinitions="Auto,Auto,Auto"
+              RowSpacing="16"
+              HorizontalAlignment="Stretch">
+            <Grid ColumnDefinitions="32,*"
+                  ColumnSpacing="12">
+                <Border Width="28"
+                        Height="28"
+                        CornerRadius="14"
+                        Background="{StaticResource FrpStatusWarningSoftBrush}"
+                        BorderBrush="{StaticResource FrpStatusWarningBrush}"
+                        BorderThickness="1">
+                    <TextBlock Text="!"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FrpStatusWarningBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1"
+                           Classes="section-title"
+                           TextWrapping="Wrap"
+                           Text="{Binding Title}" />
+            </Grid>
+
+            <TextBlock Grid.Row="1"
+                       Classes="body"
+                       Foreground="{StaticResource FrpTextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       Text="{Binding Message}" />
+
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button Classes="secondary"
+                        Command="{Binding CancelCommand}"
+                        Content="{Binding CancelButtonText}" />
+                <Button Classes="primary"
+                        Command="{Binding ConfirmCommand}"
+                        Content="{Binding ConfirmButtonText}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

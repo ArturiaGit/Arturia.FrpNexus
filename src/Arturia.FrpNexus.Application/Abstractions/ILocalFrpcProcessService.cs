@@ -13,6 +13,8 @@ public interface ILocalFrpcProcessService
         CancellationToken cancellationToken = default);
 
     LocalFrpcProcessSnapshot GetNodeStatus(string nodeName, string? expectedConfigPath = null);
+
+    IReadOnlyList<LocalFrpcProcessSnapshot> ListManagedSessions();
 }
 
 public sealed record LocalFrpcProcessRequest(
