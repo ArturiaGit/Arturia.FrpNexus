@@ -3,6 +3,8 @@ using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Serilog.Core;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
 
@@ -56,6 +58,27 @@ public sealed class LocalFrpcProcessServiceTests
         Assert.False(LocalFrpcProcessService.CommandUsesConfigPath(commandLine, @"D:\E\frp\other.frpc.toml"));
     }
 
+    [Fact]
+    public void Dispose_ShouldDetachManagedFrpcWithoutStoppingProcess()
+    {
+        var process = StartLongRunningProcess();
+        var service = new LocalFrpcProcessService(Logger.None, new TomlConfigurationService());
+        try
+        {
+            AddManagedSession(service, "Node-Managed", process, CreateTempConfigPath());
+            var processId = process.Id;
+
+            service.Dispose();
+            using var attached = Process.GetProcessById(processId);
+
+            Assert.False(attached.HasExited);
+        }
+        finally
+        {
+            KillProcess(process);
+        }
+    }
+
     private static NodeProfile CreateNode()
     {
         return new NodeProfile(
@@ -100,5 +123,82 @@ public sealed class LocalFrpcProcessServiceTests
         var directory = Path.Combine(Path.GetTempPath(), "FrpNexusTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, "frpc.toml");
+    }
+
+    private static Process StartLongRunningProcess()
+    {
+        var startInfo = OperatingSystem.IsWindows()
+            ? new ProcessStartInfo
+            {
+                FileName = ResolveWindowsPowerShellPath(),
+                Arguments = "-NoProfile -Command Start-Sleep -Seconds 30",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            }
+            : new ProcessStartInfo
+            {
+                FileName = "/bin/sh",
+                Arguments = "-c \"sleep 30\"",
+                UseShellExecute = false
+            };
+
+        return Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start test process.");
+    }
+
+    private static string ResolveWindowsPowerShellPath()
+    {
+        var candidate = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.System),
+            "WindowsPowerShell",
+            "v1.0",
+            "powershell.exe");
+
+        return File.Exists(candidate) ? candidate : "powershell.exe";
+    }
+
+    private static void AddManagedSession(
+        LocalFrpcProcessService service,
+        string nodeName,
+        Process process,
+        string configPath)
+    {
+        var sessionsField = typeof(LocalFrpcProcessService).GetField(
+            "_sessions",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Could not find session store.");
+        var sessions = sessionsField.GetValue(service)
+            ?? throw new InvalidOperationException("Session store is unavailable.");
+        var sessionType = typeof(LocalFrpcProcessService).GetNestedType(
+            "LocalFrpcSession",
+            BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Could not find session type.");
+        var session = Activator.CreateInstance(
+            sessionType,
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
+            binder: null,
+            args: [process, configPath, false],
+            culture: null)
+            ?? throw new InvalidOperationException("Could not create session.");
+
+        sessions.GetType().GetProperty("Item")!.SetValue(sessions, session, [nodeName]);
+    }
+
+    private static void KillProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(3000);
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            process.Dispose();
+        }
     }
 }

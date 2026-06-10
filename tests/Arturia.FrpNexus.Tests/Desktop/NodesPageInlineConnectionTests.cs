@@ -501,12 +501,43 @@ public sealed class NodesPageInlineConnectionTests
         Assert.Equal("未运行", viewModel.SelectedFrpUptimeText);
     }
 
+    [Fact]
+    public async Task ToggleNodeConnectionCommand_RemoteFrpsRunningAndCancel_ShouldNotDisconnect()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        await sessionService.ConnectAsync(
+            node,
+            new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess("frps-1", node.Name, "frps", FrpNexusStatus.Running, "1", "00:01", "-")
+            ]
+        };
+        var confirmation = new FakeConfirmationDialogService { NextResult = false };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            remoteRuntimeService: runtimeService,
+            confirmationDialogService: confirmation);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+
+        Assert.Equal(1, confirmation.ShowCount);
+        Assert.Equal(0, sessionService.DisconnectCount);
+        Assert.Equal(NodeConnectionSessionState.Online, sessionService.GetSessionStatus(node.Name).State);
+    }
+
     private static NodesPageViewModel CreateViewModel(
         INodeManagementService nodeManagementService,
         INodeConnectionSessionService nodeConnectionSessionService,
         INodeConnectionWorkflowDialogService? dialogService = null,
         IRemoteFileTransferService? remoteFileTransferService = null,
-        IRemoteRuntimeService? remoteRuntimeService = null)
+        IRemoteRuntimeService? remoteRuntimeService = null,
+        IConfirmationDialogService? confirmationDialogService = null)
     {
         return new NodesPageViewModel(
             nodeManagementService,
@@ -518,7 +549,8 @@ public sealed class NodesPageInlineConnectionTests
             new FakeRemoteDirectoryPickerService(),
             new FakeNodeCredentialSecretService(),
             new FakeDeploymentRecordService(),
-            dialogService);
+            dialogService,
+            confirmationDialogService);
     }
 
     private static NodeProfile CreateNode()
@@ -606,6 +638,8 @@ public sealed class NodesPageInlineConnectionTests
         private readonly Dictionary<string, NodeConnectionSessionSnapshot> _snapshots = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, SshCredentialReference> _credentials = new(StringComparer.OrdinalIgnoreCase);
 
+        public int DisconnectCount { get; private set; }
+
         public Task<NodeConnectionSessionResult> ConnectAsync(
             NodeProfile node,
             SshCredentialReference credential,
@@ -629,6 +663,7 @@ public sealed class NodesPageInlineConnectionTests
             string nodeName,
             CancellationToken cancellationToken = default)
         {
+            DisconnectCount++;
             _credentials.Remove(nodeName);
             _snapshots[nodeName] = new NodeConnectionSessionSnapshot(
                 nodeName,
@@ -652,6 +687,28 @@ public sealed class NodesPageInlineConnectionTests
         public SshCredentialReference? GetConnectedCredential(string nodeName)
         {
             return _credentials.TryGetValue(nodeName, out var credential) ? credential : null;
+        }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return _snapshots.Values
+                .Where(snapshot => snapshot.State == NodeConnectionSessionState.Online)
+                .ToArray();
+        }
+    }
+
+    private sealed class FakeConfirmationDialogService : IConfirmationDialogService
+    {
+        public int ShowCount { get; private set; }
+
+        public bool NextResult { get; set; } = true;
+
+        public Task<bool> ShowAsync(
+            ConfirmationDialogRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ShowCount++;
+            return Task.FromResult(NextResult);
         }
     }
 

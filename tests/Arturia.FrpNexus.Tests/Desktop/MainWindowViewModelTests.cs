@@ -228,6 +228,59 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task ConfirmCloseAsync_NoLifecycleRisk_ShouldNotShowConfirmation()
+    {
+        var confirmation = new FakeConfirmationDialogService();
+        var viewModel = CreateMainWindowViewModel(confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.True(confirmed);
+        Assert.Equal(0, confirmation.ShowCount);
+    }
+
+    [Fact]
+    public async Task ConfirmCloseAsync_ManagedFrpcRunning_ShouldShowConfirmation()
+    {
+        var localFrpc = new FakeLocalFrpcProcessService();
+        localFrpc.MarkRunning("VPS-A");
+        var remoteRuntime = new FakeRemoteRuntimeService();
+        var confirmation = new FakeConfirmationDialogService { NextResult = false };
+        var viewModel = CreateMainWindowViewModel(
+            localFrpcProcessService: localFrpc,
+            remoteRuntimeService: remoteRuntime,
+            confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.False(confirmed);
+        Assert.Equal(1, confirmation.ShowCount);
+        Assert.Equal("继续关闭", confirmation.LastRequest?.ConfirmButtonText);
+        Assert.Contains("frpc", confirmation.LastRequest?.Message);
+        Assert.Equal(0, remoteRuntime.GetProcessesRequestCount);
+    }
+
+    [Fact]
+    public async Task ConfirmCloseAsync_RemoteFrpsKnownRunningInMemory_ShouldShowConfirmationWithoutRemoteProbe()
+    {
+        var lifecycle = new FakeFrpLifecycleStateService();
+        lifecycle.UpdateRemoteFrpsState("VPS-A", isSshOnline: true, FrpNexusStatus.Running);
+        var remoteRuntime = new FakeRemoteRuntimeService();
+        var confirmation = new FakeConfirmationDialogService { NextResult = false };
+        var viewModel = CreateMainWindowViewModel(
+            frpLifecycleStateService: lifecycle,
+            remoteRuntimeService: remoteRuntime,
+            confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.False(confirmed);
+        Assert.Equal(1, confirmation.ShowCount);
+        Assert.Contains("frps", confirmation.LastRequest?.Message);
+        Assert.Equal(0, remoteRuntime.GetProcessesRequestCount);
+    }
+
+    [Fact]
     public void DesktopLogPath_ShouldUseLocalApplicationData()
     {
         var logPath = DesktopLogPaths.GetWarningLogPath();
@@ -240,7 +293,13 @@ public sealed class MainWindowViewModelTests
 
     private static MainWindowViewModel CreateMainWindowViewModel(
         IModalOverlayService? modalOverlayService = null,
-        IModalDialogHostService? modalDialogHostService = null)
+        IModalDialogHostService? modalDialogHostService = null,
+        INodeManagementService? nodeManagementService = null,
+        INodeConnectionSessionService? nodeConnectionSessionService = null,
+        IRemoteRuntimeService? remoteRuntimeService = null,
+        ILocalFrpcProcessService? localFrpcProcessService = null,
+        IFrpLifecycleStateService? frpLifecycleStateService = null,
+        IConfirmationDialogService? confirmationDialogService = null)
     {
         return new MainWindowViewModel(
             CreateDashboardPageViewModel(),
@@ -251,6 +310,10 @@ public sealed class MainWindowViewModelTests
             CreateLogsPageViewModel(),
             CreateSettingsPageViewModel(),
             new FakeNavigationRequestService(),
+            nodeConnectionSessionService ?? new FakeNodeConnectionSessionService(),
+            localFrpcProcessService ?? new FakeLocalFrpcProcessService(),
+            frpLifecycleStateService ?? new FakeFrpLifecycleStateService(),
+            confirmationDialogService ?? new FakeConfirmationDialogService(),
             modalOverlayService ?? new ModalOverlayService(),
             modalDialogHostService ?? new ModalDialogHostService());
     }
@@ -466,6 +529,11 @@ public sealed class MainWindowViewModelTests
         public SshCredentialReference? GetConnectedCredential(string nodeName)
         {
             return null;
+        }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return [];
         }
     }
 
@@ -768,8 +836,11 @@ public sealed class MainWindowViewModelTests
 
     private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
     {
+        public int GetProcessesRequestCount { get; private set; }
+
         public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
         {
+            GetProcessesRequestCount++;
             IReadOnlyList<RuntimeProcess> processes =
             [
                 new("frps-main", request.Node.Name, "frps", FrpNexusStatus.Running, "2048", "1h", "0.0.0.0:7000")
@@ -804,9 +875,35 @@ public sealed class MainWindowViewModelTests
         }
     }
 
+    private sealed class FakeFrpLifecycleStateService : IFrpLifecycleStateService
+    {
+        private readonly List<RemoteFrpsLifecycleSnapshot> _snapshots = [];
+
+        public IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots()
+        {
+            return _snapshots.ToArray();
+        }
+
+        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+        {
+            _snapshots.RemoveAll(snapshot => string.Equals(snapshot.NodeName, nodeName, StringComparison.OrdinalIgnoreCase));
+            _snapshots.Add(new RemoteFrpsLifecycleSnapshot(nodeName, isSshOnline, frpsStatus));
+        }
+
+        public void RemoveRemoteFrpsState(string nodeName)
+        {
+            _snapshots.RemoveAll(snapshot => string.Equals(snapshot.NodeName, nodeName, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     private sealed class FakeLocalFrpcProcessService : ILocalFrpcProcessService
     {
         private readonly HashSet<string> _runningNodes = new(StringComparer.OrdinalIgnoreCase);
+
+        public void MarkRunning(string nodeName)
+        {
+            _runningNodes.Add(nodeName);
+        }
 
         public Task<LocalFrpcProcessResult> ApplyNodeTunnelsAsync(LocalFrpcProcessRequest request, CancellationToken cancellationToken = default)
         {
@@ -834,7 +931,37 @@ public sealed class MainWindowViewModelTests
                 ? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Running, "本地 frpc 正在运行。", 4321, expectedConfigPath)
                 : new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
         }
+        public IReadOnlyList<LocalFrpcProcessSnapshot> ListManagedSessions()
+        {
+            return _runningNodes
+                .Select(nodeName => new LocalFrpcProcessSnapshot(
+                    nodeName,
+                    FrpNexusStatus.Running,
+                    "本地 frpc 正在运行。",
+                    4321,
+                    $"{nodeName}.frpc.toml"))
+                .ToArray();
+        }
     }
+
+    private sealed class FakeConfirmationDialogService : IConfirmationDialogService
+    {
+        public int ShowCount { get; private set; }
+
+        public bool NextResult { get; set; } = true;
+
+        public ConfirmationDialogRequest? LastRequest { get; private set; }
+
+        public Task<bool> ShowAsync(
+            ConfirmationDialogRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ShowCount++;
+            LastRequest = request;
+            return Task.FromResult(NextResult);
+        }
+    }
+
     private sealed class FakeRemoteLogService : IRemoteLogService
     {
         public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(RemoteLogReadRequest request, CancellationToken cancellationToken = default)

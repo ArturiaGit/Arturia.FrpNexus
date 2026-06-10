@@ -1382,6 +1382,12 @@ public sealed class TunnelsPageViewModelTests
                 ? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Running, "本地 frpc 正在运行。", 4321, expectedConfigPath)
                 : new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
         }
+        public IReadOnlyList<LocalFrpcProcessSnapshot> ListManagedSessions()
+        {
+            return _snapshots.Values
+                .Where(snapshot => snapshot.IsManaged && snapshot.Status == FrpNexusStatus.Running)
+                .ToArray();
+        }
     }
     private sealed class FakeRuntimeRecordService : IRuntimeRecordService
     {

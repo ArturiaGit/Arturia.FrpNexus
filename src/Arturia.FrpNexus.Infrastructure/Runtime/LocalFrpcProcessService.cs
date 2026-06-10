@@ -136,7 +136,7 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
                 request.Node.Name,
                 FrpNexusStatus.Running,
                 completedAt,
-                $"本地 frpc 已按节点启动，PID {process.Id}。关闭 FrpNexus 时会自动停止。");
+                $"本地 frpc 已按节点启动，PID {process.Id}。关闭 FrpNexus 不会自动停止它。");
         }
         catch (Exception ex)
         {
@@ -223,6 +223,44 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         }
     }
 
+    public IReadOnlyList<LocalFrpcProcessSnapshot> ListManagedSessions()
+    {
+        lock (_gate)
+        {
+            var snapshots = new List<LocalFrpcProcessSnapshot>();
+            foreach (var item in _sessions.ToArray())
+            {
+                var nodeName = item.Key;
+                var session = item.Value;
+                if (session.Process.HasExited)
+                {
+                    var exitCode = TryGetExitCode(session.Process);
+                    _sessions.Remove(nodeName);
+                    TryDeleteTemporaryFile(session.ConfigPath, session.DeleteConfigOnStop);
+                    session.Process.Dispose();
+                    snapshots.Add(new LocalFrpcProcessSnapshot(
+                        nodeName,
+                        FrpNexusStatus.Error,
+                        exitCode is null
+                            ? "本地 frpc 已退出。"
+                            : $"本地 frpc 已退出，退出码 {exitCode.Value}。",
+                        ConfigPath: session.ConfigPath,
+                        ExitCode: exitCode));
+                    continue;
+                }
+
+                snapshots.Add(new LocalFrpcProcessSnapshot(
+                    nodeName,
+                    FrpNexusStatus.Running,
+                    "本地 frpc 正在运行。",
+                    session.Process.Id,
+                    session.ConfigPath));
+            }
+
+            return snapshots;
+        }
+    }
+
     public void Dispose()
     {
         LocalFrpcSession[] sessions;
@@ -234,7 +272,7 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
 
         foreach (var session in sessions)
         {
-            StopSession(session);
+            DetachSession(session);
         }
     }
 
@@ -474,12 +512,24 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         }
         catch
         {
-            // Best effort cleanup during explicit stop or app shutdown.
+            // Best effort cleanup during explicit stop or canceled startup.
         }
         finally
         {
             session.Process.Dispose();
             TryDeleteTemporaryFile(session.ConfigPath, session.DeleteConfigOnStop);
+        }
+    }
+
+    private static void DetachSession(LocalFrpcSession session)
+    {
+        try
+        {
+            session.Process.Dispose();
+        }
+        catch
+        {
+            // Application shutdown must not stop a managed frpc process.
         }
     }
 
