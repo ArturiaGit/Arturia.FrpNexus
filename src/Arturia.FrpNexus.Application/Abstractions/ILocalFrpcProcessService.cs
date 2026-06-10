@@ -12,12 +12,14 @@ public interface ILocalFrpcProcessService
         string nodeName,
         CancellationToken cancellationToken = default);
 
-    LocalFrpcProcessSnapshot GetNodeStatus(string nodeName);
+    LocalFrpcProcessSnapshot GetNodeStatus(string nodeName, string? expectedConfigPath = null);
 }
 
 public sealed record LocalFrpcProcessRequest(
     NodeProfile Node,
-    IReadOnlyList<TunnelProfile> EnabledTunnels);
+    IReadOnlyList<TunnelProfile> EnabledTunnels,
+    string FrpcBinaryPath,
+    string FrpcConfigPath);
 
 public sealed record LocalFrpcProcessResult(
     string NodeName,
@@ -29,4 +31,7 @@ public sealed record LocalFrpcProcessSnapshot(
     string NodeName,
     FrpNexusStatus Status,
     string Message,
-    int? ManagementPort = null);
+    int? ProcessId = null,
+    string? ConfigPath = null,
+    int? ExitCode = null,
+    bool IsManaged = true);

@@ -99,7 +99,7 @@
                             <TextBlock Grid.Column="4"
                                        Classes="table-header"
                                        VerticalAlignment="Center"
-                                       Text="FRP 服务" />
+                                       Text="远程 frps" />
                             <TextBlock Grid.Column="5"
                                        Classes="table-header"
                                        VerticalAlignment="Center"
@@ -527,14 +527,14 @@
 
                             <StackPanel Spacing="8">
                                 <TextBlock Classes="group-label"
-                                           Text="运行状态" />
+                                           Text="远程 frps 运行" />
                                 <Border Classes="subtle-panel"
                                         Padding="12">
                                     <StackPanel Classes="info-section">
                                         <controls:KeyValueRowControl Label="核心版本"
                                                                      Value="{Binding SelectedNode.FrpVersion}"
                                                                      IsCode="True" />
-                                        <controls:KeyValueRowControl Label="进程状态"
+                                        <controls:KeyValueRowControl Label="frps 状态"
                                                                      Value="{Binding SelectedFrpProcessText}" />
                                         <controls:KeyValueRowControl Label="运行时间"
                                                                      Value="{Binding SelectedFrpUptimeText}" />

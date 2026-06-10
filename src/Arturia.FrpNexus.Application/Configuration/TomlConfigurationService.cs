@@ -7,11 +7,9 @@ namespace Arturia.FrpNexus.Application.Configuration;
 
 public sealed class TomlConfigurationService : ITomlConfigurationService
 {
-    private const int DefaultFrpsServerPort = 7000;
-
     public string GenerateProxyToml(ConfigurationPreview preview)
     {
-        ValidatePreview(preview);
+        FrpTunnelConfigurationValidator.ValidatePreview(preview);
 
         var builder = new StringBuilder();
         AppendProxyToml(builder, preview);
@@ -19,16 +17,11 @@ public sealed class TomlConfigurationService : ITomlConfigurationService
         return builder.ToString().TrimEnd();
     }
 
-    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels, int webServerPort)
+    public string GenerateClientToml(NodeProfile node, IReadOnlyList<TunnelProfile> tunnels)
     {
         if (string.IsNullOrWhiteSpace(node.Host))
         {
             throw new InvalidOperationException("节点 Host 不能为空。");
-        }
-
-        if (webServerPort is < 1 or > 65535)
-        {
-            throw new InvalidOperationException("frpc 管理端口必须是 1 到 65535 之间的数字。");
         }
 
         if (tunnels.Count == 0)
@@ -38,11 +31,7 @@ public sealed class TomlConfigurationService : ITomlConfigurationService
 
         var builder = new StringBuilder();
         builder.AppendLine(CultureInfo.InvariantCulture, $"serverAddr = \"{EscapeTomlString(node.Host.Trim())}\"");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"serverPort = {DefaultFrpsServerPort}");
-        builder.AppendLine();
-        builder.AppendLine("[webServer]");
-        builder.AppendLine("addr = \"127.0.0.1\"");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"port = {webServerPort}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"serverPort = {FrpTunnelConfigurationValidator.DefaultFrpsServerPort}");
 
         foreach (var tunnel in tunnels)
         {
@@ -104,32 +93,9 @@ public sealed class TomlConfigurationService : ITomlConfigurationService
         return Task.CompletedTask;
     }
 
-    private static void ValidatePreview(ConfigurationPreview preview)
-    {
-        if (string.IsNullOrWhiteSpace(preview.ProxyName))
-        {
-            throw new InvalidOperationException("代理名称不能为空。");
-        }
-
-        if (string.IsNullOrWhiteSpace(preview.LocalAddress))
-        {
-            throw new InvalidOperationException("本地 IP 不能为空。");
-        }
-
-        if (preview.LocalPort is < 1 or > 65535)
-        {
-            throw new InvalidOperationException("本地端口必须是 1 到 65535 之间的数字。");
-        }
-
-        if (string.IsNullOrWhiteSpace(preview.RemoteEndpoint))
-        {
-            throw new InvalidOperationException("远程配置不能为空。");
-        }
-    }
-
     private static void AppendProxyToml(StringBuilder builder, ConfigurationPreview preview)
     {
-        ValidatePreview(preview);
+        FrpTunnelConfigurationValidator.ValidatePreview(preview);
 
         builder.AppendLine("[[proxies]]");
         builder.AppendLine(CultureInfo.InvariantCulture, $"name = \"{EscapeTomlString(preview.ProxyName.Trim())}\"");
@@ -144,10 +110,7 @@ public sealed class TomlConfigurationService : ITomlConfigurationService
             return;
         }
 
-        if (!int.TryParse(endpoint, out var remotePort) || remotePort is < 1 or > 65535)
-        {
-            throw new InvalidOperationException("TCP/UDP 隧道的远程端点必须是 1 到 65535 之间的远程端口。");
-        }
+        var remotePort = FrpTunnelConfigurationValidator.ParseTcpUdpRemotePort(endpoint);
 
         builder.AppendLine(CultureInfo.InvariantCulture, $"remotePort = {remotePort}");
     }

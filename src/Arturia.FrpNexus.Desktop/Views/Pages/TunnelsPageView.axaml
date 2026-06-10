@@ -14,7 +14,7 @@
     <Grid attached:DismissOnOutsidePointerPressed.IsEnabled="{Binding IsEditorOpen}"
           attached:DismissOnOutsidePointerPressed.DismissTarget="{Binding #EditorPanel}"
           attached:DismissOnOutsidePointerPressed.DismissCommand="{Binding CancelEditCommand}">
-        <Grid RowDefinitions="Auto,*"
+        <Grid RowDefinitions="Auto,Auto,*"
               RowSpacing="12">
             <Grid ColumnDefinitions="Auto,*"
                   ColumnSpacing="12">
@@ -60,6 +60,107 @@
             </Grid>
 
             <Border Grid.Row="1"
+                    Classes="panel"
+                    Padding="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                      ColumnDefinitions="Auto,160,Auto,*,Auto,Auto,Auto"
+                      RowSpacing="8"
+                      ColumnSpacing="8"
+                      VerticalAlignment="Center">
+                    <TextBlock Classes="group-label"
+                               VerticalAlignment="Center"
+                               Text="本地 frpc" />
+                    <ComboBox Grid.Column="1"
+                              Classes="stitch-input"
+                              MinHeight="32"
+                              ItemsSource="{Binding ClientNodeOptions}"
+                              SelectedItem="{Binding SelectedClientNodeName}" />
+                    <Border Grid.Column="2"
+                            Classes="badge"
+                            VerticalAlignment="Center"
+                            Classes.success="{Binding IsLocalFrpcSuccess}"
+                            Classes.warning="{Binding IsLocalFrpcWarning}"
+                            Classes.error="{Binding IsLocalFrpcError}"
+                            Classes.neutral="{Binding IsLocalFrpcNeutral}">
+                        <TextBlock Classes="status-text"
+                                   Classes.success="{Binding IsLocalFrpcSuccess}"
+                                   Classes.warning="{Binding IsLocalFrpcWarning}"
+                                   Classes.error="{Binding IsLocalFrpcError}"
+                                   Classes.neutral="{Binding IsLocalFrpcNeutral}"
+                                   Text="{Binding LocalFrpcStatusText}" />
+                    </Border>
+                    <Button Grid.Column="4"
+                            Classes="primary stitch-command"
+                            MinHeight="32"
+                            Padding="10,0"
+                            Command="{Binding ToggleLocalFrpcCommand}"
+                            IsEnabled="{Binding !IsTunnelRuntimeBusy}"
+                            Content="{Binding LocalFrpcToggleButtonText}" />
+                    <Button Grid.Column="5"
+                            Classes="secondary stitch-command"
+                            MinHeight="32"
+                            Padding="10,0"
+                            Command="{Binding ReloadLocalFrpcCommand}"
+                            IsEnabled="{Binding !IsTunnelRuntimeBusy}"
+                            Content="重载配置" />
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="1"
+                               Classes="helper"
+                               VerticalAlignment="Center"
+                               Text="{Binding LocalFrpcEnabledTunnelCountText}" />
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="2"
+                               Grid.ColumnSpan="5"
+                               Classes="helper"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding RuntimeStatusText}" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="0"
+                               Classes="helper"
+                               VerticalAlignment="Center"
+                               Text="frpc 核心" />
+                    <TextBox Grid.Row="2"
+                             Grid.Column="1"
+                             Grid.ColumnSpan="5"
+                             Classes="stitch-input code"
+                             MinHeight="32"
+                             IsReadOnly="True"
+                             Text="{Binding LocalFrpcBinaryPath}"
+                             PlaceholderText="请选择本地 frpc.exe / frpc" />
+                    <Button Grid.Row="2"
+                            Grid.Column="6"
+                            Classes="secondary stitch-command"
+                            MinHeight="32"
+                            Padding="10,0"
+                            Command="{Binding SelectLocalFrpcBinaryCommand}"
+                            IsEnabled="{Binding !IsTunnelRuntimeBusy}"
+                            Content="选择核心" />
+                    <TextBlock Grid.Row="3"
+                               Grid.Column="0"
+                               Classes="helper"
+                               VerticalAlignment="Center"
+                               Text="frpc.toml" />
+                    <TextBox Grid.Row="3"
+                             Grid.Column="1"
+                             Grid.ColumnSpan="5"
+                             Classes="stitch-input code"
+                             MinHeight="32"
+                             IsReadOnly="True"
+                             Text="{Binding LocalFrpcConfigPath}"
+                             PlaceholderText="{Binding LocalFrpcSuggestedConfigPath}" />
+                    <Button Grid.Row="3"
+                            Grid.Column="6"
+                            Classes="secondary stitch-command"
+                            MinHeight="32"
+                            Padding="10,0"
+                            Command="{Binding SelectLocalFrpcConfigCommand}"
+                            IsEnabled="{Binding !IsTunnelRuntimeBusy}"
+                            Content="选择配置" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2"
                     Classes="panel"
                     ClipToBounds="True">
                 <Grid RowDefinitions="Auto,*,Auto">
@@ -204,11 +305,6 @@
                                                                        Text="{Binding StatusText}" />
                                                         </StackPanel>
                                                     </Border>
-                                                    <TextBlock Classes="helper"
-                                                               VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               IsVisible="{Binding HasStatusDetail}"
-                                                               Text="{Binding StatusDetail}" />
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="7"
                                                             Orientation="Horizontal"
@@ -237,7 +333,7 @@
                                                             Height="28"
                                                             MinHeight="28"
                                                             AutomationProperties.Name="{Binding RuntimeActionLabel}"
-                                                            Command="{Binding #Root.DataContext.ToggleTunnelRuntimeCommand}"
+                                                            Command="{Binding #Root.DataContext.ToggleTunnelEnabledCommand}"
                                                             CommandParameter="{Binding}">
                                                         <ToolTip.Tip>
                                                             <ToolTip Classes="stitch-tooltip"
@@ -386,20 +482,21 @@
                         <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal"
                                         Spacing="6">
-                                <TextBlock Classes="helper" Text="远程端点" />
+                                <TextBlock Classes="helper" Text="{Binding RemoteEndpointLabel}" />
                                 <Border Classes="required-badge">
                                     <TextBlock Classes="required-badge-text" Text="必填" />
                                 </Border>
                             </StackPanel>
                             <TextBox Classes="stitch-input code"
+                                     PlaceholderText="{Binding RemoteEndpointPlaceholder}"
                                      Text="{Binding FormRemoteEndpoint}" />
                         </StackPanel>
 
                         <StackPanel Spacing="6">
-                            <TextBlock Classes="helper" Text="状态说明" />
+                            <TextBlock Classes="helper" Text="备注" />
                             <TextBox Classes="stitch-input"
-                                     PlaceholderText="{x:Static pages:TunnelsPageViewModel.DefaultStatusDetail}"
-                                     Text="{Binding FormStatusDetail}" />
+                                     PlaceholderText="{x:Static pages:TunnelsPageViewModel.RemarkPlaceholder}"
+                                     Text="{Binding FormRemark}" />
                         </StackPanel>
 
                         <TextBlock Classes="helper"

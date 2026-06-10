@@ -1,6 +1,6 @@
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
+using System.Management;
 using System.Text;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
@@ -11,7 +11,8 @@ namespace Arturia.FrpNexus.Infrastructure.Runtime;
 public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationService tomlConfigurationService) : ILocalFrpcProcessService, IDisposable
 {
     private const string FrpcPathEnvironmentVariable = "FRPNEXUS_FRPC_PATH";
-    private const int FirstManagementPort = 7400;
+    private const int StartupStabilityDelayMilliseconds = 800;
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
     private readonly Dictionary<string, LocalFrpcSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
@@ -27,14 +28,24 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         }
 
         var completedAt = DateTimeOffset.UtcNow;
-        var frpcPath = ResolveFrpcPath();
+        var frpcPath = ResolveFrpcPath(request.FrpcBinaryPath);
         if (string.IsNullOrWhiteSpace(frpcPath))
         {
             return new LocalFrpcProcessResult(
                 request.Node.Name,
                 FrpNexusStatus.Error,
                 completedAt,
-                $"未找到本地 frpc。请设置环境变量 {FrpcPathEnvironmentVariable} 指向 frpc.exe。");
+                $"未找到本地 frpc。请在隧道页选择 frpc 核心，或设置环境变量 {FrpcPathEnvironmentVariable} 指向 frpc.exe。");
+        }
+
+        var configuredConfigPath = request.FrpcConfigPath.Trim();
+        if (string.IsNullOrWhiteSpace(configuredConfigPath))
+        {
+            return new LocalFrpcProcessResult(
+                request.Node.Name,
+                FrpNexusStatus.Error,
+                completedAt,
+                "未选择本地 frpc.toml 路径，请先在隧道页选择配置文件路径。");
         }
 
         LocalFrpcSession? existingSession;
@@ -43,7 +54,7 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
             if (_sessions.TryGetValue(request.Node.Name, out existingSession) && existingSession.Process.HasExited)
             {
                 _sessions.Remove(request.Node.Name);
-                TryDeleteFile(existingSession.ConfigPath);
+                TryDeleteTemporaryFile(existingSession.ConfigPath, existingSession.DeleteConfigOnStop);
                 existingSession.Process.Dispose();
                 existingSession = null;
             }
@@ -56,18 +67,15 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
             {
                 var tomlContent = tomlConfigurationService.GenerateClientToml(
                     request.Node,
-                    request.EnabledTunnels,
-                    existingSession.ManagementPort);
-                File.WriteAllText(existingSession.ConfigPath, tomlContent, Encoding.UTF8);
+                    request.EnabledTunnels);
+                File.WriteAllText(existingSession.ConfigPath, tomlContent, Utf8NoBom);
                 return await ReloadAsync(frpcPath, request.Node.Name, existingSession.ConfigPath, completedAt, cancellationToken);
             }
 
-            var managementPort = AllocateManagementPort();
             var newTomlContent = tomlConfigurationService.GenerateClientToml(
                 request.Node,
-                request.EnabledTunnels,
-                managementPort);
-            configPath = CreateConfigFile(request.Node.Name, newTomlContent);
+                request.EnabledTunnels);
+            configPath = WriteConfigFile(configuredConfigPath, newTomlContent);
             var startInfo = new ProcessStartInfo
             {
                 FileName = frpcPath,
@@ -83,7 +91,7 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
             var process = Process.Start(startInfo);
             if (process is null)
             {
-                TryDeleteFile(configPath);
+                TryDeleteTemporaryFile(configPath, deleteConfigOnStop: false);
                 return new LocalFrpcProcessResult(
                     request.Node.Name,
                     FrpNexusStatus.Error,
@@ -91,27 +99,50 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
                     "本地 frpc 启动失败：进程未创建。");
             }
 
+            try
+            {
+                await Task.Delay(StartupStabilityDelayMilliseconds, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                StopSession(new LocalFrpcSession(process, configPath, false));
+                throw;
+            }
+
+            if (process.HasExited)
+            {
+                var output = await ReadProcessOutputSummaryAsync(process, cancellationToken);
+                process.Dispose();
+                TryDeleteTemporaryFile(configPath, deleteConfigOnStop: false);
+                return new LocalFrpcProcessResult(
+                    request.Node.Name,
+                    FrpNexusStatus.Error,
+                    completedAt,
+                    $"本地 frpc 启动后已退出：{output}");
+            }
+
             lock (_gate)
             {
-                _sessions[request.Node.Name] = new LocalFrpcSession(process, configPath, managementPort);
+                _sessions[request.Node.Name] = new LocalFrpcSession(process, configPath, false);
             }
 
             logger.Information(
-                "Local frpc started for node {NodeName} with {TunnelCount} enabled tunnels",
+                "Local frpc started for node {NodeName} with {TunnelCount} enabled tunnels, PID {ProcessId}",
                 request.Node.Name,
-                request.EnabledTunnels.Count);
+                request.EnabledTunnels.Count,
+                process.Id);
 
             return new LocalFrpcProcessResult(
                 request.Node.Name,
                 FrpNexusStatus.Running,
                 completedAt,
-                "本地 frpc 已按节点启动。关闭 FrpNexus 时会自动停止。");
+                $"本地 frpc 已按节点启动，PID {process.Id}。关闭 FrpNexus 时会自动停止。");
         }
         catch (Exception ex)
         {
             if (!string.IsNullOrWhiteSpace(configPath))
             {
-                TryDeleteFile(configPath);
+                TryDeleteTemporaryFile(configPath, deleteConfigOnStop: false);
             }
 
             logger.Warning(ex, "Failed to start local frpc for node {NodeName}", request.Node.Name);
@@ -119,7 +150,7 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
                 request.Node.Name,
                 FrpNexusStatus.Error,
                 completedAt,
-                $"本地 frpc 启动失败：{SanitizeMessage(ex.Message)}");
+                $"本地 frpc 启动失败：{FormatProcessStartError(ex)}");
         }
     }
 
@@ -157,28 +188,38 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
             "该节点本地 frpc 已停止。"));
     }
 
-    public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName)
+    public LocalFrpcProcessSnapshot GetNodeStatus(string nodeName, string? expectedConfigPath = null)
     {
         lock (_gate)
         {
             if (!_sessions.TryGetValue(nodeName, out var session))
             {
-                return new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
+                return FindUnmanagedFrpcProcess(nodeName, expectedConfigPath)
+                    ?? new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 未运行。");
             }
 
             if (session.Process.HasExited)
             {
+                var exitCode = TryGetExitCode(session.Process);
                 _sessions.Remove(nodeName);
-                TryDeleteFile(session.ConfigPath);
+                TryDeleteTemporaryFile(session.ConfigPath, session.DeleteConfigOnStop);
                 session.Process.Dispose();
-                return new LocalFrpcProcessSnapshot(nodeName, FrpNexusStatus.Stopped, "本地 frpc 已退出。");
+                return new LocalFrpcProcessSnapshot(
+                    nodeName,
+                    FrpNexusStatus.Error,
+                    exitCode is null
+                        ? "本地 frpc 已退出。"
+                        : $"本地 frpc 已退出，退出码 {exitCode.Value}。",
+                    ConfigPath: session.ConfigPath,
+                    ExitCode: exitCode);
             }
 
             return new LocalFrpcProcessSnapshot(
                 nodeName,
                 FrpNexusStatus.Running,
                 "本地 frpc 正在运行。",
-                session.ManagementPort);
+                session.Process.Id,
+                session.ConfigPath);
         }
     }
 
@@ -197,8 +238,13 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         }
     }
 
-    private static string? ResolveFrpcPath()
+    private static string? ResolveFrpcPath(string configuredPath)
     {
+        if (!string.IsNullOrWhiteSpace(configuredPath) && File.Exists(configuredPath))
+        {
+            return configuredPath;
+        }
+
         var configured = Environment.GetEnvironmentVariable(FrpcPathEnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
         {
@@ -277,59 +323,143 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
                 nodeName,
                 FrpNexusStatus.Error,
                 completedAt,
-                $"本地 frpc 热重载失败：{SanitizeMessage(ex.Message)}");
+                $"本地 frpc 热重载失败：{FormatProcessStartError(ex)}");
         }
     }
 
-    private int AllocateManagementPort()
+    private static LocalFrpcProcessSnapshot? FindUnmanagedFrpcProcess(string nodeName, string? expectedConfigPath)
     {
-        lock (_gate)
+        if (string.IsNullOrWhiteSpace(expectedConfigPath))
         {
-            var usedPorts = _sessions.Values.Select(session => session.ManagementPort).ToHashSet();
-            var port = FirstManagementPort;
-            while (usedPorts.Contains(port))
-            {
-                port++;
-            }
-
-            while (!IsPortAvailable(port))
-            {
-                port++;
-            }
-
-            return port;
+            return null;
         }
-    }
 
-    private static bool IsPortAvailable(int port)
-    {
+        var normalizedExpectedPath = NormalizePathForCommandMatch(expectedConfigPath);
+        if (string.IsNullOrWhiteSpace(normalizedExpectedPath))
+        {
+            return null;
+        }
+
         try
         {
-            using var listener = new TcpListener(IPAddress.Loopback, port);
-            listener.Start();
-            return true;
+            foreach (var process in EnumerateFrpcProcessInfos())
+            {
+                if (CommandUsesConfigPath(process.CommandLine, expectedConfigPath))
+                {
+                    return new LocalFrpcProcessSnapshot(
+                        nodeName,
+                        FrpNexusStatus.Warning,
+                        $"检测到外部 frpc 正在使用当前配置，PID {process.ProcessId}，但它不是 FrpNexus 启动的进程。",
+                        process.ProcessId,
+                        expectedConfigPath,
+                        IsManaged: false);
+                }
+            }
         }
-        catch (SocketException)
+        catch
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<LocalProcessInfo> EnumerateFrpcProcessInfos()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            using var searcher = new ManagementObjectSearcher(
+                "SELECT ProcessId, Name, ExecutablePath, CommandLine FROM Win32_Process WHERE Name = 'frpc.exe' OR Name = 'frpc'");
+            foreach (var item in searcher.Get().OfType<ManagementObject>())
+            {
+                var processId = Convert.ToInt32(item["ProcessId"], System.Globalization.CultureInfo.InvariantCulture);
+                var commandLine = item["CommandLine"] as string ?? item["ExecutablePath"] as string ?? item["Name"] as string ?? string.Empty;
+                yield return new LocalProcessInfo(processId, commandLine);
+            }
+
+            yield break;
+        }
+
+        foreach (var process in Process.GetProcesses())
+        {
+            try
+            {
+                var name = process.ProcessName;
+                if (!name.Equals("frpc", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                yield return new LocalProcessInfo(process.Id, name);
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+    }
+
+    internal static bool CommandUsesConfigPath(string commandLine, string expectedConfigPath)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine))
         {
             return false;
         }
+
+        var normalizedExpectedPath = NormalizePathForCommandMatch(expectedConfigPath);
+        if (string.IsNullOrWhiteSpace(normalizedExpectedPath))
+        {
+            return false;
+        }
+
+        var normalizedCommand = NormalizePathForCommandMatch(commandLine);
+        return normalizedCommand.Contains(normalizedExpectedPath, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string CreateConfigFile(string nodeName, string tomlContent)
+    private static string NormalizePathForCommandMatch(string value)
     {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Arturia",
-            "FrpNexus",
-            "runtime",
-            "frpc");
-        Directory.CreateDirectory(directory);
+        return value.Trim().Trim('"').Replace('\\', '/');
+    }
 
-        var fileName = string.Concat(nodeName.Select(character =>
-            Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
-        var path = Path.Combine(directory, $"{fileName}.toml");
-        File.WriteAllText(path, tomlContent, Encoding.UTF8);
-        return path;
+    private static int? TryGetExitCode(Process process)
+    {
+        try
+        {
+            return process.HasExited ? process.ExitCode : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task<string> ReadProcessOutputSummaryAsync(
+        Process process,
+        CancellationToken cancellationToken)
+    {
+        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var summary = string.Join(
+            " ",
+            new[] { stderr, stdout }
+                .Where(message => !string.IsNullOrWhiteSpace(message))
+                .Select(SanitizeMessage));
+
+        return string.IsNullOrWhiteSpace(summary)
+            ? "未返回详细错误。"
+            : ShortenMessage(summary);
+    }
+
+    private static string WriteConfigFile(string configPath, string tomlContent)
+    {
+        var directory = Path.GetDirectoryName(configPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(configPath, tomlContent, Utf8NoBom);
+        return configPath;
     }
 
     private static void StopSession(LocalFrpcSession session)
@@ -349,12 +479,17 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         finally
         {
             session.Process.Dispose();
-            TryDeleteFile(session.ConfigPath);
+            TryDeleteTemporaryFile(session.ConfigPath, session.DeleteConfigOnStop);
         }
     }
 
-    private static void TryDeleteFile(string path)
+    private static void TryDeleteTemporaryFile(string path, bool deleteConfigOnStop)
     {
+        if (!deleteConfigOnStop)
+        {
+            return;
+        }
+
         try
         {
             if (File.Exists(path))
@@ -375,5 +510,32 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
             : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
     }
 
-    private sealed record LocalFrpcSession(Process Process, string ConfigPath, int ManagementPort);
+    private static string ShortenMessage(string message)
+    {
+        const int maxLength = 160;
+        return message.Length <= maxLength
+            ? message
+            : message[..maxLength] + "...";
+    }
+
+    private static string FormatProcessStartError(Exception exception)
+    {
+        if (exception is Win32Exception win32Exception
+            && win32Exception.Message.Contains("not a valid application", StringComparison.OrdinalIgnoreCase))
+        {
+            return "当前系统无法运行所选 frpc 核心，请选择 Windows x64 版 frpc.exe。";
+        }
+
+        if (exception.Message.Contains("not a valid application", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("valid application for this OS platform", StringComparison.OrdinalIgnoreCase))
+        {
+            return "当前系统无法运行所选 frpc 核心，请选择 Windows x64 版 frpc.exe。";
+        }
+
+        return SanitizeMessage(exception.Message);
+    }
+
+    private sealed record LocalFrpcSession(Process Process, string ConfigPath, bool DeleteConfigOnStop);
+
+    private sealed record LocalProcessInfo(int ProcessId, string CommandLine);
 }
