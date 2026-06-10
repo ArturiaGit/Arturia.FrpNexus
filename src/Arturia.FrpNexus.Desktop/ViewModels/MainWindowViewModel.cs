@@ -62,7 +62,7 @@ public partial class MainWindowViewModel : ViewModelBase
             new("仪表盘", "dashboard", dashboardPage, navigateCommand),
             new("节点", "nodes", nodesPage, navigateCommand),
             new("隧道", "tunnels", tunnelsPage, navigateCommand),
-            new("配置", "configurations", configurationsPage, navigateCommand),
+            new("配置预览", "configurations", configurationsPage, navigateCommand),
             new("日志", "logs", logsPage, navigateCommand),
             new("设置", "settings", settingsPage, navigateCommand)
         ];
@@ -192,6 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase
         return page switch
         {
             DashboardPageViewModel dashboard => dashboard.LoadDashboardAsync(),
+            ConfigurationsPageViewModel configurations => configurations.LoadTargetNodesAsync(),
             _ => Task.CompletedTask
         };
     }

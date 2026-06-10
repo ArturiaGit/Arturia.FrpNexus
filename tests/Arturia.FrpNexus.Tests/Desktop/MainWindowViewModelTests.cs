@@ -33,7 +33,7 @@ public sealed class MainWindowViewModelTests
 
         var titles = viewModel.NavigationItems.Select(item => item.Title).ToArray();
 
-        Assert.Equal(["仪表盘", "节点", "隧道", "配置", "日志", "设置"], titles);
+        Assert.Equal(["仪表盘", "节点", "隧道", "配置预览", "日志", "设置"], titles);
     }
 
     [Fact]
@@ -93,10 +93,27 @@ public sealed class MainWindowViewModelTests
     public void ConfigurationPreview_ShouldStartEmptyUntilGenerated()
     {
         var configurations = (ConfigurationsPageViewModel)CreateMainWindowViewModel()
-            .NavigationItems.Single(item => item.Title == "配置").Page;
+            .NavigationItems.Single(item => item.Title == "配置预览").Page;
         Assert.Empty(configurations.TomlPreview);
         Assert.Single(configurations.TomlPreviewLines);
         Assert.Contains("TOML", configurations.TomlPreviewLines[0].Tokens[0].Text);
+    }
+
+    [Fact]
+    public async Task NavigateCommand_ToConfigurations_ShouldRefreshPreviewData()
+    {
+        var nodeService = new CountingNodeManagementService();
+        var configurationsPage = CreateConfigurationsPageViewModel(nodeService);
+        var viewModel = CreateMainWindowViewModel(configurationsPage: configurationsPage);
+        var configurationsItem = viewModel.NavigationItems.Single(item => item.Title == "配置预览");
+        var beforeCount = nodeService.ListNodesCallCount;
+
+        configurationsItem.NavigateCommand.Execute(configurationsItem);
+        await Task.Delay(50);
+
+        Assert.Equal(configurationsItem, viewModel.SelectedNavigationItem);
+        Assert.Equal("配置预览", viewModel.CurrentPageTitle);
+        Assert.True(nodeService.ListNodesCallCount > beforeCount);
     }
 
     [Fact]
@@ -299,13 +316,14 @@ public sealed class MainWindowViewModelTests
         IRemoteRuntimeService? remoteRuntimeService = null,
         ILocalFrpcProcessService? localFrpcProcessService = null,
         IFrpLifecycleStateService? frpLifecycleStateService = null,
-        IConfirmationDialogService? confirmationDialogService = null)
+        IConfirmationDialogService? confirmationDialogService = null,
+        ConfigurationsPageViewModel? configurationsPage = null)
     {
         return new MainWindowViewModel(
             CreateDashboardPageViewModel(),
             CreateNodesPageViewModel(),
             CreateTunnelsPageViewModel(),
-            CreateConfigurationsPageViewModel(),
+            configurationsPage ?? CreateConfigurationsPageViewModel(),
             CreateRuntimePageViewModel(),
             CreateLogsPageViewModel(),
             CreateSettingsPageViewModel(),
@@ -357,14 +375,12 @@ public sealed class MainWindowViewModelTests
             new FakeFilePickerService());
     }
 
-    private static ConfigurationsPageViewModel CreateConfigurationsPageViewModel()
+    private static ConfigurationsPageViewModel CreateConfigurationsPageViewModel(INodeManagementService? nodeManagementService = null)
     {
         return new ConfigurationsPageViewModel(
             new TomlConfigurationService(),
-            new FakeNodeManagementService(),
+            nodeManagementService ?? new FakeNodeManagementService(),
             new FakeTunnelManagementService(),
-            new FakeNodeConnectionSessionService(),
-            new FakeRemoteFileTransferService(),
             new FakeClipboardService());
     }
 
@@ -494,6 +510,47 @@ public sealed class MainWindowViewModelTests
                 };
             }
 
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CountingNodeManagementService : INodeManagementService
+    {
+        private readonly IReadOnlyList<NodeProfile> _nodes =
+        [
+            new("Preview-Node", "203.0.113.10", 22, "root", "Session", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Stopped, "-", "-", "/opt/frp/frps.toml")
+        ];
+
+        public int ListNodesCallCount { get; private set; }
+
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            ListNodesCallCount++;
+            return Task.FromResult(_nodes);
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_nodes.FirstOrDefault(node => node.Name == nodeName));
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateLastConnectionAsync(string nodeName, DateTimeOffset connectedAt, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateConnectionTestResultAsync(string nodeName, FrpNexusStatus status, DateTimeOffset testedAt, CancellationToken cancellationToken = default)
+        {
             return Task.CompletedTask;
         }
     }

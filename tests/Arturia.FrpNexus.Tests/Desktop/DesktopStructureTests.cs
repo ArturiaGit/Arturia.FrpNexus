@@ -213,6 +213,29 @@ public sealed class DesktopStructureTests
     }
 
     [Fact]
+    public void ConfigurationsPage_ShouldBeReadonlyFrpcPreview()
+    {
+        var configurationsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "ConfigurationsPageView.axaml"));
+
+        Assert.Contains("frpc.toml 只读预览", configurationsXaml);
+        Assert.Contains("已启用隧道来源", configurationsXaml);
+        Assert.Contains("RefreshClientTunnelsCommand", configurationsXaml);
+        Assert.Contains("ValidateTomlCommand", configurationsXaml);
+        Assert.Contains("CopyTomlCommand", configurationsXaml);
+        Assert.DoesNotContain("GenerateTomlCommand", configurationsXaml);
+        Assert.DoesNotContain("UploadServerTomlCommand", configurationsXaml);
+        Assert.DoesNotContain("GenerateServerTomlCommand", configurationsXaml);
+        Assert.DoesNotContain("上传 frps.toml", configurationsXaml);
+        Assert.DoesNotContain("生成 frps.toml", configurationsXaml);
+        Assert.DoesNotContain("服务端端口", configurationsXaml);
+        Assert.DoesNotContain("远程 frps 配置", configurationsXaml);
+    }
+
+    [Fact]
     public void NodesPage_ShouldKeepRuntimeCopyFocusedOnRemoteFrps()
     {
         var nodesXaml = File.ReadAllText(Path.Combine(
