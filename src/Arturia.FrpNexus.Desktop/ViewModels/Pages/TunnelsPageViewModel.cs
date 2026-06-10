@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,14 +19,20 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 {
     public const string DefaultLocalAddress = "127.0.0.1";
     public const string DefaultLocalPort = "8080";
-    public const string DefaultStatusDetail = "本地记录";
+    private const int LocalFrpcStatusPollIntervalMilliseconds = 2000;
+    public const string RemarkPlaceholder = "可选备注";
 
     private readonly ITunnelManagementService _tunnelManagementService;
     private readonly INodeManagementService _nodeManagementService;
     private readonly ILocalFrpcProcessService _localFrpcProcessService;
+    private readonly ILocalFrpcConfigurationService _localFrpcConfigurationService;
+    private readonly IRuntimeRecordService _runtimeRecordService;
+    private readonly IFilePickerService _filePickerService;
     private readonly HashSet<string> _availableNodeNames = new(System.StringComparer.OrdinalIgnoreCase);
+    private readonly CancellationTokenSource _localFrpcStatusPollingCancellation = new();
     private bool _isDeleteConfirmationPending;
     private string? _editingOriginalName;
+    private Task? _localFrpcStatusPollingTask;
 
     [ObservableProperty]
     private string _tunnelCountText = "共 0 条记录";
@@ -64,7 +74,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     private string _formRemoteEndpoint = string.Empty;
 
     [ObservableProperty]
-    private string _formStatusDetail = string.Empty;
+    private string _formRemark = string.Empty;
 
     [ObservableProperty]
     private string _formErrorText = string.Empty;
@@ -73,26 +83,68 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     private string _deleteButtonText = "删除";
 
     [ObservableProperty]
-    private string _runtimeStatusText = "启动/停止隧道会通过 frpc 热重载应用配置，不重启其他同节点隧道。";
+    private string _runtimeStatusText = "启用/停用隧道会更新本地 frpc 配置；客户端进程由上方节点级操作控制。";
 
     [ObservableProperty]
     private bool _isTunnelRuntimeBusy;
 
+    [ObservableProperty]
+    private string _localFrpcToggleButtonText = "启动 frpc";
+
+    [ObservableProperty]
+    private string _selectedClientNodeName = string.Empty;
+
+    [ObservableProperty]
+    private string _localFrpcStatusText = "请选择节点";
+
+    [ObservableProperty]
+    private string _localFrpcEnabledTunnelCountText = "启用隧道 0 条";
+
+    [ObservableProperty]
+    private bool _isLocalFrpcSuccess;
+
+    [ObservableProperty]
+    private bool _isLocalFrpcWarning;
+
+    [ObservableProperty]
+    private bool _isLocalFrpcError;
+
+    [ObservableProperty]
+    private bool _isLocalFrpcNeutral = true;
+
+    private bool _isLocalFrpcManagedRunning;
+
+    [ObservableProperty]
+    private string _localFrpcBinaryPath = string.Empty;
+
+    [ObservableProperty]
+    private string _localFrpcConfigPath = string.Empty;
+
+    [ObservableProperty]
+    private string _localFrpcSuggestedConfigPath = string.Empty;
+
     public TunnelsPageViewModel(
         ITunnelManagementService tunnelManagementService,
         INodeManagementService nodeManagementService,
-        ITomlConfigurationService tomlConfigurationService,
-        ILocalFrpcProcessService localFrpcProcessService)
+        ILocalFrpcProcessService localFrpcProcessService,
+        ILocalFrpcConfigurationService localFrpcConfigurationService,
+        IRuntimeRecordService runtimeRecordService,
+        IFilePickerService filePickerService)
         : base("隧道管理", "创建和检查 TCP、UDP、HTTP、HTTPS 隧道配置")
     {
         _tunnelManagementService = tunnelManagementService;
         _nodeManagementService = nodeManagementService;
         _localFrpcProcessService = localFrpcProcessService;
+        _localFrpcConfigurationService = localFrpcConfigurationService;
+        _runtimeRecordService = runtimeRecordService;
+        _filePickerService = filePickerService;
         Tunnels = [];
         TunnelRows = [];
         NodeOptions = [];
+        ClientNodeOptions = [];
 
         _ = LoadTunnelsAsync();
+        StartLocalFrpcStatusPolling();
     }
 
     public ObservableCollection<TunnelProfile> Tunnels { get; }
@@ -100,6 +152,8 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     public ObservableCollection<TunnelListItemViewModel> TunnelRows { get; }
 
     public ObservableCollection<string> NodeOptions { get; }
+
+    public ObservableCollection<string> ClientNodeOptions { get; }
 
     public const string AllProtocolFilter = "所有协议";
 
@@ -120,6 +174,14 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         TunnelProtocol.Https
     ];
 
+    public string RemoteEndpointLabel => FormProtocol is TunnelProtocol.Tcp or TunnelProtocol.Udp
+        ? "远程端口"
+        : "域名";
+
+    public string RemoteEndpointPlaceholder => FormProtocol is TunnelProtocol.Tcp or TunnelProtocol.Udp
+        ? "25565 / 60000"
+        : "example.com";
+
     public async Task LoadTunnelsAsync(CancellationToken cancellationToken = default)
     {
         await LoadNodeOptionsAsync(cancellationToken);
@@ -133,7 +195,10 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         }
 
         SelectedTunnel = Tunnels.FirstOrDefault();
+        EnsureSelectedClientNode();
+        await RefreshLocalFrpcConfigurationAsync(cancellationToken);
         ApplyFilters();
+        RefreshLocalFrpcClientState();
     }
 
     [RelayCommand]
@@ -169,11 +234,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         EditorTitle = "新建隧道";
         FormName = string.Empty;
         FormProtocol = TunnelProtocol.Http;
-        FormNodeName = NodeOptions.FirstOrDefault() ?? string.Empty;
+        FormNodeName = SelectedClientNodeName;
         FormLocalAddress = string.Empty;
         FormLocalPort = string.Empty;
         FormRemoteEndpoint = string.Empty;
-        FormStatusDetail = string.Empty;
+        FormRemark = string.Empty;
         FormErrorText = NodeOptions.Count == 0 ? "请先在节点页面创建节点。" : string.Empty;
         IsEditorOpen = true;
     }
@@ -200,7 +265,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         FormLocalAddress = SelectedTunnel.LocalAddress;
         FormLocalPort = SelectedTunnel.LocalPort.ToString();
         FormRemoteEndpoint = SelectedTunnel.RemoteEndpoint;
-        FormStatusDetail = SelectedTunnel.StatusDetail;
+        FormRemark = SelectedTunnel.Remark;
         FormErrorText = string.Empty;
         IsEditorOpen = true;
     }
@@ -267,7 +332,7 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private async Task ToggleTunnelRuntimeAsync(TunnelListItemViewModel? row, CancellationToken cancellationToken = default)
+    private async Task ToggleTunnelEnabledAsync(TunnelListItemViewModel? row, CancellationToken cancellationToken = default)
     {
         if (row is null)
         {
@@ -277,8 +342,109 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
         SelectedTunnel = row.Tunnel;
 
-        var shouldStop = row.Tunnel.Status == FrpNexusStatus.Running;
-        await ApplyNodeRuntimeAsync(row.Tunnel, shouldStop ? FrpNexusStatus.Stopped : FrpNexusStatus.Running, cancellationToken);
+        var shouldDisable = row.Tunnel.Status == FrpNexusStatus.Running;
+        await ToggleTunnelEnabledStateAsync(
+            row.Tunnel,
+            shouldDisable ? FrpNexusStatus.Stopped : FrpNexusStatus.Running,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task SelectLocalFrpcBinaryAsync(CancellationToken cancellationToken = default)
+    {
+        var path = await _filePickerService.PickLocalFrpcBinaryAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        await _localFrpcConfigurationService.SaveFrpcBinaryPathAsync(path, cancellationToken);
+        LocalFrpcBinaryPath = path;
+        RuntimeStatusText = "已保存本地 frpc 核心路径。";
+    }
+
+    [RelayCommand]
+    private async Task SelectLocalFrpcConfigAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            RuntimeStatusText = "请先选择一个客户端节点。";
+            return;
+        }
+
+        var suggestedFileName = Path.GetFileName(LocalFrpcConfigPath);
+        if (string.IsNullOrWhiteSpace(suggestedFileName))
+        {
+            suggestedFileName = $"{SelectedClientNodeName}.frpc.toml";
+        }
+
+        var path = await _filePickerService.PickLocalFrpcConfigPathAsync(suggestedFileName, cancellationToken);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        await _localFrpcConfigurationService.SaveNodeConfigPathAsync(SelectedClientNodeName, path, cancellationToken);
+        LocalFrpcConfigPath = path;
+        RuntimeStatusText = $"已保存节点 {SelectedClientNodeName} 的 frpc.toml 路径。";
+    }
+
+    [RelayCommand]
+    private async Task StartLocalFrpcAsync(CancellationToken cancellationToken = default)
+    {
+        await ApplySelectedClientNodeFrpcAsync(requireRunningSession: false, cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task ToggleLocalFrpcAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsTunnelRuntimeBusy)
+        {
+            return;
+        }
+
+        if (_isLocalFrpcManagedRunning)
+        {
+            await StopLocalFrpcAsync(cancellationToken);
+            return;
+        }
+
+        await StartLocalFrpcAsync(cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task StopLocalFrpcAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            RuntimeStatusText = "请先选择一个客户端节点。";
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        IsTunnelRuntimeBusy = true;
+        RuntimeStatusText = $"正在停止节点 {SelectedClientNodeName} 的本地 frpc。";
+        try
+        {
+            var result = await _localFrpcProcessService.StopNodeAsync(SelectedClientNodeName, cancellationToken);
+            RuntimeStatusText = result.Message;
+            await SaveLocalFrpcRuntimeRecordAsync(
+                SelectedClientNodeName,
+                result.Status,
+                result.Message,
+                cancellationToken);
+        }
+        finally
+        {
+            IsTunnelRuntimeBusy = false;
+            await RefreshLocalFrpcStatusFromProcessAsync(cancellationToken);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ReloadLocalFrpcAsync(CancellationToken cancellationToken = default)
+    {
+        await ApplySelectedClientNodeFrpcAsync(requireRunningSession: true, cancellationToken);
     }
 
     partial void OnSelectedTunnelChanged(TunnelProfile? value)
@@ -295,6 +461,18 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     partial void OnSelectedProtocolFilterChanged(string value)
     {
         ApplyFilters();
+    }
+
+    partial void OnFormProtocolChanged(TunnelProtocol value)
+    {
+        OnPropertyChanged(nameof(RemoteEndpointLabel));
+        OnPropertyChanged(nameof(RemoteEndpointPlaceholder));
+    }
+
+    partial void OnSelectedClientNodeNameChanged(string value)
+    {
+        _ = RefreshLocalFrpcConfigurationAsync();
+        _ = RefreshLocalFrpcStatusFromProcessAsync();
     }
 
     private async Task LoadNodeOptionsAsync(CancellationToken cancellationToken = default)
@@ -314,10 +492,14 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         }
 
         NodeOptions.Clear();
+        ClientNodeOptions.Clear();
         foreach (var nodeName in nodeNames)
         {
             NodeOptions.Add(nodeName);
+            ClientNodeOptions.Add(nodeName);
         }
+
+        EnsureSelectedClientNode();
     }
 
     private void EnsureSelectedNodeOptionVisible(string nodeName)
@@ -358,9 +540,10 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
         SyncSelectedRows();
         TunnelCountText = $"共 {TunnelRows.Count} 条记录";
+        RefreshLocalFrpcClientState();
     }
 
-    private async Task ApplyNodeRuntimeAsync(
+    private async Task ToggleTunnelEnabledStateAsync(
         TunnelProfile tunnel,
         FrpNexusStatus desiredStatus,
         CancellationToken cancellationToken)
@@ -369,60 +552,94 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
         if (node is null)
         {
             RuntimeStatusText = $"未找到关联节点 {tunnel.NodeName}，请先修正隧道关联节点。";
-            await SaveTunnelRuntimeStatusAsync(tunnel, FrpNexusStatus.Error, RuntimeStatusText, cancellationToken);
+            await SaveTunnelRuntimeStatusAsync(tunnel, FrpNexusStatus.Error, cancellationToken);
             return;
         }
 
         var enabledTunnels = BuildEnabledTunnelsForNode(tunnel, desiredStatus);
+        var snapshot = _localFrpcProcessService.GetNodeStatus(node.Name, LocalFrpcConfigPath);
 
         IsTunnelRuntimeBusy = true;
         RuntimeStatusText = desiredStatus == FrpNexusStatus.Running
-            ? $"正在应用节点 {node.Name} 的本地 frpc 配置。"
-            : $"正在停止隧道 {tunnel.Name} 并热重载节点 {node.Name}。";
+            ? $"正在启用隧道 {tunnel.Name}。"
+            : $"正在停用隧道 {tunnel.Name}。";
 
         try
         {
-            var result = enabledTunnels.Count == 0
-                ? await _localFrpcProcessService.StopNodeAsync(node.Name, cancellationToken)
-                : await _localFrpcProcessService.ApplyNodeTunnelsAsync(
-                    new LocalFrpcProcessRequest(node, enabledTunnels),
-                    cancellationToken);
+            var nextStatus = desiredStatus;
+            if (snapshot.Status == FrpNexusStatus.Running)
+            {
+                if (enabledTunnels.Count == 0)
+                {
+                    var stopResult = await _localFrpcProcessService.StopNodeAsync(node.Name, cancellationToken);
+                    RuntimeStatusText = $"已停用 {tunnel.Name}，该节点没有启用隧道，{stopResult.Message}";
+                    await SaveLocalFrpcRuntimeRecordAsync(
+                        node.Name,
+                        stopResult.Status,
+                        stopResult.Message,
+                        cancellationToken);
+                }
+                else
+                {
+                    var request = await CreateLocalFrpcProcessRequestAsync(node, enabledTunnels, cancellationToken);
+                    if (request is null)
+                    {
+                        nextStatus = tunnel.Status;
+                    }
+                    else
+                    {
+                        var result = await _localFrpcProcessService.ApplyNodeTunnelsAsync(
+                            request,
+                            cancellationToken);
+                        RuntimeStatusText = result.Status == FrpNexusStatus.Error
+                            ? result.Message
+                            : $"已更新节点 {node.Name} 的本地 frpc 配置。";
+                        await SaveLocalFrpcRuntimeRecordAsync(
+                            node.Name,
+                            result.Status,
+                            result.Message,
+                            cancellationToken);
+                        nextStatus = result.Status == FrpNexusStatus.Error
+                            ? FrpNexusStatus.Error
+                            : desiredStatus;
+                    }
+                }
+            }
+            else
+            {
+                RuntimeStatusText = desiredStatus == FrpNexusStatus.Running
+                    ? $"已启用 {tunnel.Name}。本地 frpc 尚未运行，请在上方启动节点 {node.Name} 的 frpc。"
+                    : $"已停用 {tunnel.Name}。本地 frpc 尚未运行。";
+            }
 
-            RuntimeStatusText = result.Message;
-            var nextStatus = result.Status == FrpNexusStatus.Error
-                ? FrpNexusStatus.Error
-                : desiredStatus;
-
-            await SaveTunnelRuntimeStatusAsync(tunnel, nextStatus, result.Message, cancellationToken);
+            await SaveTunnelRuntimeStatusAsync(tunnel, nextStatus, cancellationToken);
         }
         finally
         {
             IsTunnelRuntimeBusy = false;
+            await RefreshLocalFrpcStatusFromProcessAsync(cancellationToken);
         }
     }
 
     private async Task SaveTunnelRuntimeStatusAsync(
         TunnelProfile tunnel,
         FrpNexusStatus status,
-        string statusDetail,
         CancellationToken cancellationToken)
     {
         var updated = tunnel with
         {
-            Status = status,
-            StatusDetail = statusDetail
+            Status = status
         };
         await _tunnelManagementService.SaveTunnelAsync(updated, cancellationToken);
         await LoadTunnelsAsync(cancellationToken);
         SelectedTunnel = Tunnels.FirstOrDefault(item => item.Name == tunnel.Name);
+        EnsureSelectedClientNode();
+        RefreshLocalFrpcClientState();
     }
 
     private TunnelProfile ApplyLocalRuntimeStatus(TunnelProfile tunnel)
     {
-        var snapshot = _localFrpcProcessService.GetNodeStatus(tunnel.NodeName);
-        return snapshot.Status == FrpNexusStatus.Running && tunnel.Status == FrpNexusStatus.Running
-            ? tunnel with { Status = FrpNexusStatus.Running, StatusDetail = "本地 frpc 正在运行" }
-            : tunnel;
+        return tunnel;
     }
 
     private IReadOnlyList<TunnelProfile> BuildEnabledTunnelsForNode(TunnelProfile changedTunnel, FrpNexusStatus desiredStatus)
@@ -434,6 +651,412 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
                 : item)
             .Where(item => item.Status == FrpNexusStatus.Running)
             .ToArray();
+    }
+
+    private IReadOnlyList<TunnelProfile> GetEnabledTunnelsForNode(string nodeName)
+    {
+        return Tunnels
+            .Where(item => string.Equals(item.NodeName, nodeName, System.StringComparison.OrdinalIgnoreCase)
+                && item.Status == FrpNexusStatus.Running)
+            .ToArray();
+    }
+
+    private async Task ApplySelectedClientNodeFrpcAsync(bool requireRunningSession, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            RuntimeStatusText = "请先选择一个客户端节点。";
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        var node = await _nodeManagementService.GetNodeAsync(SelectedClientNodeName, cancellationToken);
+        if (node is null)
+        {
+            RuntimeStatusText = $"未找到节点 {SelectedClientNodeName}，请先修正客户端节点。";
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        var enabledTunnels = GetEnabledTunnelsForNode(node.Name);
+        if (enabledTunnels.Count == 0)
+        {
+            RuntimeStatusText = $"节点 {node.Name} 没有启用隧道，请先在表格中启用至少一条隧道。";
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        await RefreshLocalFrpcConfigurationAsync(cancellationToken);
+        var snapshot = _localFrpcProcessService.GetNodeStatus(node.Name, LocalFrpcConfigPath);
+        if (requireRunningSession && snapshot.Status != FrpNexusStatus.Running)
+        {
+            RuntimeStatusText = $"节点 {node.Name} 的本地 frpc 未运行，请先启动 frpc。";
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        IsTunnelRuntimeBusy = true;
+        RuntimeStatusText = requireRunningSession
+            ? $"正在重载节点 {node.Name} 的本地 frpc 配置。"
+            : $"正在启动节点 {node.Name} 的本地 frpc。";
+
+        try
+        {
+            var request = await CreateLocalFrpcProcessRequestAsync(node, enabledTunnels, cancellationToken);
+            if (request is null)
+            {
+                return;
+            }
+
+            var result = await _localFrpcProcessService.ApplyNodeTunnelsAsync(
+                request,
+                cancellationToken);
+            RuntimeStatusText = result.Message;
+            await SaveLocalFrpcRuntimeRecordAsync(
+                node.Name,
+                result.Status,
+                result.Message,
+                cancellationToken);
+        }
+        finally
+        {
+            IsTunnelRuntimeBusy = false;
+            await RefreshLocalFrpcStatusFromProcessAsync(cancellationToken);
+        }
+    }
+
+    private void EnsureSelectedClientNode()
+    {
+        if (!string.IsNullOrWhiteSpace(SelectedClientNodeName)
+            && ClientNodeOptions.Contains(SelectedClientNodeName, System.StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        SelectedClientNodeName = SelectedTunnel?.NodeName is { Length: > 0 } selectedNodeName
+            && ClientNodeOptions.Contains(selectedNodeName, System.StringComparer.OrdinalIgnoreCase)
+                ? selectedNodeName
+                : ClientNodeOptions.FirstOrDefault() ?? string.Empty;
+    }
+
+    private async Task RefreshLocalFrpcConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            LocalFrpcConfigPath = string.Empty;
+            LocalFrpcSuggestedConfigPath = string.Empty;
+            return;
+        }
+
+        var configuration = await _localFrpcConfigurationService.GetConfigurationAsync(
+            SelectedClientNodeName,
+            cancellationToken);
+        LocalFrpcBinaryPath = configuration.FrpcBinaryPath;
+        LocalFrpcConfigPath = configuration.FrpcConfigPath;
+        LocalFrpcSuggestedConfigPath = configuration.SuggestedFrpcConfigPath;
+    }
+
+    private void StartLocalFrpcStatusPolling()
+    {
+        if (_localFrpcStatusPollingTask is not null)
+        {
+            return;
+        }
+
+        _localFrpcStatusPollingTask = PollLocalFrpcStatusAsync(_localFrpcStatusPollingCancellation.Token);
+    }
+
+    private async Task PollLocalFrpcStatusAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(LocalFrpcStatusPollIntervalMilliseconds, cancellationToken);
+                await RefreshLocalFrpcStatusFromProcessAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    internal async Task RefreshLocalFrpcStatusFromProcessAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            RefreshLocalFrpcClientState();
+            return;
+        }
+
+        await RefreshLocalFrpcConfigurationAsync(cancellationToken);
+        var snapshot = _localFrpcProcessService.GetNodeStatus(SelectedClientNodeName, LocalFrpcConfigPath);
+        RefreshLocalFrpcClientState(snapshot);
+
+        if (snapshot.Status is FrpNexusStatus.Error or FrpNexusStatus.Warning)
+        {
+            RuntimeStatusText = snapshot.Message;
+            if (snapshot.Status == FrpNexusStatus.Error)
+            {
+                await SaveLocalFrpcRuntimeRecordAsync(
+                    SelectedClientNodeName,
+                    snapshot.Status,
+                    snapshot.Message,
+                    cancellationToken);
+            }
+        }
+    }
+
+    private async Task<LocalFrpcProcessRequest?> CreateLocalFrpcProcessRequestAsync(
+        NodeProfile node,
+        IReadOnlyList<TunnelProfile> enabledTunnels,
+        CancellationToken cancellationToken)
+    {
+        await RefreshLocalFrpcConfigurationAsync(cancellationToken);
+
+        if (!await ValidateEnabledTunnelsForLocalFrpcAsync(node.Name, enabledTunnels, cancellationToken))
+        {
+            return null;
+        }
+
+        var frpcBinaryPath = LocalFrpcBinaryPath.Trim();
+        if (!string.IsNullOrWhiteSpace(frpcBinaryPath) && !File.Exists(frpcBinaryPath))
+        {
+            RuntimeStatusText = "已选择的本地 frpc 核心文件不存在，请重新选择。";
+            await SaveLocalFrpcRuntimeRecordAsync(
+                node.Name,
+                FrpNexusStatus.Error,
+                RuntimeStatusText,
+                cancellationToken);
+            return null;
+        }
+
+        if (!IsCompatibleLocalFrpcBinaryPath(frpcBinaryPath, out var binaryErrorText))
+        {
+            RuntimeStatusText = binaryErrorText;
+            await SaveLocalFrpcRuntimeRecordAsync(
+                node.Name,
+                FrpNexusStatus.Error,
+                RuntimeStatusText,
+                cancellationToken);
+            return null;
+        }
+
+        var configPath = LocalFrpcConfigPath.Trim();
+        if (string.IsNullOrWhiteSpace(configPath))
+        {
+            RuntimeStatusText = "请先选择本地 frpc.toml 路径。";
+            await SaveLocalFrpcRuntimeRecordAsync(
+                node.Name,
+                FrpNexusStatus.Error,
+                RuntimeStatusText,
+                cancellationToken);
+            return null;
+        }
+
+        if (!CanWriteConfigPath(configPath, out var errorText))
+        {
+            RuntimeStatusText = errorText;
+            await SaveLocalFrpcRuntimeRecordAsync(
+                node.Name,
+                FrpNexusStatus.Error,
+                RuntimeStatusText,
+                cancellationToken);
+            return null;
+        }
+
+        return new LocalFrpcProcessRequest(node, enabledTunnels, frpcBinaryPath, configPath);
+    }
+
+    private async Task<bool> ValidateEnabledTunnelsForLocalFrpcAsync(
+        string nodeName,
+        IReadOnlyList<TunnelProfile> enabledTunnels,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            foreach (var tunnel in enabledTunnels)
+            {
+                FrpTunnelConfigurationValidator.ValidateTunnel(tunnel);
+            }
+
+            return true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            RuntimeStatusText = ex.Message;
+            await SaveLocalFrpcRuntimeRecordAsync(
+                nodeName,
+                FrpNexusStatus.Error,
+                RuntimeStatusText,
+                cancellationToken);
+            return false;
+        }
+    }
+
+    private async Task SaveLocalFrpcRuntimeRecordAsync(
+        string nodeName,
+        FrpNexusStatus status,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(nodeName))
+        {
+            return;
+        }
+
+        var snapshot = _localFrpcProcessService.GetNodeStatus(nodeName, LocalFrpcConfigPath);
+        var processId = status == FrpNexusStatus.Running && snapshot.ProcessId is not null
+            ? snapshot.ProcessId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : "-";
+        var uptime = status switch
+        {
+            FrpNexusStatus.Running => "运行中",
+            FrpNexusStatus.Stopped => "-",
+            _ => ShortenRuntimeMessage(message)
+        };
+
+        await _runtimeRecordService.SaveRuntimeProcessAsync(
+            new RuntimeProcess(
+                CreateLocalFrpcRuntimeProcessName(nodeName),
+                nodeName,
+                "frpc",
+                status,
+                processId,
+                uptime,
+                "-"),
+            cancellationToken);
+    }
+
+    private static string CreateLocalFrpcRuntimeProcessName(string nodeName)
+    {
+        return $"local-frpc:{nodeName}";
+    }
+
+    private static bool IsCompatibleLocalFrpcBinaryPath(string frpcBinaryPath, out string errorText)
+    {
+        errorText = string.Empty;
+        if (string.IsNullOrWhiteSpace(frpcBinaryPath))
+        {
+            return true;
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            && !string.Equals(Path.GetFileName(frpcBinaryPath), "frpc.exe", System.StringComparison.OrdinalIgnoreCase))
+        {
+            errorText = "当前系统需要选择 Windows 版 frpc.exe，请重新选择核心文件。";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string ShortenRuntimeMessage(string message)
+    {
+        var normalized = string.IsNullOrWhiteSpace(message)
+            ? "未返回详细错误。"
+            : message.Replace(System.Environment.NewLine, " ", System.StringComparison.Ordinal).Trim();
+
+        const int maxLength = 96;
+        return normalized.Length <= maxLength
+            ? normalized
+            : normalized[..maxLength] + "...";
+    }
+
+    private static bool CanWriteConfigPath(string configPath, out string errorText)
+    {
+        errorText = string.Empty;
+
+        try
+        {
+            var directory = Path.GetDirectoryName(configPath);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                errorText = "frpc.toml 路径必须包含本地目录。";
+                return false;
+            }
+
+            Directory.CreateDirectory(directory);
+            using var stream = new FileStream(
+                configPath,
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
+                FileShare.Read);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorText = $"frpc.toml 路径不可写：{ex.Message}";
+            return false;
+        }
+    }
+
+    private void RefreshLocalFrpcClientState()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
+        {
+            LocalFrpcStatusText = "请选择节点";
+            LocalFrpcEnabledTunnelCountText = "启用隧道 0 条";
+            _isLocalFrpcManagedRunning = false;
+            SetLocalFrpcStatusClasses(FrpNexusStatus.Stopped);
+            RefreshLocalFrpcToggleButtonText();
+            return;
+        }
+
+        var enabledCount = GetEnabledTunnelsForNode(SelectedClientNodeName).Count;
+        var snapshot = _localFrpcProcessService.GetNodeStatus(SelectedClientNodeName, LocalFrpcConfigPath);
+        _isLocalFrpcManagedRunning = snapshot.Status == FrpNexusStatus.Running && snapshot.IsManaged;
+        LocalFrpcStatusText = snapshot.Status switch
+        {
+            FrpNexusStatus.Running => "运行中",
+            FrpNexusStatus.Error => "异常",
+            FrpNexusStatus.Warning => snapshot.IsManaged ? "警告" : "未接管",
+            _ => "未运行"
+        };
+        LocalFrpcEnabledTunnelCountText = $"启用隧道 {enabledCount} 条";
+        SetLocalFrpcStatusClasses(snapshot.Status);
+        RefreshLocalFrpcToggleButtonText();
+    }
+
+    private void RefreshLocalFrpcClientState(LocalFrpcProcessSnapshot snapshot)
+    {
+        var enabledCount = string.IsNullOrWhiteSpace(SelectedClientNodeName)
+            ? 0
+            : GetEnabledTunnelsForNode(SelectedClientNodeName).Count;
+        _isLocalFrpcManagedRunning = snapshot.Status == FrpNexusStatus.Running && snapshot.IsManaged;
+        LocalFrpcStatusText = snapshot.Status switch
+        {
+            FrpNexusStatus.Running => "运行中",
+            FrpNexusStatus.Error => "异常",
+            FrpNexusStatus.Warning => snapshot.IsManaged ? "警告" : "未接管",
+            _ => "未运行"
+        };
+        LocalFrpcEnabledTunnelCountText = $"启用隧道 {enabledCount} 条";
+        SetLocalFrpcStatusClasses(snapshot.Status);
+        RefreshLocalFrpcToggleButtonText();
+    }
+
+    private void SetLocalFrpcStatusClasses(FrpNexusStatus status)
+    {
+        IsLocalFrpcSuccess = status == FrpNexusStatus.Running;
+        IsLocalFrpcWarning = status == FrpNexusStatus.Warning;
+        IsLocalFrpcError = status == FrpNexusStatus.Error;
+        IsLocalFrpcNeutral = !IsLocalFrpcSuccess && !IsLocalFrpcWarning && !IsLocalFrpcError;
+    }
+
+    partial void OnIsTunnelRuntimeBusyChanged(bool value)
+    {
+        RefreshLocalFrpcToggleButtonText();
+    }
+
+    private void RefreshLocalFrpcToggleButtonText()
+    {
+        LocalFrpcToggleButtonText = IsTunnelRuntimeBusy
+            ? "处理中..."
+            : _isLocalFrpcManagedRunning
+                ? "停止 frpc"
+                : "启动 frpc";
     }
 
     private void SyncSelectedRows()
@@ -502,7 +1125,17 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
             localPort,
             FormRemoteEndpoint.Trim(),
             FrpNexusStatus.Stopped,
-            ValueOrDefault(FormStatusDetail, DefaultStatusDetail));
+            FormRemark.Trim());
+
+        try
+        {
+            FrpTunnelConfigurationValidator.ValidateTunnel(tunnel);
+        }
+        catch (InvalidOperationException ex)
+        {
+            FormErrorText = ex.Message;
+            return false;
+        }
 
         return true;
     }
@@ -543,16 +1176,12 @@ public sealed partial class TunnelListItemViewModel : ObservableObject
 
     public string StatusText => Tunnel.Status switch
     {
-        FrpNexusStatus.Running => "运行中",
-        FrpNexusStatus.Stopped => "已停止",
+        FrpNexusStatus.Running => "已启用",
+        FrpNexusStatus.Stopped => "已停用",
         FrpNexusStatus.Error => "异常",
         FrpNexusStatus.Warning => "警告",
-        _ => Tunnel.StatusDetail
+        _ => "未刷新"
     };
-
-    public string StatusDetail => Tunnel.StatusDetail;
-
-    public bool HasStatusDetail => Tunnel.Status == FrpNexusStatus.Error && !string.IsNullOrWhiteSpace(Tunnel.StatusDetail);
 
     public bool IsStatusSuccess => Tunnel.Status == FrpNexusStatus.Running;
 
@@ -564,16 +1193,16 @@ public sealed partial class TunnelListItemViewModel : ObservableObject
 
     public string RuntimeActionIcon => Tunnel.Status switch
     {
-        FrpNexusStatus.Running => "stop_circle",
-        FrpNexusStatus.Stopped => "play_circle",
+        FrpNexusStatus.Running => "toggle_off",
+        FrpNexusStatus.Stopped => "toggle_on",
         FrpNexusStatus.Error => "refresh",
         _ => "refresh"
     };
 
     public string RuntimeActionLabel => Tunnel.Status switch
     {
-        FrpNexusStatus.Running => "停止",
-        FrpNexusStatus.Stopped => "启动",
+        FrpNexusStatus.Running => "停用",
+        FrpNexusStatus.Stopped => "启用",
         FrpNexusStatus.Error => "重试",
         _ => "刷新"
     };

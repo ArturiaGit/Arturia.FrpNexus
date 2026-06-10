@@ -16,7 +16,6 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class ConfigurationsPageViewModel : PageViewModel
 {
-    private const int DefaultWebServerPort = 7400;
     private const string DefaultServerBindPort = "7000";
     private const string DefaultServerConfigPath = "/opt/frp/frps.toml";
 
@@ -199,7 +198,7 @@ public sealed partial class ConfigurationsPageViewModel : PageViewModel
 
         try
         {
-            TomlPreview = _tomlConfigurationService.GenerateClientToml(node, tunnels, DefaultWebServerPort);
+            TomlPreview = _tomlConfigurationService.GenerateClientToml(node, tunnels);
             ErrorText = string.Empty;
             StatusText = $"已生成 {node.Name} 的本地 frpc.toml 预览，包含 {tunnels.Count} 条隧道。";
         }

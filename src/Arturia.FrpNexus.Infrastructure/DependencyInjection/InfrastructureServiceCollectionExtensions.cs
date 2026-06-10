@@ -25,6 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
         services.AddSingleton<ISqliteDatabaseInitializer, SqliteDatabaseInitializer>();
         services.AddSingleton<ISettingsService, SqliteSettingsService>();
+        services.AddSingleton<ILocalFrpcConfigurationService, SqliteLocalFrpcConfigurationService>();
         services.AddSingleton<INodeManagementService, SqliteNodeManagementService>();
         services.AddSingleton<ITunnelManagementService, SqliteTunnelManagementService>();
         services.AddSingleton<IConfigurationVersionService, SqliteConfigurationVersionService>();

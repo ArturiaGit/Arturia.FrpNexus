@@ -50,6 +50,67 @@ public sealed class TomlConfigurationServiceTests
     }
 
     [Fact]
+    public void GenerateProxyToml_WhenTcpRemotePortConflictsWithServerPort_ShouldThrow()
+    {
+        var service = new TomlConfigurationService();
+        var preview = new ConfigurationPreview(
+            "bad_tcp",
+            TunnelProtocol.Tcp,
+            "127.0.0.1",
+            25565,
+            "7000",
+            string.Empty);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.GenerateProxyToml(preview));
+
+        Assert.Contains("远程端口 7000 与 frps 服务端口冲突", exception.Message);
+    }
+
+    [Fact]
+    public void GenerateClientToml_WhenTcpRemotePortIsAllowed_ShouldWriteRemotePort()
+    {
+        var service = new TomlConfigurationService();
+        var node = new NodeProfile(
+            "GameNode",
+            "193.134.209.90",
+            22,
+            "root",
+            "会话密码",
+            "Ubuntu",
+            FrpNexusStatus.Offline,
+            FrpNexusStatus.Stopped,
+            "-",
+            "-",
+            "/etc/frp/frps.toml");
+
+        var toml = service.GenerateClientToml(node,
+        [
+            new("我的世界", TunnelProtocol.Tcp, node.Name, "127.0.0.1", 25565, "25565", FrpNexusStatus.Running, string.Empty)
+        ]);
+
+        Assert.Contains("serverPort = 7000", toml);
+        Assert.Contains("localPort = 25565", toml);
+        Assert.Contains("remotePort = 25565", toml);
+    }
+
+    [Fact]
+    public void GenerateProxyToml_WhenHttpEndpointIsNumeric_ShouldThrow()
+    {
+        var service = new TomlConfigurationService();
+        var preview = new ConfigurationPreview(
+            "bad_http",
+            TunnelProtocol.Http,
+            "127.0.0.1",
+            8080,
+            "7000",
+            string.Empty);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.GenerateProxyToml(preview));
+
+        Assert.Contains("HTTP/HTTPS 隧道需要填写域名", exception.Message);
+    }
+
+    [Fact]
     public async Task ValidateAsync_ShouldAcceptGeneratedToml()
     {
         var service = new TomlConfigurationService();
@@ -89,7 +150,7 @@ public sealed class TomlConfigurationServiceTests
 
         var exception = Assert.Throws<InvalidOperationException>(() => service.GenerateProxyToml(preview));
 
-        Assert.Equal("TCP/UDP 隧道的远程端点必须是 1 到 65535 之间的远程端口。", exception.Message);
+        Assert.Equal("TCP/UDP 隧道的远程端口必须是 1 到 65535 之间的数字。", exception.Message);
     }
     [Fact]
     public void GenerateServerToml_ShouldGenerateBindPort()

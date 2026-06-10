@@ -8,4 +8,4 @@ public sealed record TunnelProfile(
     int LocalPort,
     string RemoteEndpoint,
     FrpNexusStatus Status,
-    string StatusDetail);
+    string Remark);

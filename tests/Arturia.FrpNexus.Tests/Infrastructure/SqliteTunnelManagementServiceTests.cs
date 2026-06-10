@@ -1,6 +1,7 @@
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 using Arturia.FrpNexus.Infrastructure.Tunnels;
+using Microsoft.Data.Sqlite;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
 
@@ -26,6 +27,42 @@ public sealed class SqliteTunnelManagementServiceTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ShouldCreateRemarkColumnWithoutStatusDetail()
+    {
+        var pathProvider = new TestDatabasePathProvider();
+        var connectionFactory = new SqliteConnectionFactory(pathProvider);
+        var initializer = new SqliteDatabaseInitializer(connectionFactory);
+
+        await initializer.InitializeAsync();
+
+        var columns = await ReadColumnsAsync(connectionFactory);
+
+        Assert.Contains("remark", columns);
+        Assert.DoesNotContain("status_detail", columns);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldMigrateLegacyStatusDetailToEmptyRemark()
+    {
+        var pathProvider = new TestDatabasePathProvider();
+        var connectionFactory = new SqliteConnectionFactory(pathProvider);
+        await CreateLegacyTunnelTableAsync(connectionFactory);
+        var initializer = new SqliteDatabaseInitializer(connectionFactory);
+
+        await initializer.InitializeAsync();
+
+        var columns = await ReadColumnsAsync(connectionFactory);
+        var service = new SqliteTunnelManagementService(connectionFactory, initializer);
+        var tunnel = await service.GetTunnelAsync("legacy-web");
+
+        Assert.Contains("remark", columns);
+        Assert.DoesNotContain("status_detail", columns);
+        Assert.NotNull(tunnel);
+        Assert.Equal(string.Empty, tunnel.Remark);
+        Assert.Equal(FrpNexusStatus.Error, tunnel.Status);
+    }
+
+    [Fact]
     public async Task SaveTunnelAsync_ShouldPersistAndReadTunnel()
     {
         var service = CreateService();
@@ -39,6 +76,7 @@ public sealed class SqliteTunnelManagementServiceTests
         Assert.Equal(expected, actual);
         Assert.Single(tunnels);
         Assert.Equal(expected, tunnels[0]);
+        Assert.Equal("长期备注", tunnels[0].Remark);
     }
 
     [Fact]
@@ -98,7 +136,65 @@ public sealed class SqliteTunnelManagementServiceTests
             protocol == TunnelProtocol.Tcp ? 22 : 8080,
             protocol is TunnelProtocol.Http or TunnelProtocol.Https ? "dev.example.com" : "60022",
             FrpNexusStatus.Running,
-            "运行中");
+            "长期备注");
+    }
+
+    private static async Task<IReadOnlyList<string>> ReadColumnsAsync(SqliteConnectionFactory connectionFactory)
+    {
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info(tunnels);";
+
+        var columns = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            columns.Add(reader.GetString(1));
+        }
+
+        return columns;
+    }
+
+    private static async Task CreateLegacyTunnelTableAsync(SqliteConnectionFactory connectionFactory)
+    {
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE tunnels (
+                name TEXT PRIMARY KEY NOT NULL,
+                protocol TEXT NOT NULL,
+                node_name TEXT NOT NULL,
+                local_address TEXT NOT NULL,
+                local_port INTEGER NOT NULL,
+                remote_endpoint TEXT NOT NULL,
+                status TEXT NOT NULL,
+                status_detail TEXT NOT NULL
+            );
+
+            INSERT INTO tunnels (
+                name,
+                protocol,
+                node_name,
+                local_address,
+                local_port,
+                remote_endpoint,
+                status,
+                status_detail
+            )
+            VALUES (
+                'legacy-web',
+                'Http',
+                'Node-Alpha-HK',
+                '127.0.0.1',
+                8080,
+                'legacy.example.com',
+                'Error',
+                '端口占用'
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
     }
 
     private sealed class TestDatabasePathProvider : IFrpNexusDatabasePathProvider

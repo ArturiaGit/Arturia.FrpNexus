@@ -75,12 +75,65 @@ public sealed class SqliteSettingsServiceTests
         Assert.DoesNotContain(properties, property => property.Contains("PrivateKey", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task LocalFrpcConfiguration_ShouldPersistGlobalBinaryPath()
+    {
+        var pathProvider = new TestDatabasePathProvider();
+        var service = CreateLocalFrpcConfigurationService(pathProvider);
+        var expected = @"D:\frp\frpc.exe";
+
+        await service.SaveFrpcBinaryPathAsync(expected);
+        var actual = await service.GetConfigurationAsync("Node-Alpha-HK");
+
+        Assert.Equal(expected, actual.FrpcBinaryPath);
+    }
+
+    [Fact]
+    public async Task LocalFrpcConfiguration_ShouldPersistNodeConfigPath()
+    {
+        var pathProvider = new TestDatabasePathProvider();
+        var service = CreateLocalFrpcConfigurationService(pathProvider);
+        var alphaPath = @"D:\frp\alpha.frpc.toml";
+        var betaPath = @"D:\frp\beta.frpc.toml";
+
+        await service.SaveNodeConfigPathAsync("Node-Alpha-HK", alphaPath);
+        await service.SaveNodeConfigPathAsync("Node-Beta-SG", betaPath);
+
+        var alpha = await service.GetConfigurationAsync("Node-Alpha-HK");
+        var beta = await service.GetConfigurationAsync("Node-Beta-SG");
+
+        Assert.Equal(alphaPath, alpha.FrpcConfigPath);
+        Assert.Equal(betaPath, beta.FrpcConfigPath);
+        Assert.NotEqual(alpha.FrpcConfigPath, beta.FrpcConfigPath);
+    }
+
+    [Fact]
+    public async Task LocalFrpcConfiguration_ShouldReturnSuggestedConfigPathWhenNodePathMissing()
+    {
+        var pathProvider = new TestDatabasePathProvider();
+        var service = CreateLocalFrpcConfigurationService(pathProvider);
+
+        var snapshot = await service.GetConfigurationAsync("Node Alpha/HK");
+
+        Assert.Equal(snapshot.SuggestedFrpcConfigPath, snapshot.FrpcConfigPath);
+        Assert.Contains(Path.Combine("Arturia", "FrpNexus", "configs", "frpc"), snapshot.SuggestedFrpcConfigPath);
+        Assert.EndsWith("Node Alpha_HK.frpc.toml", snapshot.SuggestedFrpcConfigPath);
+    }
+
     private static SqliteSettingsService CreateService(TestDatabasePathProvider pathProvider)
     {
         var connectionFactory = new SqliteConnectionFactory(pathProvider);
         var initializer = new SqliteDatabaseInitializer(connectionFactory);
 
         return new SqliteSettingsService(connectionFactory, initializer, pathProvider);
+    }
+
+    private static SqliteLocalFrpcConfigurationService CreateLocalFrpcConfigurationService(TestDatabasePathProvider pathProvider)
+    {
+        var connectionFactory = new SqliteConnectionFactory(pathProvider);
+        var initializer = new SqliteDatabaseInitializer(connectionFactory);
+
+        return new SqliteLocalFrpcConfigurationService(connectionFactory, initializer);
     }
 
     private sealed class TestDatabasePathProvider : IFrpNexusDatabasePathProvider

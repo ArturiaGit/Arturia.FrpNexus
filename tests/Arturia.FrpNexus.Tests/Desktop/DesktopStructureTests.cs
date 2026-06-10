@@ -134,6 +134,79 @@ public sealed class DesktopStructureTests
         Assert.Contains("Command=\"{Binding CloseCommand}\"", dialogXaml);
     }
 
+    [Fact]
+    public void TunnelsPageEditor_ShouldUseRemarkInsteadOfEditableStatusDetail()
+    {
+        var tunnelsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "TunnelsPageView.axaml"));
+
+        Assert.Contains("Text=\"备注\"", tunnelsXaml);
+        Assert.Contains("Text=\"{Binding FormRemark}\"", tunnelsXaml);
+        Assert.DoesNotContain("状态说明", tunnelsXaml);
+        Assert.DoesNotContain("FormStatusDetail", tunnelsXaml);
+        Assert.DoesNotContain("StatusDetail", tunnelsXaml);
+    }
+
+    [Fact]
+    public void TunnelsPage_ShouldExposeNodeLevelLocalFrpcControls()
+    {
+        var tunnelsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "TunnelsPageView.axaml"));
+
+        Assert.Contains("Text=\"本地 frpc\"", tunnelsXaml);
+        Assert.Contains("ClientNodeOptions", tunnelsXaml);
+        Assert.Contains("LocalFrpcStatusText", tunnelsXaml);
+        Assert.Contains("LocalFrpcEnabledTunnelCountText", tunnelsXaml);
+        Assert.DoesNotContain("LocalFrpcManagementPortInput", tunnelsXaml);
+        Assert.DoesNotContain("LocalFrpcSuggestedManagementPortText", tunnelsXaml);
+        Assert.DoesNotContain("LocalFrpcManagementPortText", tunnelsXaml);
+        Assert.DoesNotContain("管理端口", tunnelsXaml);
+        Assert.Contains("LocalFrpcBinaryPath", tunnelsXaml);
+        Assert.Contains("LocalFrpcConfigPath", tunnelsXaml);
+        Assert.Contains("SelectLocalFrpcBinaryCommand", tunnelsXaml);
+        Assert.Contains("SelectLocalFrpcConfigCommand", tunnelsXaml);
+        Assert.Contains("ToggleLocalFrpcCommand", tunnelsXaml);
+        Assert.Contains("LocalFrpcToggleButtonText", tunnelsXaml);
+        Assert.DoesNotContain("StartLocalFrpcCommand", tunnelsXaml);
+        Assert.DoesNotContain("StopLocalFrpcCommand", tunnelsXaml);
+        Assert.Contains("ReloadLocalFrpcCommand", tunnelsXaml);
+        Assert.Contains("Content=\"{Binding LocalFrpcToggleButtonText}\"", tunnelsXaml);
+        Assert.DoesNotContain("Content=\"启动 frpc\"", tunnelsXaml);
+        Assert.DoesNotContain("Content=\"停止 frpc\"", tunnelsXaml);
+        Assert.Contains("Content=\"重载配置\"", tunnelsXaml);
+        Assert.Contains("Content=\"选择核心\"", tunnelsXaml);
+        Assert.Contains("Content=\"选择配置\"", tunnelsXaml);
+        Assert.Contains("ToggleTunnelEnabledCommand", tunnelsXaml);
+        Assert.DoesNotContain("ToggleTunnelRuntimeCommand", tunnelsXaml);
+    }
+
+    [Fact]
+    public void NodesPage_ShouldKeepRuntimeCopyFocusedOnRemoteFrps()
+    {
+        var nodesXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "NodesPageView.axaml"));
+
+        Assert.Contains("Text=\"远程 frps\"", nodesXaml);
+        Assert.Contains("Text=\"远程 frps 运行\"", nodesXaml);
+        Assert.Contains("Label=\"frps 状态\"", nodesXaml);
+        Assert.DoesNotContain("启动 frpc", nodesXaml);
+        Assert.DoesNotContain("停止 frpc", nodesXaml);
+        Assert.DoesNotContain("重载配置", nodesXaml);
+        Assert.DoesNotContain("选择核心", nodesXaml);
+        Assert.DoesNotContain("选择配置", nodesXaml);
+        Assert.DoesNotContain("LocalFrpcBinaryPath", nodesXaml);
+        Assert.DoesNotContain("LocalFrpcConfigPath", nodesXaml);
+    }
+
     private static string GetDesktopProjectPath()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

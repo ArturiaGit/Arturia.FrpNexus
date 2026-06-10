@@ -46,7 +46,13 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<INodeCredentialSecretService>(),
             sp.GetRequiredService<IDeploymentRecordService>(),
             sp.GetRequiredService<INodeConnectionWorkflowDialogService>()));
-        services.AddTransient<TunnelsPageViewModel>();
+        services.AddTransient(sp => new TunnelsPageViewModel(
+            sp.GetRequiredService<ITunnelManagementService>(),
+            sp.GetRequiredService<INodeManagementService>(),
+            sp.GetRequiredService<ILocalFrpcProcessService>(),
+            sp.GetRequiredService<ILocalFrpcConfigurationService>(),
+            sp.GetRequiredService<IRuntimeRecordService>(),
+            sp.GetRequiredService<IFilePickerService>()));
         services.AddTransient<ConfigurationsPageViewModel>();
         services.AddTransient<RuntimePageViewModel>();
         services.AddTransient<LogsPageViewModel>();

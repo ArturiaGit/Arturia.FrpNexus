@@ -42,7 +42,7 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
                 local_port INTEGER NOT NULL,
                 remote_endpoint TEXT NOT NULL,
                 status TEXT NOT NULL,
-                status_detail TEXT NOT NULL
+                remark TEXT NOT NULL DEFAULT ''
             );
 
             CREATE TABLE IF NOT EXISTS configuration_versions (
@@ -82,6 +82,8 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
             "last_connection_tested_at",
             "ALTER TABLE nodes ADD COLUMN last_connection_tested_at TEXT NULL;",
             cancellationToken);
+
+        await RebuildLegacyTunnelsTableAsync(connection, cancellationToken);
     }
 
     private static async Task EnsureColumnAsync(
@@ -106,5 +108,79 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
         await using var alterCommand = connection.CreateCommand();
         alterCommand.CommandText = alterStatement;
         await alterCommand.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task RebuildLegacyTunnelsTableAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var columns = await ReadTableColumnsAsync(connection, "tunnels", cancellationToken);
+        var hasStatusDetail = columns.Contains("status_detail");
+        var hasRemark = columns.Contains("remark");
+
+        if (!hasStatusDetail && hasRemark)
+        {
+            return;
+        }
+
+        var remarkSelectExpression = hasRemark
+            ? "COALESCE(remark, '')"
+            : "''";
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = $$"""
+            CREATE TABLE tunnels_new (
+                name TEXT PRIMARY KEY NOT NULL,
+                protocol TEXT NOT NULL,
+                node_name TEXT NOT NULL,
+                local_address TEXT NOT NULL,
+                local_port INTEGER NOT NULL,
+                remote_endpoint TEXT NOT NULL,
+                status TEXT NOT NULL,
+                remark TEXT NOT NULL DEFAULT ''
+            );
+
+            INSERT INTO tunnels_new (
+                name,
+                protocol,
+                node_name,
+                local_address,
+                local_port,
+                remote_endpoint,
+                status,
+                remark
+            )
+            SELECT name,
+                   protocol,
+                   node_name,
+                   local_address,
+                   local_port,
+                   remote_endpoint,
+                   status,
+                   {{remarkSelectExpression}}
+            FROM tunnels;
+
+            DROP TABLE tunnels;
+            ALTER TABLE tunnels_new RENAME TO tunnels;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<HashSet<string>> ReadTableColumnsAsync(
+        Microsoft.Data.Sqlite.SqliteConnection connection,
+        string tableName,
+        CancellationToken cancellationToken)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info({tableName});";
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            columns.Add(reader.GetString(1));
+        }
+
+        return columns;
     }
 }
