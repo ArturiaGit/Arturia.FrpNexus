@@ -551,7 +551,7 @@ public sealed class MainWindowViewModelTests
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
     {
-        return new SettingsPageViewModel(new FakeSettingsService(), new FakeThemeService());
+        return new SettingsPageViewModel(new FakeSettingsService());
     }
 
     private static NodeProfile CreateNode(string name, string configPath)
@@ -573,8 +573,6 @@ public sealed class MainWindowViewModelTests
     private sealed class FakeSettingsService : ISettingsService
     {
         private readonly FrpNexusSettingsSnapshot _settings = new(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\configs",
@@ -589,18 +587,6 @@ public sealed class MainWindowViewModelTests
         public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeThemeService : IThemeService
-    {
-        public Task InitializeAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void ApplyTheme(string theme)
-        {
         }
     }
 

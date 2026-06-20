@@ -8,8 +8,6 @@ public sealed class SqliteSettingsService(
     ISqliteDatabaseInitializer databaseInitializer,
     IFrpNexusDatabasePathProvider databasePathProvider) : ISettingsService
 {
-    private const string ThemeKey = "theme";
-    private const string LanguageKey = "language";
     private const string FrpDownloadSourceKey = "frp_download_source";
     private const string CoreDirectoryKey = "core_directory";
     private const string ConfigDirectoryKey = "config_directory";
@@ -37,8 +35,6 @@ public sealed class SqliteSettingsService(
 
         return defaults with
         {
-            Theme = GetValue(values, ThemeKey, defaults.Theme),
-            Language = GetValue(values, LanguageKey, defaults.Language),
             FrpDownloadSource = GetValue(values, FrpDownloadSourceKey, defaults.FrpDownloadSource),
             CoreDirectory = GetValue(values, CoreDirectoryKey, defaults.CoreDirectory),
             ConfigDirectory = GetValue(values, ConfigDirectoryKey, defaults.ConfigDirectory),
@@ -56,8 +52,6 @@ public sealed class SqliteSettingsService(
 
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        await UpsertAsync(connection, ThemeKey, settings.Theme, cancellationToken);
-        await UpsertAsync(connection, LanguageKey, settings.Language, cancellationToken);
         await UpsertAsync(connection, FrpDownloadSourceKey, settings.FrpDownloadSource, cancellationToken);
         await UpsertAsync(connection, CoreDirectoryKey, settings.CoreDirectory, cancellationToken);
         await UpsertAsync(connection, ConfigDirectoryKey, settings.ConfigDirectory, cancellationToken);
@@ -72,8 +66,6 @@ public sealed class SqliteSettingsService(
         var root = Path.Combine(localAppData, "Arturia", "FrpNexus");
 
         return new FrpNexusSettingsSnapshot(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
             Path.Combine(root, "core"),
             Path.Combine(root, "configs"),

@@ -25,8 +25,6 @@ public sealed class SqliteSettingsServiceTests
 
         var settings = await service.GetSettingsAsync();
 
-        Assert.Equal("Light", settings.Theme);
-        Assert.Equal("zh-CN", settings.Language);
         Assert.Equal("GitHub Releases", settings.FrpDownloadSource);
         Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "core"), settings.CoreDirectory);
         Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "configs"), settings.ConfigDirectory);
@@ -40,8 +38,6 @@ public sealed class SqliteSettingsServiceTests
         var pathProvider = new TestDatabasePathProvider();
         var service = CreateService(pathProvider);
         var expected = new FrpNexusSettingsSnapshot(
-            "Dark",
-            "zh-CN",
             "GHProxy",
             @"D:\FrpNexus\core",
             @"D:\FrpNexus\configs",
@@ -52,8 +48,6 @@ public sealed class SqliteSettingsServiceTests
 
         var actual = await service.GetSettingsAsync();
 
-        Assert.Equal(expected.Theme, actual.Theme);
-        Assert.Equal(expected.Language, actual.Language);
         Assert.Equal(expected.FrpDownloadSource, actual.FrpDownloadSource);
         Assert.Equal(expected.CoreDirectory, actual.CoreDirectory);
         Assert.Equal(expected.ConfigDirectory, actual.ConfigDirectory);
@@ -73,6 +67,8 @@ public sealed class SqliteSettingsServiceTests
         Assert.DoesNotContain(properties, property => property.Contains("Password", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("PrivateKey", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(properties, property => property.Contains("Theme", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(properties, property => property.Contains("Language", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

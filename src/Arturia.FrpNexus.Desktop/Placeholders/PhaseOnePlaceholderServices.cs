@@ -280,8 +280,6 @@ public sealed class PhaseOneSettingsService : ISettingsService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var settings = new FrpNexusSettingsSnapshot(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
             "%LocalAppData%\\Arturia\\FrpNexus\\core",
             "%LocalAppData%\\Arturia\\FrpNexus\\configs",
