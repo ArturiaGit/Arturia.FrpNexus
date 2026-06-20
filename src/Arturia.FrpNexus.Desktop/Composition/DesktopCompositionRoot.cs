@@ -26,11 +26,13 @@ public static class DesktopCompositionRoot
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IRemoteDirectoryPickerService, AvaloniaRemoteDirectoryPickerService>();
         services.AddSingleton<INodeConnectionWorkflowDialogService, AvaloniaNodeConnectionWorkflowDialogService>();
+        services.AddSingleton<ILocalApplicationLogService, LocalApplicationLogService>();
         services.AddSingleton<INavigationRequestService, NavigationRequestService>();
         services.AddSingleton<IModalOverlayService, ModalOverlayService>();
         services.AddSingleton<IModalDialogHostService, ModalDialogHostService>();
         services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
         services.AddSingleton<IFrpLifecycleStateService, FrpLifecycleStateService>();
+        services.AddSingleton<IRemoteFrpsRetentionService, RemoteFrpsRetentionService>();
 
         services.AddSingleton<MainWindow>();
         services.AddSingleton(sp => new MainWindowViewModel(
@@ -43,14 +45,28 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<SettingsPageViewModel>(),
             sp.GetRequiredService<INavigationRequestService>(),
             sp.GetRequiredService<INodeConnectionSessionService>(),
+            sp.GetRequiredService<INodeManagementService>(),
+            sp.GetRequiredService<IRemoteRuntimeService>(),
             sp.GetRequiredService<ILocalFrpcProcessService>(),
             sp.GetRequiredService<IFrpLifecycleStateService>(),
+            sp.GetRequiredService<IRemoteFrpsRetentionService>(),
             sp.GetRequiredService<IConfirmationDialogService>(),
             sp.GetRequiredService<IModalOverlayService>(),
             sp.GetRequiredService<IModalDialogHostService>()));
 
         services.AddSingleton<ITomlConfigurationService, TomlConfigurationService>();
-        services.AddTransient<DashboardPageViewModel>();
+        services.AddTransient(sp => new DashboardPageViewModel(
+            sp.GetRequiredService<INodeManagementService>(),
+            sp.GetRequiredService<ITunnelManagementService>(),
+            sp.GetRequiredService<IRuntimeRecordService>(),
+            sp.GetRequiredService<IDeploymentRecordService>(),
+            sp.GetRequiredService<INodeConnectionSessionService>(),
+            sp.GetRequiredService<ILocalFrpcProcessService>(),
+            sp.GetRequiredService<IFrpLifecycleStateService>(),
+            sp.GetRequiredService<INavigationRequestService>(),
+            sp.GetRequiredService<ILocalApplicationLogService>(),
+            sp.GetRequiredService<IRemoteLogService>(),
+            sp.GetRequiredService<IRemoteRuntimeService>()));
         services.AddTransient(sp => new NodesPageViewModel(
             sp.GetRequiredService<INodeManagementService>(),
             sp.GetRequiredService<INodeConnectionSessionService>(),
@@ -63,7 +79,8 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<IDeploymentRecordService>(),
             sp.GetRequiredService<INodeConnectionWorkflowDialogService>(),
             sp.GetRequiredService<IConfirmationDialogService>(),
-            sp.GetRequiredService<IFrpLifecycleStateService>()));
+            sp.GetRequiredService<IFrpLifecycleStateService>(),
+            sp.GetRequiredService<IRemoteFrpsRetentionService>()));
         services.AddTransient(sp => new TunnelsPageViewModel(
             sp.GetRequiredService<ITunnelManagementService>(),
             sp.GetRequiredService<INodeManagementService>(),
@@ -73,7 +90,12 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<IFilePickerService>()));
         services.AddTransient<ConfigurationsPageViewModel>();
         services.AddTransient<RuntimePageViewModel>();
-        services.AddTransient<LogsPageViewModel>();
+        services.AddTransient(sp => new LogsPageViewModel(
+            sp.GetRequiredService<INodeManagementService>(),
+            sp.GetRequiredService<IRemoteLogService>(),
+            sp.GetRequiredService<ILocalApplicationLogService>(),
+            sp.GetRequiredService<INodeConnectionSessionService>(),
+            sp.GetRequiredService<IRemoteRuntimeService>()));
         services.AddTransient<SettingsPageViewModel>();
 
         return services.BuildServiceProvider(validateScopes: true);

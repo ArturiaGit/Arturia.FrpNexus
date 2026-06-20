@@ -43,6 +43,201 @@ public sealed class NodesPageInlineConnectionTests
     }
 
     [Fact]
+    public async Task ToggleNodeConnectionCommand_ShouldRefreshRemoteFrpsRuntimeAfterRowConnectionWithoutSelectingRow()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess(
+                    "frps-1920916",
+                    node.Name,
+                    "frps",
+                    FrpNexusStatus.Running,
+                    "1920916",
+                    "00:08",
+                    "-",
+                    "/opt/frp/frps -c /opt/frp/frps.toml")
+            ]
+        };
+        var dialogService = new FakeNodeConnectionWorkflowDialogService
+        {
+            Result = new NodeConnectionWorkflowResult(node.Name, true, true, false),
+            OnShowAsync = async shownNode =>
+            {
+                await sessionService.ConnectAsync(
+                    shownNode,
+                    new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+            }
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            dialogService,
+            remoteRuntimeService: runtimeService);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+
+        Assert.Null(viewModel.SelectedNode);
+        Assert.False(viewModel.NodeRows.Single().IsSelected);
+        Assert.Equal("运行中", viewModel.NodeRows.Single().FrpServiceText);
+        Assert.Equal(1, runtimeService.GetProcessesRequestCount);
+    }
+
+    [Fact]
+    public async Task ToggleNodeConnectionCommand_ReadyDeploymentResult_ShouldReusePresenceWhenSelectingNode()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess(
+                    "frps-1920916",
+                    node.Name,
+                    "frps",
+                    FrpNexusStatus.Running,
+                    "1920916",
+                    "00:08",
+                    "-",
+                    "/opt/frp/frps -c /opt/frp/frps.toml")
+            ]
+        };
+        var fileTransferService = new FakeRemoteFileTransferService();
+        var dialogService = new FakeNodeConnectionWorkflowDialogService
+        {
+            Result = new NodeConnectionWorkflowResult(node.Name, true, true, false, true),
+            OnShowAsync = async shownNode =>
+            {
+                await sessionService.ConnectAsync(
+                    shownNode,
+                    new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+            }
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            dialogService,
+            fileTransferService,
+            runtimeService);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+        viewModel.SelectNodeCommand.Execute(viewModel.NodeRows.Single());
+        await Task.Delay(50);
+
+        Assert.Equal("success", viewModel.CoreUploadSeverity);
+        Assert.Equal(0, fileTransferService.PresenceRequestCount);
+        Assert.Equal("frps 运行中", viewModel.RemoteFrpsStatusTitle);
+        Assert.Equal("success", viewModel.RemoteFrpsSeverity);
+    }
+
+    [Fact]
+    public async Task ToggleNodeConnectionCommand_MissingDeploymentResult_ShouldReusePresenceWhenSelectingNode()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        var fileTransferService = new FakeRemoteFileTransferService();
+        var dialogService = new FakeNodeConnectionWorkflowDialogService
+        {
+            Result = new NodeConnectionWorkflowResult(node.Name, true, false, false, true),
+            OnShowAsync = async shownNode =>
+            {
+                await sessionService.ConnectAsync(
+                    shownNode,
+                    new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+            }
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            dialogService,
+            fileTransferService);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+        viewModel.SelectNodeCommand.Execute(viewModel.NodeRows.Single());
+        await Task.Delay(50);
+
+        Assert.Equal("warning", viewModel.CoreUploadSeverity);
+        Assert.Equal(0, fileTransferService.PresenceRequestCount);
+    }
+
+    [Fact]
+    public async Task ToggleNodeConnectionCommand_RuntimeRefreshFailure_ShouldKeepSshOnlineAndShowFrpsWarning()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            GetProcessesException = new InvalidOperationException("runtime unavailable")
+        };
+        var dialogService = new FakeNodeConnectionWorkflowDialogService
+        {
+            Result = new NodeConnectionWorkflowResult(node.Name, true, true, false),
+            OnShowAsync = async shownNode =>
+            {
+                await sessionService.ConnectAsync(
+                    shownNode,
+                    new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+            }
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            dialogService,
+            remoteRuntimeService: runtimeService);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+
+        var row = viewModel.NodeRows.Single();
+        Assert.Equal("在线", row.ConnectionStatusText);
+        Assert.Equal("警告", row.FrpServiceText);
+        Assert.Equal(1, runtimeService.GetProcessesRequestCount);
+    }
+
+    [Fact]
+    public async Task ToggleNodeConnectionCommand_MultipleRemoteFrpsWithoutConfigMatch_ShouldNotAutoAttach()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess("frps-1", node.Name, "frps", FrpNexusStatus.Running, "1", "00:01", "-", "/opt/frp/frps -c /etc/frp/a.toml"),
+                new RuntimeProcess("frps-2", node.Name, "frps", FrpNexusStatus.Running, "2", "00:02", "-", "/opt/frp/frps -c /etc/frp/b.toml")
+            ]
+        };
+        var dialogService = new FakeNodeConnectionWorkflowDialogService
+        {
+            Result = new NodeConnectionWorkflowResult(node.Name, true, true, false),
+            OnShowAsync = async shownNode =>
+            {
+                await sessionService.ConnectAsync(
+                    shownNode,
+                    new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+            }
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            dialogService,
+            remoteRuntimeService: runtimeService);
+        await viewModel.LoadNodesAsync();
+
+        await viewModel.ToggleNodeConnectionCommand.ExecuteAsync(viewModel.NodeRows.Single());
+
+        Assert.Equal("警告", viewModel.NodeRows.Single().FrpServiceText);
+        Assert.Equal(1, runtimeService.GetProcessesRequestCount);
+    }
+
+    [Fact]
     public async Task ToggleNodeConnectionCommand_ShouldDisconnectOnlineNode()
     {
         var node = CreateNode();
@@ -710,6 +905,16 @@ public sealed class NodesPageInlineConnectionTests
             ShowCount++;
             return Task.FromResult(NextResult);
         }
+
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(
+            ConfirmationDialogChoiceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ShowCount++;
+            return Task.FromResult(NextResult
+                ? ConfirmationDialogResult.Confirm
+                : ConfirmationDialogResult.Cancel);
+        }
     }
 
     private sealed class FakeNodeConnectionWorkflowDialogService : INodeConnectionWorkflowDialogService
@@ -720,6 +925,8 @@ public sealed class NodesPageInlineConnectionTests
 
         public NodeConnectionWorkflowResult? Result { get; init; }
 
+        public Func<NodeProfile, Task>? OnShowAsync { get; init; }
+
         public Task<NodeConnectionWorkflowResult> ShowAsync(
             NodeProfile node,
             NodeConnectionWorkflowOptions? options = null,
@@ -727,13 +934,25 @@ public sealed class NodesPageInlineConnectionTests
         {
             LastNode = node;
             LastOptions = options;
-            return Task.FromResult(Result ?? new NodeConnectionWorkflowResult(node.Name, false, false, false));
+            return ShowCoreAsync(node);
+        }
+
+        private async Task<NodeConnectionWorkflowResult> ShowCoreAsync(NodeProfile node)
+        {
+            if (OnShowAsync is not null)
+            {
+                await OnShowAsync(node);
+            }
+
+            return Result ?? new NodeConnectionWorkflowResult(node.Name, false, false, false);
         }
     }
 
     private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
     {
         public IReadOnlyList<RuntimeProcess> Processes { get; set; } = [];
+
+        public Exception? GetProcessesException { get; set; }
 
         public int GetProcessesRequestCount { get; private set; }
 
@@ -748,6 +967,11 @@ public sealed class NodesPageInlineConnectionTests
             CancellationToken cancellationToken = default)
         {
             GetProcessesRequestCount++;
+            if (GetProcessesException is not null)
+            {
+                throw GetProcessesException;
+            }
+
             return Task.FromResult(Processes);
         }
 

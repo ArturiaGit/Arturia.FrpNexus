@@ -3,7 +3,9 @@ using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Sftp;
 using Renci.SshNet.Common;
+using Serilog;
 using Serilog.Core;
+using Serilog.Events;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
 
@@ -35,6 +37,31 @@ public sealed class RemoteFileTransferServiceTests
                 "exists:/opt/frp/frps.toml"
             ],
             adapter.Operations);
+    }
+
+    [Fact]
+    public async Task CheckRemoteFilesAsync_ShouldNotWriteInformationLogForPresenceCheckSuccess()
+    {
+        var sink = new CollectingLogSink();
+        var logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        var adapter = new FakeSftpClientAdapter();
+        adapter.ExistingFiles.Add("/opt/frp/frps");
+        adapter.ExistingFiles.Add("/opt/frp/frps.toml");
+        var service = new RemoteFileTransferService(
+            adapter,
+            new FakeRemoteDirectoryService(),
+            new FakeDeploymentRecordService(),
+            logger);
+
+        await service.CheckRemoteFilesAsync(new RemoteFilePresenceRequest(
+            CreateNode(),
+            CreateCredential(),
+            ["/opt/frp/frps", "/opt/frp/frps.toml"]));
+
+        Assert.DoesNotContain(sink.Events, item => item.Level == LogEventLevel.Information);
     }
 
     [Fact]
@@ -701,6 +728,16 @@ public sealed class RemoteFileTransferServiceTests
         public Task DeleteDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CollectingLogSink : ILogEventSink
+    {
+        public List<LogEvent> Events { get; } = [];
+
+        public void Emit(LogEvent logEvent)
+        {
+            Events.Add(logEvent);
         }
     }
 }

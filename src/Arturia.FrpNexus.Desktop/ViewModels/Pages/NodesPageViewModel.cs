@@ -45,6 +45,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
     private readonly INodeConnectionWorkflowDialogService _nodeConnectionWorkflowDialogService;
     private readonly IConfirmationDialogService _confirmationDialogService;
     private readonly IFrpLifecycleStateService _frpLifecycleStateService;
+    private readonly IRemoteFrpsRetentionService _remoteFrpsRetentionService;
     private readonly HashSet<string> _nodeConnectionOperations = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _deploymentPresenceCheckedKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, DeploymentPresenceStatusSnapshot> _deploymentPresenceStatusCache = new(StringComparer.OrdinalIgnoreCase);
@@ -223,7 +224,8 @@ public sealed partial class NodesPageViewModel : PageViewModel
         IDeploymentRecordService deploymentRecordService,
         INodeConnectionWorkflowDialogService? nodeConnectionWorkflowDialogService = null,
         IConfirmationDialogService? confirmationDialogService = null,
-        IFrpLifecycleStateService? frpLifecycleStateService = null)
+        IFrpLifecycleStateService? frpLifecycleStateService = null,
+        IRemoteFrpsRetentionService? remoteFrpsRetentionService = null)
         : base("节点管理", "管理远程 Linux 节点并为 SSH/SFTP 工作流预留入口")
     {
         _nodeManagementService = nodeManagementService;
@@ -241,6 +243,8 @@ public sealed partial class NodesPageViewModel : PageViewModel
             ?? NoOpConfirmationDialogService.Instance;
         _frpLifecycleStateService = frpLifecycleStateService
             ?? NoOpFrpLifecycleStateService.Instance;
+        _remoteFrpsRetentionService = remoteFrpsRetentionService
+            ?? NoOpRemoteFrpsRetentionService.Instance;
         Nodes = [];
         NodeRows = [];
 
@@ -1112,8 +1116,14 @@ public sealed partial class NodesPageViewModel : PageViewModel
                     SetConnectionTestStatus("连接成功", "SSH 节点连接在线。", "success");
                     ShowDeploymentSection();
                     await RefreshLastUploadedCoreStateAsync(nodeName, cancellationToken);
-                    SyncDeploymentPresenceFromWorkflowResult(dialogResult);
-                    await RefreshSelectedFrpRuntimeAsync(cancellationToken);
+                }
+
+                SyncDeploymentPresenceFromWorkflowResultForNode(nodeName, dialogResult);
+                await RefreshFrpRuntimeForNodeAsync(nodeName, cancellationToken);
+
+                if (SelectedNode is not null
+                    && string.Equals(SelectedNode.Name, nodeName, StringComparison.OrdinalIgnoreCase))
+                {
                     NotifySelectedSessionChanged();
                 }
             }
@@ -1123,7 +1133,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
                 && string.Equals(SelectedNode.Name, nodeName, StringComparison.OrdinalIgnoreCase))
             {
                 await RefreshLastUploadedCoreStateAsync(nodeName, cancellationToken);
-                SyncDeploymentPresenceFromWorkflowResult(dialogResult);
+                SyncDeploymentPresenceFromWorkflowResultForNode(nodeName, dialogResult);
             }
         }
         catch (OperationCanceledException)
@@ -1330,6 +1340,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         OnPropertyChanged(nameof(IsDetailsPanelOpen));
         LastConnectionText = ResolveLastConnectionText(value?.Name);
         NotifySelectedFrpStatusChanged();
+        SyncRemoteFrpsStatusFromNode(value);
 
         if (value is not null && IsSelectedNodeOnline)
         {
@@ -1460,7 +1471,20 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return;
         }
 
-        var nodeName = SelectedNode.Name;
+        await RefreshFrpRuntimeForNodeAsync(SelectedNode.Name, cancellationToken, allowStatusMessage);
+    }
+
+    private async Task RefreshFrpRuntimeForNodeAsync(
+        string nodeName,
+        CancellationToken cancellationToken,
+        bool allowStatusMessage = true)
+    {
+        var node = Nodes.FirstOrDefault(item => string.Equals(item.Name, nodeName, StringComparison.OrdinalIgnoreCase));
+        if (node is null)
+        {
+            return;
+        }
+
         var session = _nodeConnectionSessionService.GetSessionStatus(nodeName);
         if (session.State != NodeConnectionSessionState.Online)
         {
@@ -1482,9 +1506,25 @@ public sealed partial class NodesPageViewModel : PageViewModel
         try
         {
             var processes = await _remoteRuntimeService.GetProcessesAsync(
-                new RemoteRuntimeQueryRequest(SelectedNode, credential),
+                new RemoteRuntimeQueryRequest(node, credential),
                 cancellationToken);
-            var displayProcess = processes.FirstOrDefault(process => string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase));
+            var match = ResolveRemoteFrpsRuntimeProcess(processes, node.ConfigPath);
+            if (match.IsAmbiguous)
+            {
+                UpdateNodeFrpRuntime(nodeName, FrpNexusStatus.Warning, node.Uptime);
+                if (allowStatusMessage)
+                {
+                    SetConnectionTestStatus(
+                        "frps 状态需要确认",
+                        "检测到多个远程 frps 进程，且无法按当前配置路径唯一匹配，请在节点页手动处理。",
+                        "warning");
+                }
+
+                RefreshNodeRows();
+                return;
+            }
+
+            var displayProcess = match.Process;
 
             var frpStatus = displayProcess is null ? FrpNexusStatus.Stopped : FrpNexusStatus.Running;
             var uptime = displayProcess is null || string.IsNullOrWhiteSpace(displayProcess.Uptime)
@@ -1492,6 +1532,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
                 : displayProcess.Uptime;
 
             UpdateNodeFrpRuntime(nodeName, frpStatus, uptime);
+            await _remoteFrpsRetentionService.ClearAsync(nodeName, cancellationToken);
             _lastRemoteFrpsVerificationAt = DateTimeOffset.UtcNow;
             RefreshNodeRows();
         }
@@ -1501,7 +1542,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         }
         catch (Exception ex)
         {
-            UpdateNodeFrpRuntime(nodeName, FrpNexusStatus.Warning, SelectedNode.Uptime);
+            UpdateNodeFrpRuntime(nodeName, FrpNexusStatus.Warning, node.Uptime);
             if (allowStatusMessage)
             {
                 SetConnectionTestStatus("FRP 状态刷新失败", ViewModelErrorText.ForUser("FRP 运行状态刷新", ex), "warning");
@@ -1510,6 +1551,53 @@ public sealed partial class NodesPageViewModel : PageViewModel
             RefreshNodeRows();
         }
     }
+
+    private static RemoteFrpsRuntimeProcessMatch ResolveRemoteFrpsRuntimeProcess(
+        IReadOnlyList<RuntimeProcess> processes,
+        string configPath)
+    {
+        var frpsProcesses = processes
+            .Where(process => string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (frpsProcesses.Length == 0)
+        {
+            return new RemoteFrpsRuntimeProcessMatch(null, false);
+        }
+
+        var matchedByConfig = frpsProcesses
+            .Where(process => CommandUsesConfigPath(process.CommandLine, configPath))
+            .ToArray();
+        if (matchedByConfig.Length == 1)
+        {
+            return new RemoteFrpsRuntimeProcessMatch(matchedByConfig[0], false);
+        }
+
+        if (frpsProcesses.Length == 1)
+        {
+            return new RemoteFrpsRuntimeProcessMatch(frpsProcesses[0], false);
+        }
+
+        return new RemoteFrpsRuntimeProcessMatch(null, true);
+    }
+
+    private static bool CommandUsesConfigPath(string commandLine, string expectedConfigPath)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine) || string.IsNullOrWhiteSpace(expectedConfigPath))
+        {
+            return false;
+        }
+
+        var normalizedCommand = NormalizeLinuxPathForCommandMatch(commandLine);
+        var normalizedExpectedPath = NormalizeLinuxPathForCommandMatch(expectedConfigPath);
+        return normalizedCommand.Contains(normalizedExpectedPath, StringComparison.Ordinal);
+    }
+
+    private static string NormalizeLinuxPathForCommandMatch(string value)
+    {
+        return value.Trim().Trim('"', '\'').Replace('\\', '/');
+    }
+
+    private sealed record RemoteFrpsRuntimeProcessMatch(RuntimeProcess? Process, bool IsAmbiguous);
 
     private async Task<NodeConnectionSessionResult?> DisconnectNodeAsync(
         NodeProfile node,
@@ -1588,12 +1676,14 @@ public sealed partial class NodesPageViewModel : PageViewModel
             _frpLifecycleStateService.UpdateRemoteFrpsState(
                 nodeName,
                 _nodeConnectionSessionService.GetSessionStatus(nodeName).State == NodeConnectionSessionState.Online,
-                frpStatus);
+                frpStatus,
+                updated.ConfigPath);
             if (SelectedNode is not null
                 && string.Equals(SelectedNode.Name, nodeName, StringComparison.OrdinalIgnoreCase))
             {
                 SelectedNode = updated;
                 UpdateSelectedFrpsUptimeTracking(updated);
+                SyncRemoteFrpsStatusFromNode(updated);
             }
 
             NotifySelectedFrpStatusChanged();
@@ -2204,11 +2294,13 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private void CacheDeploymentPresenceStatus(string cacheKey)
     {
+        CacheDeploymentPresenceStatus(cacheKey, CoreUploadStatusTitle, CoreUploadStatusText, CoreUploadSeverity);
+    }
+
+    private void CacheDeploymentPresenceStatus(string cacheKey, string title, string text, string severity)
+    {
         _deploymentPresenceCheckedKeys.Add(cacheKey);
-        _deploymentPresenceStatusCache[cacheKey] = new DeploymentPresenceStatusSnapshot(
-            CoreUploadStatusTitle,
-            CoreUploadStatusText,
-            CoreUploadSeverity);
+        _deploymentPresenceStatusCache[cacheKey] = new DeploymentPresenceStatusSnapshot(title, text, severity);
         _deploymentPresenceCacheVersions[cacheKey] = GetDeploymentPresenceCacheVersion(cacheKey) + 1;
     }
 
@@ -2261,6 +2353,49 @@ public sealed partial class NodesPageViewModel : PageViewModel
         {
             SetCoreUploadStatus("需要部署准备", "远程 frps 或 frps.toml 缺失，请通过连接弹窗补齐部署文件。", "warning");
             CacheDeploymentPresenceStatus(CreateDeploymentPresenceCacheKey(SelectedNode));
+        }
+    }
+
+    private void SyncDeploymentPresenceFromWorkflowResultForNode(string nodeName, NodeConnectionWorkflowResult result)
+    {
+        if (!result.IsConnected)
+        {
+            if (SelectedNode is not null
+                && string.Equals(SelectedNode.Name, nodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                ResetDeploymentPresenceForDisconnectedNode();
+            }
+
+            return;
+        }
+
+        var node = Nodes.FirstOrDefault(item => string.Equals(item.Name, nodeName, StringComparison.OrdinalIgnoreCase));
+        if (node is null)
+        {
+            return;
+        }
+
+        var cacheKey = CreateDeploymentPresenceCacheKey(node);
+        if (result.DeploymentReady)
+        {
+            CacheDeploymentPresenceStatus(cacheKey, "部署文件已就绪", "远程 frps 和 frps.toml 已就绪。", "success");
+            RestoreDeploymentPresenceStatusIfSelected(nodeName, cacheKey);
+            return;
+        }
+
+        if (result.DeploymentChecked || result.DeploymentChanged)
+        {
+            CacheDeploymentPresenceStatus(cacheKey, "需要部署准备", "远程 frps 或 frps.toml 缺失，请通过连接弹窗补齐部署文件。", "warning");
+            RestoreDeploymentPresenceStatusIfSelected(nodeName, cacheKey);
+        }
+    }
+
+    private void RestoreDeploymentPresenceStatusIfSelected(string nodeName, string cacheKey)
+    {
+        if (SelectedNode is not null
+            && string.Equals(SelectedNode.Name, nodeName, StringComparison.OrdinalIgnoreCase))
+        {
+            RestoreDeploymentPresenceStatus(cacheKey);
         }
     }
 
@@ -2370,7 +2505,8 @@ public sealed partial class NodesPageViewModel : PageViewModel
         _frpLifecycleStateService.UpdateRemoteFrpsState(
             nodeName,
             session.State == NodeConnectionSessionState.Online,
-            node?.FrpStatus ?? FrpNexusStatus.Stopped);
+            node?.FrpStatus ?? FrpNexusStatus.Stopped,
+            node?.ConfigPath ?? string.Empty);
     }
 
     private void SetConnectionTestStatus(string title, string message, string severity)
@@ -2803,6 +2939,40 @@ public sealed partial class NodesPageViewModel : PageViewModel
         RemoteFrpsSeverity = severity;
     }
 
+    private void SyncRemoteFrpsStatusFromNode(NodeProfile? node)
+    {
+        if (node is null)
+        {
+            SetRemoteFrpsStatus("尚未启动", "远程云服务器节点只运行 frps；本地 frpc 由隧道页启动。", "info");
+            return;
+        }
+
+        if (_nodeConnectionSessionService.GetSessionStatus(node.Name).State != NodeConnectionSessionState.Online)
+        {
+            SetRemoteFrpsStatus("尚未连接", "连接 SSH 节点后将刷新远程 frps 状态。", "info");
+            return;
+        }
+
+        switch (node.FrpStatus)
+        {
+            case FrpNexusStatus.Running:
+                SetRemoteFrpsStatus("frps 运行中", "远程 frps 已接入运行状态；本地 frpc 请在隧道页启动和管理。", "success");
+                break;
+            case FrpNexusStatus.Stopped:
+                SetRemoteFrpsStatus("frps 未运行", "未发现远程 frps 进程；部署文件就绪后可启动。", "warning");
+                break;
+            case FrpNexusStatus.Warning:
+                SetRemoteFrpsStatus("frps 状态需要确认", "远程 frps 状态刷新失败或存在多个进程，请重试刷新或手动处理。", "warning");
+                break;
+            case FrpNexusStatus.Error:
+                SetRemoteFrpsStatus("frps 状态异常", "远程 frps 操作失败，请查看日志并重试。", "error");
+                break;
+            default:
+                SetRemoteFrpsStatus("frps 状态未知", "尚未获得远程 frps 运行状态。", "info");
+                break;
+        }
+    }
+
     private string FormatSelectedFrpsUptime()
     {
         if (_selectedFrpsUptimeBase is null || _selectedFrpsUptimeCapturedAt is null)
@@ -3054,6 +3224,13 @@ public sealed partial class NodesPageViewModel : PageViewModel
         {
             return Task.FromResult(true);
         }
+
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(
+            ConfirmationDialogChoiceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(ConfirmationDialogResult.Confirm);
+        }
     }
 
     private sealed class NoOpFrpLifecycleStateService : IFrpLifecycleStateService
@@ -3065,12 +3242,41 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return [];
         }
 
-        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+        public void UpdateRemoteFrpsState(
+            string nodeName,
+            bool isSshOnline,
+            FrpNexusStatus frpsStatus,
+            string configPath = "")
         {
         }
 
         public void RemoveRemoteFrpsState(string nodeName)
         {
+        }
+    }
+
+    private sealed class NoOpRemoteFrpsRetentionService : IRemoteFrpsRetentionService
+    {
+        public static NoOpRemoteFrpsRetentionService Instance { get; } = new();
+
+        public Task<IReadOnlyList<RemoteFrpsRetentionRecord>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RemoteFrpsRetentionRecord>>([]);
+        }
+
+        public Task<RemoteFrpsRetentionRecord?> GetAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<RemoteFrpsRetentionRecord?>(null);
+        }
+
+        public Task SaveAsync(RemoteFrpsRetentionRecord record, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 

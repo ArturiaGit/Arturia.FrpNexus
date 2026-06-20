@@ -1,3 +1,6 @@
+using Serilog;
+using Serilog.Core;
+
 namespace Arturia.FrpNexus.Infrastructure.Persistence;
 
 public interface ISqliteDatabaseInitializer
@@ -5,11 +8,42 @@ public interface ISqliteDatabaseInitializer
     Task InitializeAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectionFactory) : ISqliteDatabaseInitializer
+public sealed class SqliteDatabaseInitializer : ISqliteDatabaseInitializer
 {
+    private readonly ISqliteConnectionFactory _connectionFactory;
+    private readonly ILogger _logger;
+
+    public SqliteDatabaseInitializer(ISqliteConnectionFactory connectionFactory)
+        : this(connectionFactory, Logger.None)
+    {
+    }
+
+    public SqliteDatabaseInitializer(ISqliteConnectionFactory connectionFactory, ILogger logger)
+    {
+        _connectionFactory = connectionFactory;
+        _logger = logger;
+    }
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = connectionFactory.CreateConnection();
+        try
+        {
+            await InitializeCoreAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.Warning(exception, "SQLite database initialization failed");
+            throw;
+        }
+    }
+
+    private async Task InitializeCoreAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         await using var command = connection.CreateCommand();
@@ -81,6 +115,13 @@ public sealed class SqliteDatabaseInitializer(ISqliteConnectionFactory connectio
             "nodes",
             "last_connection_tested_at",
             "ALTER TABLE nodes ADD COLUMN last_connection_tested_at TEXT NULL;",
+            cancellationToken);
+
+        await EnsureColumnAsync(
+            connection,
+            "runtime_processes",
+            "command_line",
+            "ALTER TABLE runtime_processes ADD COLUMN command_line TEXT NOT NULL DEFAULT '';",
             cancellationToken);
 
         await RebuildLegacyTunnelsTableAsync(connection, cancellationToken);

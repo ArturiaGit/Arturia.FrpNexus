@@ -6,7 +6,11 @@ public interface IFrpLifecycleStateService
 {
     IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots();
 
-    void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus);
+    void UpdateRemoteFrpsState(
+        string nodeName,
+        bool isSshOnline,
+        FrpNexusStatus frpsStatus,
+        string configPath = "");
 
     void RemoveRemoteFrpsState(string nodeName);
 }
@@ -14,4 +18,5 @@ public interface IFrpLifecycleStateService
 public sealed record RemoteFrpsLifecycleSnapshot(
     string NodeName,
     bool IsSshOnline,
-    FrpNexusStatus FrpsStatus);
+    FrpNexusStatus FrpsStatus,
+    string ConfigPath = "");

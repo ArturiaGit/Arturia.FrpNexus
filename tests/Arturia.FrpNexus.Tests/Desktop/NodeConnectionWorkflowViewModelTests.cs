@@ -68,6 +68,41 @@ public sealed class NodeConnectionWorkflowViewModelTests
     }
 
     [Fact]
+    public async Task ConnectCommand_ShouldRefreshRemoteFrpsRunningStateAfterConnect()
+    {
+        var fileTransferService = new FakeRemoteFileTransferService(
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                "/opt/frp/frps",
+                "/opt/frp/frps.toml"
+            });
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess(
+                    "frps-1920916",
+                    CreateNode().Name,
+                    "frps",
+                    FrpNexusStatus.Running,
+                    "1920916",
+                    "00:18",
+                    "-",
+                    "/opt/frp/frps -c /opt/frp/frps.toml")
+            ]
+        };
+        var viewModel = CreateViewModel(fileTransferService, remoteRuntimeService: runtimeService);
+        viewModel.SshSessionPassword = "SESSION_PASSWORD_PLACEHOLDER";
+
+        await viewModel.ConnectCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsConnected);
+        Assert.Equal("运行中", viewModel.RemoteFrpsStatusText);
+        Assert.Equal("00:18", viewModel.RemoteFrpsUptimeText);
+        Assert.True(runtimeService.GetProcessesCallCount > 0);
+    }
+
+    [Fact]
     public async Task ConnectCommand_ShouldShowPreparationWhenDeploymentFilesAreMissing()
     {
         var fileTransferService = new FakeRemoteFileTransferService(
@@ -139,7 +174,7 @@ public sealed class NodeConnectionWorkflowViewModelTests
             {
                 "/opt/frp/frps"
             });
-        var viewModel = CreateViewModel(fileTransferService, sessionService, node);
+        var viewModel = CreateViewModel(fileTransferService, sessionService, node: node);
 
         await viewModel.LoadAsync();
 
@@ -164,8 +199,8 @@ public sealed class NodeConnectionWorkflowViewModelTests
         var viewModel = CreateViewModel(
             fileTransferService,
             sessionService,
-            node,
-            NodeConnectionWorkflowOptions.DeployMissingFiles);
+            node: node,
+            options: NodeConnectionWorkflowOptions.DeployMissingFiles);
 
         await viewModel.LoadAsync();
 
@@ -203,13 +238,14 @@ public sealed class NodeConnectionWorkflowViewModelTests
     private static NodeConnectionWorkflowViewModel CreateViewModel(
         FakeRemoteFileTransferService fileTransferService,
         INodeConnectionSessionService? nodeConnectionSessionService = null,
+        IRemoteRuntimeService? remoteRuntimeService = null,
         NodeProfile? node = null,
         NodeConnectionWorkflowOptions? options = null)
     {
         return new NodeConnectionWorkflowViewModel(
             nodeConnectionSessionService ?? new FakeNodeConnectionSessionService(),
             fileTransferService,
-            new FakeRemoteRuntimeService(),
+            remoteRuntimeService ?? new FakeRemoteRuntimeService(),
             new TomlConfigurationService(),
             new FakeFilePickerService(),
             new FakeRemoteDirectoryPickerService(),
@@ -411,11 +447,16 @@ public sealed class NodeConnectionWorkflowViewModelTests
 
     private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
     {
+        public IReadOnlyList<RuntimeProcess>? Processes { get; init; }
+
+        public int GetProcessesCallCount { get; private set; }
+
         public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(
             RemoteRuntimeQueryRequest request,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IReadOnlyList<RuntimeProcess>>([]);
+            GetProcessesCallCount++;
+            return Task.FromResult(Processes ?? []);
         }
 
         public Task<RemoteRuntimeCommandResult> StartAsync(

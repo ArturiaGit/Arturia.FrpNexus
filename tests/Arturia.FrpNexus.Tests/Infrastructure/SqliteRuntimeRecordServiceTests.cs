@@ -1,5 +1,9 @@
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Persistence;
+using Microsoft.Data.Sqlite;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
@@ -23,6 +27,22 @@ public sealed class SqliteRuntimeRecordServiceTests
         var tableName = await command.ExecuteScalarAsync();
 
         Assert.Equal("runtime_processes", tableName);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldLogWarningWhenDatabaseInitializationFails()
+    {
+        var sink = new CollectingLogSink();
+        var logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        var initializer = new SqliteDatabaseInitializer(new ThrowingConnectionFactory(), logger);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => initializer.InitializeAsync());
+
+        var warning = Assert.Single(sink.Events, item => item.Level == LogEventLevel.Warning);
+        Assert.Equal("SQLite database initialization failed", warning.MessageTemplate.Text);
     }
 
     [Fact]
@@ -150,6 +170,24 @@ public sealed class SqliteRuntimeRecordServiceTests
         public string GetDatabasePath()
         {
             return _databasePath;
+        }
+    }
+
+    private sealed class ThrowingConnectionFactory : ISqliteConnectionFactory
+    {
+        public SqliteConnection CreateConnection()
+        {
+            throw new InvalidOperationException("database path unavailable");
+        }
+    }
+
+    private sealed class CollectingLogSink : ILogEventSink
+    {
+        public List<LogEvent> Events { get; } = [];
+
+        public void Emit(LogEvent logEvent)
+        {
+            Events.Add(logEvent);
         }
     }
 }

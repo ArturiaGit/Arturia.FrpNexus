@@ -24,6 +24,40 @@ public sealed class RemoteLogServiceTests
     }
 
     [Fact]
+    public async Task ReadRecentLogsAsync_ShouldStripAnsiControlSequences()
+    {
+        var service = new RemoteLogService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "\u001b[1;34m2026-06-15 21:49:33.209 [I] [frps/root.go:115] frps uses config file: /opt/frp/frps.toml\u001b[0m",
+                string.Empty)),
+            Logger.None);
+
+        var logs = await service.ReadRecentLogsAsync(CreateRequest());
+
+        var log = Assert.Single(logs);
+        Assert.DoesNotContain("\u001b", log.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("[0m", log.Message, StringComparison.Ordinal);
+        Assert.Contains("frps uses config file: /opt/frp/frps.toml", log.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ReadRecentLogsAsync_ShouldUseFrpLogTimestampInsteadOfReadTime()
+    {
+        var service = new RemoteLogService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "2026-06-15 21:49:33.209 [I] [frps/root.go:115] frps uses config file: /opt/frp/frps.toml",
+                string.Empty)),
+            Logger.None);
+
+        var logs = await service.ReadRecentLogsAsync(CreateRequest());
+
+        var log = Assert.Single(logs);
+        Assert.Equal("2026-06-15 21:49:33.209", log.Timestamp);
+    }
+
+    [Fact]
     public async Task ReadRecentLogsAsync_ShouldReturnChineseFailureAndHideSecret()
     {
         var service = new RemoteLogService(

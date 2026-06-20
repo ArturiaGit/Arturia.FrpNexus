@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Serilog;
 
@@ -24,11 +25,6 @@ public sealed class RemoteRuntimeService(
             request.Node.Name,
             processes,
             cancellationToken);
-
-        logger.Information(
-            "Remote runtime status read for node {NodeName}: {ProcessCount} processes",
-            request.Node.Name,
-            processes.Count);
 
         return processes;
     }
@@ -180,7 +176,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             string.IsNullOrWhiteSpace(uptime) ? "-" : uptime,
-            "-");
+            "-",
+            command);
     }
 
     private static RuntimeProcess? ParseLegacyProcess(string nodeName, string line)
@@ -214,7 +211,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             "-",
-            "-");
+            "-",
+            command);
     }
 
     private static RuntimeProcess? ParsePsEfProcess(string nodeName, string line)
@@ -242,7 +240,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             LooksLikeElapsedTime(startOrTime) ? startOrTime : "-",
-            "-");
+            "-",
+            command);
     }
 
     private static string ResolveProcessKind(string command)
@@ -295,7 +294,9 @@ public sealed class RemoteRuntimeService(
     {
         return string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
-            : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+            : LogTextSanitizer
+                .StripControlSequences(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
+                .Trim();
     }
 
     private static string BuildCommandFailureMessage(RemoteCommandResult result)

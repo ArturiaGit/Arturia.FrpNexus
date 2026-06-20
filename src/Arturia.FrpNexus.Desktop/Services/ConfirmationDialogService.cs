@@ -13,15 +13,50 @@ public sealed class ConfirmationDialogService(
         ConfirmationDialogRequest request,
         CancellationToken cancellationToken = default)
     {
-        var taskCompletionSource = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        ConfirmationDialogViewModel? viewModel = null;
-        viewModel = new ConfirmationDialogViewModel(
+        var result = await ShowCoreAsync(
             request.Title,
             request.Message,
             request.ConfirmButtonText,
             request.CancelButtonText,
             request.Severity,
+            secondaryButtonText: null,
+            cancellationToken);
+
+        return result == ConfirmationDialogResult.Confirm;
+    }
+
+    public Task<ConfirmationDialogResult> ShowChoiceAsync(
+        ConfirmationDialogChoiceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return ShowCoreAsync(
+            request.Title,
+            request.Message,
+            request.ConfirmButtonText,
+            request.CancelButtonText,
+            request.Severity,
+            request.SecondaryButtonText,
+            cancellationToken);
+    }
+
+    private async Task<ConfirmationDialogResult> ShowCoreAsync(
+        string title,
+        string message,
+        string confirmButtonText,
+        string cancelButtonText,
+        string severity,
+        string? secondaryButtonText,
+        CancellationToken cancellationToken)
+    {
+        var taskCompletionSource = new TaskCompletionSource<ConfirmationDialogResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        ConfirmationDialogViewModel? viewModel = null;
+        viewModel = new ConfirmationDialogViewModel(
+            title,
+            message,
+            confirmButtonText,
+            cancelButtonText,
+            severity,
             result =>
             {
                 taskCompletionSource.TrySetResult(result);
@@ -29,7 +64,8 @@ public sealed class ConfirmationDialogService(
                 {
                     modalDialogHostService.CloseDialog(viewModel);
                 }
-            });
+            },
+            secondaryButtonText);
 
         using var overlayScope = modalOverlayService.ShowOverlay();
 
