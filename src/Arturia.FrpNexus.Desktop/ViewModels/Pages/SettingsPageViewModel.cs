@@ -1,11 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
-using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,20 +14,6 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 public sealed partial class SettingsPageViewModel : PageViewModel
 {
     private readonly ISettingsService _settingsService;
-    private readonly IThemeService _themeService;
-
-    private static readonly SettingsOptionViewModel[] ThemeOptionValues =
-    [
-        new("System", "跟随系统"),
-        new("Light", "浅色模式"),
-        new("Dark", "深色模式")
-    ];
-
-    private static readonly SettingsOptionViewModel[] LanguageOptionValues =
-    [
-        new("zh-CN", "简体中文"),
-        new("en-US", "English (US)")
-    ];
 
     private static readonly SettingsOptionViewModel[] FrpDownloadSourceOptionValues =
     [
@@ -36,18 +21,6 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         new("GHProxy", "GHProxy (国内加速)"),
         new("Custom", "自定义镜像源...")
     ];
-
-    [ObservableProperty]
-    private string _theme = "Light";
-
-    [ObservableProperty]
-    private SettingsOptionViewModel _selectedThemeOption = ThemeOptionValues[1];
-
-    [ObservableProperty]
-    private string _language = "zh-CN";
-
-    [ObservableProperty]
-    private SettingsOptionViewModel _selectedLanguageOption = LanguageOptionValues[0];
 
     [ObservableProperty]
     private string _frpDownloadSource = "GitHub Releases";
@@ -68,13 +41,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private string _sqliteDatabasePath = string.Empty;
 
     [ObservableProperty]
-    private string _saveStatusText = "设置会保存到本地 SQLite 数据库";
+    private string _saveStatusText = "设置会保存在本地 SQLite 数据库。";
 
-    public SettingsPageViewModel(ISettingsService settingsService, IThemeService themeService)
-        : base("设置", "配置界面偏好、FRP 下载源、本地路径和 SSH 密钥")
+    public SettingsPageViewModel(ISettingsService settingsService)
+        : base("设置", "FRP 下载源、本地路径、密钥、日志和本地数据")
     {
         _settingsService = settingsService;
-        _themeService = themeService;
 
         SshKeys =
         [
@@ -86,10 +58,6 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     }
 
     public ObservableCollection<SshKeyViewModel> SshKeys { get; }
-
-    public IReadOnlyList<SettingsOptionViewModel> ThemeOptions => ThemeOptionValues;
-
-    public IReadOnlyList<SettingsOptionViewModel> LanguageOptions => LanguageOptionValues;
 
     public IReadOnlyList<SettingsOptionViewModel> FrpDownloadSourceOptions => FrpDownloadSourceOptionValues;
 
@@ -111,26 +79,19 @@ public sealed partial class SettingsPageViewModel : PageViewModel
             return;
         }
 
-        Theme = settings.Theme;
-        SelectedThemeOption = FindOption(ThemeOptions, settings.Theme);
-        Language = settings.Language;
-        SelectedLanguageOption = FindOption(LanguageOptions, settings.Language);
         FrpDownloadSource = settings.FrpDownloadSource;
         SelectedFrpDownloadSourceOption = FindOption(FrpDownloadSourceOptions, settings.FrpDownloadSource);
         CoreDirectory = settings.CoreDirectory;
         ConfigDirectory = settings.ConfigDirectory;
         LogDirectory = settings.LogDirectory;
         SqliteDatabasePath = settings.SqliteDatabasePath;
-        _themeService.ApplyTheme(Theme);
-        SaveStatusText = "已加载本地设置";
+        SaveStatusText = "已加载本地设置。";
     }
 
     [RelayCommand]
     private async Task SaveSettingsAsync()
     {
         var settings = new FrpNexusSettingsSnapshot(
-            Theme,
-            Language,
             FrpDownloadSource,
             CoreDirectory,
             ConfigDirectory,
@@ -140,8 +101,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         try
         {
             await _settingsService.SaveSettingsAsync(settings);
-            _themeService.ApplyTheme(Theme);
-            SaveStatusText = "设置已保存到本地 SQLite，主题已应用";
+            SaveStatusText = "设置已保存到本地 SQLite。";
         }
         catch (OperationCanceledException)
         {
@@ -151,16 +111,6 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         {
             SaveStatusText = ViewModelErrorText.ForUser("设置保存", ex);
         }
-    }
-
-    partial void OnSelectedThemeOptionChanged(SettingsOptionViewModel value)
-    {
-        Theme = value.Value;
-    }
-
-    partial void OnSelectedLanguageOptionChanged(SettingsOptionViewModel value)
-    {
-        Language = value.Value;
     }
 
     partial void OnSelectedFrpDownloadSourceOptionChanged(SettingsOptionViewModel value)

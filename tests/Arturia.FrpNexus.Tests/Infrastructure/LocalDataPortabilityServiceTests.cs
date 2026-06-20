@@ -16,7 +16,7 @@ public sealed class LocalDataPortabilityServiceTests
         var snapshot = await service.CreateExportSnapshotAsync();
 
         Assert.Equal("frpnexus.local-data.v1", snapshot.FormatVersion);
-        Assert.Equal("Light", snapshot.Settings.Theme);
+        Assert.Equal("GitHub Releases", snapshot.Settings.FrpDownloadSource);
         Assert.Single(snapshot.Nodes);
         Assert.Single(snapshot.Tunnels);
         Assert.Single(snapshot.Configurations);
@@ -51,17 +51,17 @@ public sealed class LocalDataPortabilityServiceTests
         await source.ExportAsync(exportPath);
 
         var targetServices = CreateServices(empty: true);
-        targetServices.Nodes.Add(new("保留节点", "203.0.113.99", 22, "deploy", "密钥 (KEEP)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml"));
+        targetServices.Nodes.Add(new("淇濈暀鑺傜偣", "203.0.113.99", 22, "deploy", "瀵嗛挜 (KEEP)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml"));
         var target = targetServices.CreatePortabilityService();
 
         await target.ImportAsync(exportPath);
 
-        Assert.Contains(targetServices.Nodes, node => node.Name == "保留节点");
-        Assert.Contains(targetServices.Nodes, node => node.Name == "导出节点");
-        Assert.Contains(targetServices.Tunnels, tunnel => tunnel.Name == "导出隧道");
-        Assert.Contains(targetServices.Configurations, configuration => configuration.Name == "导出配置");
-        Assert.Contains(targetServices.RuntimeProcesses, process => process.Name == "导出进程");
-        Assert.Contains(targetServices.DeploymentRecords, record => record.StepName == "导出步骤");
+        Assert.Contains(targetServices.Nodes, node => node.Name == "淇濈暀鑺傜偣");
+        Assert.Contains(targetServices.Nodes, node => node.Name == "瀵煎嚭鑺傜偣");
+        Assert.Contains(targetServices.Tunnels, tunnel => tunnel.Name == "瀵煎嚭闅ч亾");
+        Assert.Contains(targetServices.Configurations, configuration => configuration.Name == "瀵煎嚭閰嶇疆");
+        Assert.Contains(targetServices.RuntimeProcesses, process => process.Name == "瀵煎嚭杩涚▼");
+        Assert.Contains(targetServices.DeploymentRecords, record => record.StepName == "瀵煎嚭姝ラ");
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class LocalDataPortabilityServiceTests
         var snapshot = new LocalDataExportSnapshot(
             "frpnexus.local-data.v0",
             DateTimeOffset.UtcNow,
-            new FrpNexusSettingsSnapshot("Light", "zh-CN", "GitHub Releases", "core", "configs", "logs", "db"),
+            new FrpNexusSettingsSnapshot("GitHub Releases", "core", "configs", "logs", "db"),
             [],
             [],
             [],
@@ -105,8 +105,6 @@ public sealed class LocalDataPortabilityServiceTests
     private static ServiceSet CreateServices(bool empty = false)
     {
         var settings = new FrpNexusSettingsSnapshot(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
             @"D:\FrpNexus\core",
             @"D:\FrpNexus\configs",
@@ -115,11 +113,11 @@ public sealed class LocalDataPortabilityServiceTests
 
         return new ServiceSet(
             new FakeSettingsService(settings),
-            empty ? [] : [new("导出节点", "203.0.113.10", 22, "deploy", "密钥 (SAFE_KEY)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "2h", "/etc/frp/frpc.toml")],
-            empty ? [] : [new("导出隧道", TunnelProtocol.Http, "导出节点", "127.0.0.1", 8080, "example.com", FrpNexusStatus.Running, "HTTP 示例")],
-            empty ? [] : [new("导出配置", TunnelProtocol.Http, "127.0.0.1", 8080, "example.com", "[[proxies]]", DateTimeOffset.UtcNow)],
-            empty ? [] : [new("导出进程", "导出节点", "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")],
-            empty ? [] : [new("导出步骤", "导出节点", "部署步骤", FrpNexusStatus.Ready, DateTimeOffset.UtcNow)]);
+            empty ? [] : [new("瀵煎嚭鑺傜偣", "203.0.113.10", 22, "deploy", "瀵嗛挜 (SAFE_KEY)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "2h", "/etc/frp/frpc.toml")],
+            empty ? [] : [new("瀵煎嚭闅ч亾", TunnelProtocol.Http, "瀵煎嚭鑺傜偣", "127.0.0.1", 8080, "example.com", FrpNexusStatus.Running, "HTTP 绀轰緥")],
+            empty ? [] : [new("瀵煎嚭閰嶇疆", TunnelProtocol.Http, "127.0.0.1", 8080, "example.com", "[[proxies]]", DateTimeOffset.UtcNow)],
+            empty ? [] : [new("瀵煎嚭杩涚▼", "瀵煎嚭鑺傜偣", "frpc", FrpNexusStatus.Running, "2048", "1h", "127.0.0.1:8080")],
+            empty ? [] : [new("瀵煎嚭姝ラ", "瀵煎嚭鑺傜偣", "閮ㄧ讲姝ラ", FrpNexusStatus.Ready, DateTimeOffset.UtcNow)]);
     }
 
     private sealed class ServiceSet(
@@ -267,7 +265,7 @@ public sealed class LocalDataPortabilityServiceTests
 
         public Task DeleteDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default)
         {
-            deploymentRecords.RemoveAll(item => item.StepName == stepName);
+            deploymentRecords.RemoveAll(record => record.StepName == stepName);
             return Task.CompletedTask;
         }
     }
