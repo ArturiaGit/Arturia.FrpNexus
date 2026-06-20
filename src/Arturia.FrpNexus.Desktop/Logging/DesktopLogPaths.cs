@@ -5,11 +5,14 @@ namespace Arturia.FrpNexus.Desktop.Logging;
 
 public static class DesktopLogPaths
 {
-    public static string GetWarningLogPath()
+    public static string GetWarningLogDirectory()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var logDirectory = Path.Combine(localAppData, "Arturia", "FrpNexus", "logs");
+        return Path.Combine(localAppData, "Arturia", "FrpNexus", "logs");
+    }
 
-        return Path.Combine(logDirectory, "frpnexus-.log");
+    public static string GetWarningLogPath()
+    {
+        return Path.Combine(GetWarningLogDirectory(), "frpnexus-.log");
     }
 }

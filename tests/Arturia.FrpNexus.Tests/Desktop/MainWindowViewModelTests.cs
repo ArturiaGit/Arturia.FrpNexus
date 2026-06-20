@@ -60,18 +60,16 @@ public sealed class MainWindowViewModelTests
         Assert.DoesNotContain(viewModel.NavigationItems.Where(item => item.Title != "日志"), item => item.IsSelected);
         Assert.IsType<LogsPageViewModel>(viewModel.CurrentPage);
         Assert.Equal("日志", viewModel.CurrentPageTitle);
-        Assert.Equal("筛选、搜索并查看远程 FRP 日志输出", viewModel.CurrentPageSubtitle);
+        Assert.Equal("筛选、搜索并查看 FRP 与 FrpNexus 日志输出", viewModel.CurrentPageSubtitle);
     }
 
     [Fact]
-    public void SampleData_ShouldExposeNodesTunnelsAndLogs()
+    public void SampleData_ShouldExposeNodesTunnelsAndRuntimeRecords()
     {
         var nodes = (NodesPageViewModel)CreateMainWindowViewModel()
             .NavigationItems.Single(item => item.Title == "节点").Page;
         var tunnels = (TunnelsPageViewModel)CreateMainWindowViewModel()
             .NavigationItems.Single(item => item.Title == "隧道").Page;
-        var logs = (LogsPageViewModel)CreateMainWindowViewModel()
-            .NavigationItems.Single(item => item.Title == "日志").Page;
         var runtime = CreateRuntimePageViewModel();
 
         Assert.Contains(nodes.Nodes, node => node.ConnectionStatus == FrpNexusStatus.Online);
@@ -83,7 +81,6 @@ public sealed class MainWindowViewModelTests
         Assert.Contains(tunnels.Tunnels, tunnel => tunnel.Protocol == TunnelProtocol.Http);
         Assert.Contains(tunnels.Tunnels, tunnel => tunnel.Protocol == TunnelProtocol.Https);
         Assert.Contains(tunnels.Tunnels, tunnel => tunnel.Status == FrpNexusStatus.Warning);
-        Assert.Contains(logs.Logs, log => log.Status == FrpNexusStatus.Error);
         Assert.Contains(runtime.Processes, process => process.Status == FrpNexusStatus.Running);
         Assert.Contains(runtime.Processes, process => process.Status == FrpNexusStatus.Stopped);
         Assert.Contains(runtime.Processes, process => process.Status == FrpNexusStatus.Error);
@@ -114,6 +111,42 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(configurationsItem, viewModel.SelectedNavigationItem);
         Assert.Equal("配置预览", viewModel.CurrentPageTitle);
         Assert.True(nodeService.ListNodesCallCount > beforeCount);
+    }
+
+    [Fact]
+    public async Task NavigateCommand_ToLogs_ShouldRefreshLocalLogs()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "ERROR", "客户端", "FrpNexus", "本地错误", FrpNexusStatus.Error));
+        var logsPage = CreateLogsPageViewModel(localLogs);
+        var viewModel = CreateMainWindowViewModel(logsPage: logsPage);
+        var logsItem = viewModel.NavigationItems.Single(item => item.Title == "日志");
+
+        logsItem.NavigateCommand.Execute(logsItem);
+        await Task.Delay(50);
+
+        Assert.Equal(logsItem, viewModel.SelectedNavigationItem);
+        Assert.Equal(1, localLogs.ReadCallCount);
+        Assert.Single(logsPage.Logs);
+        Assert.Equal("已读取 1 行本地日志。", logsPage.StatusText);
+    }
+
+    [Fact]
+    public async Task NavigateCommand_ToLogs_WhenAutoRefreshDisabled_ShouldNotReadLocalLogs()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "ERROR", "客户端", "FrpNexus", "本地错误", FrpNexusStatus.Error));
+        var logsPage = CreateLogsPageViewModel(localLogs);
+        logsPage.IsAutoRefreshEnabled = false;
+        var viewModel = CreateMainWindowViewModel(logsPage: logsPage);
+        var logsItem = viewModel.NavigationItems.Single(item => item.Title == "日志");
+
+        logsItem.NavigateCommand.Execute(logsItem);
+        await Task.Delay(50);
+
+        Assert.Equal(logsItem, viewModel.SelectedNavigationItem);
+        Assert.Equal(0, localLogs.ReadCallCount);
+        Assert.Empty(logsPage.Logs);
     }
 
     [Fact]
@@ -181,6 +214,7 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<ITomlConfigurationService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteRuntimeService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IRemoteLogService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<ILocalApplicationLogService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IFilePickerService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IClipboardService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IModalOverlayService>());
@@ -298,6 +332,110 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task ConfirmCloseAsync_RemoteFrpsRunning_ShouldOfferStopKeepAndReturnChoices()
+    {
+        var lifecycle = new FakeFrpLifecycleStateService();
+        lifecycle.UpdateRemoteFrpsState("Web-Server-HK", isSshOnline: true, FrpNexusStatus.Running, "/etc/frp/frps.toml");
+        var confirmation = new FakeConfirmationDialogService { NextChoiceResult = ConfirmationDialogResult.Cancel };
+        var viewModel = CreateMainWindowViewModel(
+            frpLifecycleStateService: lifecycle,
+            confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.False(confirmed);
+        Assert.Equal(1, confirmation.ShowChoiceCount);
+        Assert.Equal("停止 frps 并关闭", confirmation.LastChoiceRequest?.ConfirmButtonText);
+        Assert.Equal("保持 frps 运行并关闭", confirmation.LastChoiceRequest?.SecondaryButtonText);
+        Assert.Equal("返回处理", confirmation.LastChoiceRequest?.CancelButtonText);
+    }
+
+    [Fact]
+    public async Task ConfirmCloseAsync_KeepRemoteFrpsRunning_ShouldPersistNonSensitiveReminderAndClose()
+    {
+        var lifecycle = new FakeFrpLifecycleStateService();
+        lifecycle.UpdateRemoteFrpsState("Web-Server-HK", isSshOnline: true, FrpNexusStatus.Running, "/etc/frp/frps.toml");
+        var confirmation = new FakeConfirmationDialogService { NextChoiceResult = ConfirmationDialogResult.Secondary };
+        var retention = new FakeRemoteFrpsRetentionService();
+        var viewModel = CreateMainWindowViewModel(
+            frpLifecycleStateService: lifecycle,
+            confirmationDialogService: confirmation,
+            remoteFrpsRetentionService: retention);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.True(confirmed);
+        var record = Assert.Single(retention.Records);
+        Assert.Equal("Web-Server-HK", record.NodeName);
+        Assert.Equal("/etc/frp/frps.toml", record.ConfigPath);
+        Assert.DoesNotContain("password", record.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("token", record.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ConfirmCloseAsync_StopRemoteFrps_ShouldKillUniqueProcessMatchedByConfigPathAndClose()
+    {
+        var lifecycle = new FakeFrpLifecycleStateService();
+        lifecycle.UpdateRemoteFrpsState("Web-Server-HK", isSshOnline: true, FrpNexusStatus.Running, "/etc/frp/frps.toml");
+        var sessionService = new FakeNodeConnectionSessionService();
+        await sessionService.ConnectAsync(
+            CreateNode("Web-Server-HK", "/etc/frp/frps.toml"),
+            new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+        var remoteRuntime = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new("frps-191", "Web-Server-HK", "frps", FrpNexusStatus.Running, "191", "00:13", "-", "/opt/frp/frps -c /etc/frp/frps.toml"),
+                new("frps-222", "Web-Server-HK", "frps", FrpNexusStatus.Running, "222", "00:10", "-", "/opt/frp/frps -c /opt/frp/other.toml")
+            ]
+        };
+        var confirmation = new FakeConfirmationDialogService { NextChoiceResult = ConfirmationDialogResult.Confirm };
+        var viewModel = CreateMainWindowViewModel(
+            nodeConnectionSessionService: sessionService,
+            remoteRuntimeService: remoteRuntime,
+            frpLifecycleStateService: lifecycle,
+            confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.True(confirmed);
+        Assert.Equal(1, remoteRuntime.StopCallCount);
+        Assert.Contains("kill 191", remoteRuntime.LastStopRequest?.Command, StringComparison.Ordinal);
+        Assert.DoesNotContain("pkill", remoteRuntime.LastStopRequest?.Command, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ConfirmCloseAsync_StopRemoteFrps_WhenMultipleProcessesCannotBeMatched_ShouldReturnToApp()
+    {
+        var lifecycle = new FakeFrpLifecycleStateService();
+        lifecycle.UpdateRemoteFrpsState("Web-Server-HK", isSshOnline: true, FrpNexusStatus.Running, "/etc/frp/frps.toml");
+        var sessionService = new FakeNodeConnectionSessionService();
+        await sessionService.ConnectAsync(
+            CreateNode("Web-Server-HK", "/etc/frp/frps.toml"),
+            new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+        var remoteRuntime = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new("frps-191", "Web-Server-HK", "frps", FrpNexusStatus.Running, "191", "00:13", "-", "/opt/frp/frps"),
+                new("frps-222", "Web-Server-HK", "frps", FrpNexusStatus.Running, "222", "00:10", "-", "/opt/frp/frps")
+            ]
+        };
+        var confirmation = new FakeConfirmationDialogService { NextChoiceResult = ConfirmationDialogResult.Confirm, NextResult = false };
+        var viewModel = CreateMainWindowViewModel(
+            nodeConnectionSessionService: sessionService,
+            remoteRuntimeService: remoteRuntime,
+            frpLifecycleStateService: lifecycle,
+            confirmationDialogService: confirmation);
+
+        var confirmed = await viewModel.ConfirmCloseAsync();
+
+        Assert.False(confirmed);
+        Assert.Equal(0, remoteRuntime.StopCallCount);
+        Assert.Contains("无法唯一匹配", confirmation.LastRequest?.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DesktopLogPath_ShouldUseLocalApplicationData()
     {
         var logPath = DesktopLogPaths.GetWarningLogPath();
@@ -316,8 +454,10 @@ public sealed class MainWindowViewModelTests
         IRemoteRuntimeService? remoteRuntimeService = null,
         ILocalFrpcProcessService? localFrpcProcessService = null,
         IFrpLifecycleStateService? frpLifecycleStateService = null,
+        IRemoteFrpsRetentionService? remoteFrpsRetentionService = null,
         IConfirmationDialogService? confirmationDialogService = null,
-        ConfigurationsPageViewModel? configurationsPage = null)
+        ConfigurationsPageViewModel? configurationsPage = null,
+        LogsPageViewModel? logsPage = null)
     {
         return new MainWindowViewModel(
             CreateDashboardPageViewModel(),
@@ -325,12 +465,15 @@ public sealed class MainWindowViewModelTests
             CreateTunnelsPageViewModel(),
             configurationsPage ?? CreateConfigurationsPageViewModel(),
             CreateRuntimePageViewModel(),
-            CreateLogsPageViewModel(),
+            logsPage ?? CreateLogsPageViewModel(),
             CreateSettingsPageViewModel(),
             new FakeNavigationRequestService(),
             nodeConnectionSessionService ?? new FakeNodeConnectionSessionService(),
+            nodeManagementService ?? new FakeNodeManagementService(),
+            remoteRuntimeService ?? new FakeRemoteRuntimeService(),
             localFrpcProcessService ?? new FakeLocalFrpcProcessService(),
             frpLifecycleStateService ?? new FakeFrpLifecycleStateService(),
+            remoteFrpsRetentionService ?? new FakeRemoteFrpsRetentionService(),
             confirmationDialogService ?? new FakeConfirmationDialogService(),
             modalOverlayService ?? new ModalOverlayService(),
             modalDialogHostService ?? new ModalDialogHostService());
@@ -346,7 +489,10 @@ public sealed class MainWindowViewModelTests
             new FakeNodeConnectionSessionService(),
             new FakeLocalFrpcProcessService(),
             new FakeFrpLifecycleStateService(),
-            new FakeNavigationRequestService());
+            new FakeNavigationRequestService(),
+            new FakeLocalApplicationLogService(),
+            new FakeRemoteLogService(),
+            new FakeRemoteRuntimeService());
     }
 
     private static NodesPageViewModel CreateNodesPageViewModel()
@@ -393,14 +539,35 @@ public sealed class MainWindowViewModelTests
             new FakeRemoteRuntimeService());
     }
 
-    private static LogsPageViewModel CreateLogsPageViewModel()
+    private static LogsPageViewModel CreateLogsPageViewModel(ILocalApplicationLogService? localLogs = null)
     {
-        return new LogsPageViewModel(new FakeNodeManagementService(), new FakeRemoteLogService());
+        return new LogsPageViewModel(
+            new FakeNodeManagementService(),
+            new FakeRemoteLogService(),
+            localLogs ?? new FakeLocalApplicationLogService(),
+            new FakeNodeConnectionSessionService(),
+            new FakeRemoteRuntimeService());
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
     {
         return new SettingsPageViewModel(new FakeSettingsService(), new FakeThemeService());
+    }
+
+    private static NodeProfile CreateNode(string name, string configPath)
+    {
+        return new NodeProfile(
+            name,
+            "203.0.113.10",
+            22,
+            "root",
+            "Session",
+            "Ubuntu 22.04 LTS",
+            FrpNexusStatus.Online,
+            FrpNexusStatus.Running,
+            "v0.61.1",
+            "-",
+            configPath);
     }
 
     private sealed class FakeSettingsService : ISettingsService
@@ -557,11 +724,22 @@ public sealed class MainWindowViewModelTests
 
     private sealed class FakeNodeConnectionSessionService : INodeConnectionSessionService
     {
+        private readonly Dictionary<string, (NodeConnectionSessionSnapshot Snapshot, SshCredentialReference Credential)> _sessions =
+            new(StringComparer.OrdinalIgnoreCase);
+
         public Task<NodeConnectionSessionResult> ConnectAsync(
             NodeProfile node,
             SshCredentialReference credential,
             CancellationToken cancellationToken = default)
         {
+            _sessions[node.Name] = (
+                new NodeConnectionSessionSnapshot(
+                    node.Name,
+                    NodeConnectionSessionState.Online,
+                    DateTimeOffset.UtcNow,
+                    "SSH 节点连接成功。"),
+                credential);
+
             return Task.FromResult(new NodeConnectionSessionResult(
                 node.Name,
                 NodeConnectionSessionState.Online,
@@ -573,6 +751,8 @@ public sealed class MainWindowViewModelTests
             string nodeName,
             CancellationToken cancellationToken = default)
         {
+            _sessions.Remove(nodeName);
+
             return Task.FromResult(new NodeConnectionSessionResult(
                 nodeName,
                 NodeConnectionSessionState.Disconnected,
@@ -582,17 +762,24 @@ public sealed class MainWindowViewModelTests
 
         public NodeConnectionSessionSnapshot GetSessionStatus(string nodeName)
         {
+            if (_sessions.TryGetValue(nodeName, out var session))
+            {
+                return session.Snapshot;
+            }
+
             return new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "尚未连接。");
         }
 
         public SshCredentialReference? GetConnectedCredential(string nodeName)
         {
-            return null;
+            return _sessions.TryGetValue(nodeName, out var session)
+                ? session.Credential
+                : null;
         }
 
         public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
         {
-            return [];
+            return _sessions.Values.Select(session => session.Snapshot).ToArray();
         }
     }
 
@@ -908,12 +1095,18 @@ public sealed class MainWindowViewModelTests
 
     private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
     {
+        public IReadOnlyList<RuntimeProcess>? Processes { get; set; }
+
         public int GetProcessesRequestCount { get; private set; }
+
+        public int StopCallCount { get; private set; }
+
+        public RemoteRuntimeCommandRequest? LastStopRequest { get; private set; }
 
         public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default)
         {
             GetProcessesRequestCount++;
-            IReadOnlyList<RuntimeProcess> processes =
+            IReadOnlyList<RuntimeProcess> processes = Processes ??
             [
                 new("frps-main", request.Node.Name, "frps", FrpNexusStatus.Running, "2048", "1h", "0.0.0.0:7000")
             ];
@@ -928,6 +1121,9 @@ public sealed class MainWindowViewModelTests
 
         public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default)
         {
+            StopCallCount++;
+            LastStopRequest = request;
+
             return CreateResult(request, FrpNexusStatus.Stopped, "远程停止命令执行完成。");
         }
 
@@ -956,10 +1152,14 @@ public sealed class MainWindowViewModelTests
             return _snapshots.ToArray();
         }
 
-        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+        public void UpdateRemoteFrpsState(
+            string nodeName,
+            bool isSshOnline,
+            FrpNexusStatus frpsStatus,
+            string configPath = "")
         {
             _snapshots.RemoveAll(snapshot => string.Equals(snapshot.NodeName, nodeName, StringComparison.OrdinalIgnoreCase));
-            _snapshots.Add(new RemoteFrpsLifecycleSnapshot(nodeName, isSshOnline, frpsStatus));
+            _snapshots.Add(new RemoteFrpsLifecycleSnapshot(nodeName, isSshOnline, frpsStatus, configPath));
         }
 
         public void RemoveRemoteFrpsState(string nodeName)
@@ -1020,9 +1220,15 @@ public sealed class MainWindowViewModelTests
     {
         public int ShowCount { get; private set; }
 
+        public int ShowChoiceCount { get; private set; }
+
         public bool NextResult { get; set; } = true;
 
+        public ConfirmationDialogResult NextChoiceResult { get; set; } = ConfirmationDialogResult.Confirm;
+
         public ConfirmationDialogRequest? LastRequest { get; private set; }
+
+        public ConfirmationDialogChoiceRequest? LastChoiceRequest { get; private set; }
 
         public Task<bool> ShowAsync(
             ConfirmationDialogRequest request,
@@ -1031,6 +1237,61 @@ public sealed class MainWindowViewModelTests
             ShowCount++;
             LastRequest = request;
             return Task.FromResult(NextResult);
+        }
+
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(
+            ConfirmationDialogChoiceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ShowChoiceCount++;
+            LastChoiceRequest = request;
+            return Task.FromResult(NextChoiceResult);
+        }
+    }
+
+    private sealed class FakeRemoteFrpsRetentionService : IRemoteFrpsRetentionService
+    {
+        public List<RemoteFrpsRetentionRecord> Records { get; } = [];
+
+        public Task<IReadOnlyList<RemoteFrpsRetentionRecord>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RemoteFrpsRetentionRecord>>(Records.ToArray());
+        }
+
+        public Task<RemoteFrpsRetentionRecord?> GetAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Records.FirstOrDefault(record =>
+                string.Equals(record.NodeName, nodeName, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        public Task SaveAsync(RemoteFrpsRetentionRecord record, CancellationToken cancellationToken = default)
+        {
+            Records.RemoveAll(candidate =>
+                string.Equals(candidate.NodeName, record.NodeName, StringComparison.OrdinalIgnoreCase));
+            Records.Add(record);
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            Records.RemoveAll(candidate =>
+                string.Equals(candidate.NodeName, nodeName, StringComparison.OrdinalIgnoreCase));
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeLocalApplicationLogService(params LogEntry[] logs) : ILocalApplicationLogService
+    {
+        public int ReadCallCount { get; private set; }
+
+        public string CurrentLogDirectory => @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs";
+
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
+            int lineCount = 200,
+            CancellationToken cancellationToken = default)
+        {
+            ReadCallCount++;
+            return Task.FromResult<IReadOnlyList<LogEntry>>(logs.Take(lineCount).ToArray());
         }
     }
 

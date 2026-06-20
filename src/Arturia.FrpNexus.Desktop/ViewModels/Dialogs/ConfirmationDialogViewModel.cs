@@ -1,4 +1,5 @@
 using System;
+using Arturia.FrpNexus.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -10,7 +11,8 @@ public sealed partial class ConfirmationDialogViewModel(
     string confirmButtonText,
     string cancelButtonText,
     string severity,
-    Action<bool> close) : ObservableObject
+    Action<ConfirmationDialogResult> close,
+    string? secondaryButtonText = null) : ObservableObject
 {
     public string Title { get; } = title;
 
@@ -19,6 +21,12 @@ public sealed partial class ConfirmationDialogViewModel(
     public string ConfirmButtonText { get; } = confirmButtonText;
 
     public string CancelButtonText { get; } = cancelButtonText;
+
+    public string? SecondaryButtonText { get; } = string.IsNullOrWhiteSpace(secondaryButtonText)
+        ? null
+        : secondaryButtonText;
+
+    public bool HasSecondaryAction => !string.IsNullOrWhiteSpace(SecondaryButtonText);
 
     public string Severity { get; } = string.IsNullOrWhiteSpace(severity) ? "warning" : severity;
 
@@ -31,12 +39,18 @@ public sealed partial class ConfirmationDialogViewModel(
     [RelayCommand]
     private void Confirm()
     {
-        close(true);
+        close(ConfirmationDialogResult.Confirm);
+    }
+
+    [RelayCommand]
+    private void Secondary()
+    {
+        close(ConfirmationDialogResult.Secondary);
     }
 
     [RelayCommand]
     private void Cancel()
     {
-        close(false);
+        close(ConfirmationDialogResult.Cancel);
     }
 }

@@ -17,7 +17,11 @@ public sealed class FrpLifecycleStateService : IFrpLifecycleStateService
         }
     }
 
-    public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+    public void UpdateRemoteFrpsState(
+        string nodeName,
+        bool isSshOnline,
+        FrpNexusStatus frpsStatus,
+        string configPath = "")
     {
         if (string.IsNullOrWhiteSpace(nodeName))
         {
@@ -29,7 +33,8 @@ public sealed class FrpLifecycleStateService : IFrpLifecycleStateService
             _remoteFrpsSnapshots[nodeName] = new RemoteFrpsLifecycleSnapshot(
                 nodeName,
                 isSshOnline,
-                frpsStatus);
+                frpsStatus,
+                configPath);
         }
     }
 

@@ -38,6 +38,16 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
                 $"未找到本地 frpc。请在隧道页选择 frpc 核心，或设置环境变量 {FrpcPathEnvironmentVariable} 指向 frpc.exe。");
         }
 
+        var executableValidationError = ValidateFrpcExecutable(frpcPath);
+        if (!string.IsNullOrWhiteSpace(executableValidationError))
+        {
+            return new LocalFrpcProcessResult(
+                request.Node.Name,
+                FrpNexusStatus.Error,
+                completedAt,
+                executableValidationError);
+        }
+
         var configuredConfigPath = request.FrpcConfigPath.Trim();
         if (string.IsNullOrWhiteSpace(configuredConfigPath))
         {
@@ -303,6 +313,36 @@ public sealed class LocalFrpcProcessService(ILogger logger, ITomlConfigurationSe
         };
 
         return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private static string ValidateFrpcExecutable(string frpcPath)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return string.Empty;
+        }
+
+        if (!frpcPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            || !HasWindowsExecutableHeader(frpcPath))
+        {
+            return "当前选择的 frpc 不是 Windows 可执行文件，请选择 frpc.exe。";
+        }
+
+        return string.Empty;
+    }
+
+    private static bool HasWindowsExecutableHeader(string path)
+    {
+        try
+        {
+            Span<byte> header = stackalloc byte[2];
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return stream.Read(header) == 2 && header[0] == 0x4D && header[1] == 0x5A;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task<LocalFrpcProcessResult> ReloadAsync(

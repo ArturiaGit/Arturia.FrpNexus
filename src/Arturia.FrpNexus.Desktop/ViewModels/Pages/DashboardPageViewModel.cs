@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,12 @@ namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 public sealed partial class DashboardPageViewModel : PageViewModel
 {
+    private const string FrpcLogPath = "/tmp/frpnexus-frpc.log";
+    private const string FrpsLogPath = "/tmp/frpnexus-frps.log";
+    private const int DashboardLogLineCount = 20;
+    private const int DashboardLogDisplayLimit = 8;
+    private const int DashboardIncidentDisplayLimit = 3;
+
     private readonly INodeManagementService _nodeManagementService;
     private readonly ITunnelManagementService _tunnelManagementService;
     private readonly IRuntimeRecordService _runtimeRecordService;
@@ -22,6 +29,9 @@ public sealed partial class DashboardPageViewModel : PageViewModel
     private readonly ILocalFrpcProcessService _localFrpcProcessService;
     private readonly IFrpLifecycleStateService _frpLifecycleStateService;
     private readonly INavigationRequestService _navigationRequestService;
+    private readonly ILocalApplicationLogService _localApplicationLogService;
+    private readonly IRemoteLogService _remoteLogService;
+    private readonly IRemoteRuntimeService _remoteRuntimeService;
 
     [ObservableProperty]
     private string _statusText = "正在加载仪表盘数据...";
@@ -43,7 +53,10 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         INodeConnectionSessionService nodeConnectionSessionService,
         ILocalFrpcProcessService localFrpcProcessService,
         IFrpLifecycleStateService frpLifecycleStateService,
-        INavigationRequestService navigationRequestService)
+        INavigationRequestService navigationRequestService,
+        ILocalApplicationLogService localApplicationLogService,
+        IRemoteLogService remoteLogService,
+        IRemoteRuntimeService remoteRuntimeService)
         : base("仪表盘概览", "查看节点、隧道、运行状态和近期告警")
     {
         _nodeManagementService = nodeManagementService;
@@ -54,6 +67,9 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         _localFrpcProcessService = localFrpcProcessService;
         _frpLifecycleStateService = frpLifecycleStateService;
         _navigationRequestService = navigationRequestService;
+        _localApplicationLogService = localApplicationLogService;
+        _remoteLogService = remoteLogService;
+        _remoteRuntimeService = remoteRuntimeService;
 
         Metrics = [];
         RecentNodes = [];
@@ -159,10 +175,12 @@ public sealed partial class DashboardPageViewModel : PageViewModel
             failureMessages.Add(ViewModelErrorText.ForUser("部署概览加载", ex));
         }
 
+        var dashboardLogs = await LoadDashboardLogsAsync(nodes, failureMessages, cancellationToken);
+
         RefreshMetrics(nodes, tunnels, processes);
         RefreshRecentNodes(nodes);
-        RefreshIncidents(nodes, tunnels, processes, deployments);
-        RefreshLogs(tunnels, processes, deployments);
+        RefreshIncidents(nodes, tunnels, processes, deployments, dashboardLogs);
+        RefreshLogs(dashboardLogs);
 
         StatusText = failureMessages.Count == 0
             ? "仪表盘数据已联动本地记录和当前 SSH 会话。"
@@ -232,7 +250,8 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         IReadOnlyList<NodeProfile> nodes,
         IReadOnlyList<TunnelProfile> tunnels,
         IReadOnlyList<RuntimeProcess> processes,
-        IReadOnlyList<DeploymentRecord> deployments)
+        IReadOnlyList<DeploymentRecord> deployments,
+        IReadOnlyList<LogEntry> dashboardLogs)
     {
         var incidents = new List<(DateTimeOffset UpdatedAt, IncidentViewModel Incident)>();
 
@@ -276,10 +295,22 @@ public sealed partial class DashboardPageViewModel : PageViewModel
                     $"{node.Name}：FRP 状态 {ToFrpStatusText(node.FrpStatus)}",
                     node.FrpStatus))));
 
+        incidents.AddRange(dashboardLogs
+            .Where(IsIncidentLog)
+            .Select((log, index) => (
+                TryParseLogTimestamp(log.Timestamp, out var parsedAt)
+                    ? parsedAt
+                    : DateTimeOffset.MinValue.AddTicks(index),
+                new IncidentViewModel(
+                    ToStatusTitle(log.Status),
+                    FormatLogIncidentTime(log.Timestamp),
+                    $"{log.NodeName} - {log.ProcessName}: {log.Message}",
+                    log.Status))));
+
         var topIncidents = incidents
             .OrderByDescending(item => item.UpdatedAt)
             .ThenBy(item => item.Incident.Message, StringComparer.OrdinalIgnoreCase)
-            .Take(3)
+            .Take(DashboardIncidentDisplayLimit)
             .Select(item => item.Incident)
             .ToArray();
 
@@ -290,6 +321,108 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         }
 
         HasIncidents = Incidents.Count > 0;
+    }
+
+    private async Task<IReadOnlyList<LogEntry>> LoadDashboardLogsAsync(
+        IReadOnlyList<NodeProfile> nodes,
+        List<string> failureMessages,
+        CancellationToken cancellationToken)
+    {
+        var logs = new List<LogEntry>();
+
+        try
+        {
+            logs.AddRange(await _localApplicationLogService.ReadRecentLogsAsync(
+                DashboardLogLineCount,
+                cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            failureMessages.Add(ViewModelErrorText.ForUser("本地日志读取", ex));
+        }
+
+        var nodesByName = nodes.ToDictionary(node => node.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var session in _nodeConnectionSessionService
+            .ListActiveSessions()
+            .Where(session => session.State == NodeConnectionSessionState.Online)
+            .OrderBy(session => session.NodeName, StringComparer.OrdinalIgnoreCase))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!nodesByName.TryGetValue(session.NodeName, out var node))
+            {
+                continue;
+            }
+
+            var credential = _nodeConnectionSessionService.GetConnectedCredential(node.Name);
+            if (credential is null)
+            {
+                continue;
+            }
+
+            IReadOnlyList<RuntimeProcess> remoteProcesses;
+            try
+            {
+                remoteProcesses = await _remoteRuntimeService.GetProcessesAsync(
+                    new RemoteRuntimeQueryRequest(node, credential),
+                    cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                failureMessages.Add(ViewModelErrorText.ForUser($"{node.Name} 远程日志目标刷新", ex));
+                continue;
+            }
+
+            foreach (var process in remoteProcesses
+                .Where(IsRunningFrpProcess)
+                .OrderBy(process => process.ProcessKind, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(process => process.ProcessId, StringComparer.OrdinalIgnoreCase)
+                .Take(4))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    logs.AddRange(await _remoteLogService.ReadRecentLogsAsync(
+                        new RemoteLogReadRequest(
+                            node,
+                            credential,
+                            NormalizeProcessKind(process.ProcessKind),
+                            ResolveRemoteLogPath(process.ProcessKind),
+                            DashboardLogLineCount),
+                        cancellationToken));
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    failureMessages.Add(ViewModelErrorText.ForUser($"{node.Name} 远程日志读取", ex));
+                }
+            }
+        }
+
+        return OrderDashboardLogs(logs).Take(DashboardLogDisplayLimit).ToArray();
+    }
+
+    private void RefreshLogs(IReadOnlyList<LogEntry> dashboardLogs)
+    {
+        Logs.Clear();
+        foreach (var log in dashboardLogs)
+        {
+            Logs.Add(log);
+        }
+
+        HasLogs = Logs.Count > 0;
     }
 
     private void RefreshLogs(
@@ -340,6 +473,87 @@ public sealed partial class DashboardPageViewModel : PageViewModel
     private static bool IsIncidentStatus(FrpNexusStatus status)
     {
         return status is FrpNexusStatus.Error or FrpNexusStatus.Warning;
+    }
+
+    private static bool IsIncidentLog(LogEntry log)
+    {
+        return IsIncidentStatus(log.Status)
+            || string.Equals(log.Level, "WARN", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(log.Level, "WARNING", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(log.Level, "ERR", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(log.Level, "ERROR", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRunningFrpProcess(RuntimeProcess process)
+    {
+        return process.Status == FrpNexusStatus.Running
+            && (string.Equals(process.ProcessKind, "frpc", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeProcessKind(string processKind)
+    {
+        return string.Equals(processKind, "frps", StringComparison.OrdinalIgnoreCase)
+            ? "frps"
+            : "frpc";
+    }
+
+    private static string ResolveRemoteLogPath(string processKind)
+    {
+        return string.Equals(processKind, "frps", StringComparison.OrdinalIgnoreCase)
+            ? FrpsLogPath
+            : FrpcLogPath;
+    }
+
+    private static IEnumerable<LogEntry> OrderDashboardLogs(IReadOnlyList<LogEntry> logs)
+    {
+        return logs
+            .Select((log, index) => new
+            {
+                Log = log,
+                Index = index,
+                HasTimestamp = TryParseLogTimestamp(log.Timestamp, out var parsedAt),
+                ParsedAt = parsedAt
+            })
+            .OrderByDescending(item => item.HasTimestamp)
+            .ThenByDescending(item => item.ParsedAt)
+            .ThenByDescending(item => item.Index)
+            .Select(item => item.Log);
+    }
+
+    private static bool TryParseLogTimestamp(string value, out DateTimeOffset timestamp)
+    {
+        var formats = new[]
+        {
+            "yyyy-MM-dd HH:mm:ss.fff",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm:ss.fff",
+            "yyyy/MM/dd HH:mm:ss",
+            "HH:mm:ss"
+        };
+
+        if (DateTimeOffset.TryParseExact(
+            value,
+            formats,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeLocal,
+            out timestamp))
+        {
+            return true;
+        }
+
+        return DateTimeOffset.TryParse(
+            value,
+            CultureInfo.CurrentCulture,
+            DateTimeStyles.AssumeLocal,
+            out timestamp);
+    }
+
+    private static string FormatLogIncidentTime(string timestamp)
+    {
+        return TryParseLogTimestamp(timestamp, out var parsedAt)
+            ? FormatRelativeTime(parsedAt)
+            : timestamp;
     }
 
     private static string ToStatusTitle(FrpNexusStatus status)

@@ -144,6 +144,121 @@ public sealed class DashboardPageViewModelTests
     }
 
     [Fact]
+    public async Task LocalWarningAndErrorLogs_ShouldPopulateSystemLogsAndIncidents()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+        [
+            new("2026-06-15 21:49:33.209", "INFO", "客户端", "FrpNexus", "application started", FrpNexusStatus.Ready),
+            new("2026-06-15 21:50:33.209", "WARN", "客户端", "FrpNexus", "disk warning", FrpNexusStatus.Warning),
+            new("2026-06-15 21:51:33.209", "ERROR", "客户端", "FrpNexus", "local failure", FrpNexusStatus.Error)
+        ]);
+        var viewModel = CreateViewModel(localLogService: localLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.True(viewModel.HasLogs);
+        Assert.Contains(viewModel.Logs, log => log.Message == "local failure");
+        Assert.True(viewModel.HasIncidents);
+        Assert.Contains(viewModel.Incidents, incident => incident.Message.Contains("local failure", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task OnlineSessionWithRunningFrpProcess_ShouldReadRemoteLogs()
+    {
+        var nodes = new FakeNodeManagementService([CreateNode("node-a")]);
+        var sessions = new FakeNodeConnectionSessionService();
+        sessions.SetOnline("node-a", CreateCredential());
+        var remoteRuntime = new FakeRemoteRuntimeService(
+        [
+            new("frpc-web", "node-a", "frpc", FrpNexusStatus.Running, "2048", "00:13", "127.0.0.1:8080"),
+            new("other", "node-a", "nginx", FrpNexusStatus.Running, "100", "00:13", "127.0.0.1:80"),
+            new("frps-stopped", "node-a", "frps", FrpNexusStatus.Stopped, "-", "-", "-")
+        ]);
+        var remoteLogs = new FakeRemoteLogService(
+        [
+            new("2026-06-15 22:00:00.000", "ERROR", "node-a", "frpc", "remote frpc failure", FrpNexusStatus.Error)
+        ]);
+        var viewModel = CreateViewModel(
+            nodeService: nodes,
+            sessionService: sessions,
+            remoteRuntimeService: remoteRuntime,
+            remoteLogService: remoteLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.NotEmpty(remoteLogs.Requests);
+        Assert.All(remoteLogs.Requests, request => Assert.Equal("/tmp/frpnexus-frpc.log", request.LogPath));
+        Assert.All(remoteLogs.Requests, request => Assert.Equal("frpc", request.ProcessName));
+        Assert.Contains(viewModel.Logs, log => log.Message == "remote frpc failure");
+    }
+
+    [Fact]
+    public async Task RemoteLogFailure_ShouldKeepLocalLogsAndShowRecoverableStatusText()
+    {
+        var nodes = new FakeNodeManagementService([CreateNode("node-a")]);
+        var sessions = new FakeNodeConnectionSessionService();
+        sessions.SetOnline("node-a", CreateCredential());
+        var remoteRuntime = new FakeRemoteRuntimeService(
+        [
+            new("frps-main", "node-a", "frps", FrpNexusStatus.Running, "7000", "00:13", "0.0.0.0:7000")
+        ]);
+        var localLogs = new FakeLocalApplicationLogService(
+        [
+            new("2026-06-15 21:49:33.209", "WARN", "客户端", "FrpNexus", "local warning", FrpNexusStatus.Warning)
+        ]);
+        var remoteLogs = new ThrowingRemoteLogService();
+        var viewModel = CreateViewModel(
+            nodeService: nodes,
+            sessionService: sessions,
+            remoteRuntimeService: remoteRuntime,
+            localLogService: localLogs,
+            remoteLogService: remoteLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Contains(viewModel.Logs, log => log.Message == "local warning");
+        Assert.Contains("远程日志", viewModel.StatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OnlineSessionWithoutCredential_ShouldSkipRemoteLogRead()
+    {
+        var nodes = new FakeNodeManagementService([CreateNode("node-a")]);
+        var sessions = new FakeNodeConnectionSessionService();
+        sessions.SetOnline("node-a");
+        var remoteLogs = new FakeRemoteLogService([]);
+        var viewModel = CreateViewModel(
+            nodeService: nodes,
+            sessionService: sessions,
+            remoteLogService: remoteLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Empty(remoteLogs.Requests);
+    }
+
+    [Fact]
+    public async Task DashboardLogsAndIncidents_ShouldBeCapped()
+    {
+        var localLogs = new FakeLocalApplicationLogService(Enumerable
+            .Range(1, 12)
+            .Select(index => new LogEntry(
+                $"2026-06-15 21:{index:00}:00.000",
+                "ERROR",
+                "客户端",
+                "FrpNexus",
+                $"failure {index}",
+                FrpNexusStatus.Error))
+            .ToArray());
+        var viewModel = CreateViewModel(localLogService: localLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Equal(8, viewModel.Logs.Count);
+        Assert.Equal(3, viewModel.Incidents.Count);
+    }
+
+    [Fact]
     public void QuickActions_ShouldRequestNavigation()
     {
         var navigation = new FakeNavigationRequestService();
@@ -175,7 +290,10 @@ public sealed class DashboardPageViewModelTests
         INodeConnectionSessionService? sessionService = null,
         ILocalFrpcProcessService? localFrpcProcessService = null,
         IFrpLifecycleStateService? frpLifecycleStateService = null,
-        INavigationRequestService? navigationService = null)
+        INavigationRequestService? navigationService = null,
+        ILocalApplicationLogService? localLogService = null,
+        IRemoteLogService? remoteLogService = null,
+        IRemoteRuntimeService? remoteRuntimeService = null)
     {
         return new DashboardPageViewModel(
             nodeService ?? new FakeNodeManagementService([]),
@@ -185,7 +303,15 @@ public sealed class DashboardPageViewModelTests
             sessionService ?? new FakeNodeConnectionSessionService(),
             localFrpcProcessService ?? new FakeLocalFrpcProcessService([]),
             frpLifecycleStateService ?? new FakeFrpLifecycleStateService([]),
-            navigationService ?? new FakeNavigationRequestService());
+            navigationService ?? new FakeNavigationRequestService(),
+            localLogService ?? new FakeLocalApplicationLogService([]),
+            remoteLogService ?? new FakeRemoteLogService([]),
+            remoteRuntimeService ?? new FakeRemoteRuntimeService([]));
+    }
+
+    private static SshCredentialReference CreateCredential()
+    {
+        return new SshCredentialReference(SshAuthenticationMode.SessionPassword, null, "session-password", null);
     }
 
     private static NodeProfile CreateNode(
@@ -392,7 +518,11 @@ public sealed class DashboardPageViewModelTests
             return snapshots;
         }
 
-        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus)
+        public void UpdateRemoteFrpsState(
+            string nodeName,
+            bool isSshOnline,
+            FrpNexusStatus frpsStatus,
+            string configPath = "")
         {
         }
 
@@ -404,10 +534,15 @@ public sealed class DashboardPageViewModelTests
     private sealed class FakeNodeConnectionSessionService : INodeConnectionSessionService
     {
         private readonly HashSet<string> _onlineNodes = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, SshCredentialReference> _credentials = new(StringComparer.OrdinalIgnoreCase);
 
-        public void SetOnline(string nodeName)
+        public void SetOnline(string nodeName, SshCredentialReference? credential = null)
         {
             _onlineNodes.Add(nodeName);
+            if (credential is not null)
+            {
+                _credentials[nodeName] = credential;
+            }
         }
 
         public Task<NodeConnectionSessionResult> ConnectAsync(NodeProfile node, SshCredentialReference credential, CancellationToken cancellationToken = default)
@@ -431,7 +566,7 @@ public sealed class DashboardPageViewModelTests
 
         public SshCredentialReference? GetConnectedCredential(string nodeName)
         {
-            return null;
+            return _credentials.GetValueOrDefault(nodeName);
         }
 
         public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
@@ -456,6 +591,108 @@ public sealed class DashboardPageViewModelTests
         {
             RequestedKeys.Add(pageKey);
             NavigationRequested?.Invoke(this, pageKey);
+        }
+    }
+
+    private sealed class FakeLocalApplicationLogService(IReadOnlyList<LogEntry> logs) : ILocalApplicationLogService
+    {
+        public string CurrentLogDirectory => @"D:\FrpNexus\logs";
+
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
+            int lineCount = 200,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<LogEntry>>(logs.TakeLast(lineCount).ToArray());
+        }
+    }
+
+    private sealed class FakeRemoteLogService(IReadOnlyList<LogEntry> logs) : IRemoteLogService
+    {
+        public List<RemoteLogReadRequest> Requests { get; } = [];
+
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
+            RemoteLogReadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Requests.Add(request);
+            return Task.FromResult<IReadOnlyList<LogEntry>>(logs);
+        }
+
+        public async IAsyncEnumerable<LogEntry> StreamLogsAsync(
+            RemoteLogReadRequest request,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            Requests.Add(request);
+            foreach (var log in logs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return log;
+                await Task.Yield();
+            }
+        }
+    }
+
+    private sealed class ThrowingRemoteLogService : IRemoteLogService
+    {
+        public Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
+            RemoteLogReadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("permission denied");
+        }
+
+        public async IAsyncEnumerable<LogEntry> StreamLogsAsync(
+            RemoteLogReadRequest request,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("permission denied");
+#pragma warning disable CS0162
+            yield break;
+#pragma warning restore CS0162
+        }
+    }
+
+    private sealed class FakeRemoteRuntimeService(IReadOnlyList<RuntimeProcess> processes) : IRemoteRuntimeService
+    {
+        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(
+            RemoteRuntimeQueryRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RuntimeProcess>>(processes
+                .Where(process => string.Equals(process.NodeName, request.Node.Name, StringComparison.OrdinalIgnoreCase))
+                .ToArray());
+        }
+
+        public Task<RemoteRuntimeCommandResult> StartAsync(
+            RemoteRuntimeCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CreateCommandResult(request));
+        }
+
+        public Task<RemoteRuntimeCommandResult> StopAsync(
+            RemoteRuntimeCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CreateCommandResult(request));
+        }
+
+        public Task<RemoteRuntimeCommandResult> RestartAsync(
+            RemoteRuntimeCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CreateCommandResult(request));
+        }
+
+        private static RemoteRuntimeCommandResult CreateCommandResult(RemoteRuntimeCommandRequest request)
+        {
+            return new RemoteRuntimeCommandResult(
+                request.Node.Name,
+                request.ProcessName,
+                FrpNexusStatus.Running,
+                DateTimeOffset.UtcNow,
+                "ok");
         }
     }
 }

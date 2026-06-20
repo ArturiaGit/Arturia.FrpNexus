@@ -42,6 +42,10 @@
                 <Button Classes="secondary"
                         Command="{Binding CancelCommand}"
                         Content="{Binding CancelButtonText}" />
+                <Button Classes="secondary"
+                        IsVisible="{Binding HasSecondaryAction}"
+                        Command="{Binding SecondaryCommand}"
+                        Content="{Binding SecondaryButtonText}" />
                 <Button Classes="primary"
                         Command="{Binding ConfirmCommand}"
                         Content="{Binding ConfirmButtonText}" />

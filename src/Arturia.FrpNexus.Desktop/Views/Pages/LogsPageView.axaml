@@ -84,7 +84,7 @@
           RowSpacing="12"
           MinHeight="0">
         <Border Classes="command-bar">
-            <Grid RowDefinitions="Auto,Auto"
+            <Grid RowDefinitions="Auto,Auto,Auto"
                   RowSpacing="4">
                 <WrapPanel Grid.Row="0"
                            Orientation="Horizontal"
@@ -176,19 +176,40 @@
                     <Button Classes="secondary stitch-command"
                             MinHeight="32"
                             Height="32"
-                            Margin="0,0,8,0">
+                            Margin="0,0,8,0"
+                            Command="{Binding RefreshLogsCommand}">
                         <ToolTip.Tip>
                             <ToolTip Classes="stitch-tooltip"
                                      Placement="Top"
                                      VerticalOffset="-6"
-                                     Content="复制日志" />
+                                     Content="刷新当前日志" />
                         </ToolTip.Tip>
                         <StackPanel Orientation="Horizontal"
                                     Spacing="6">
                             <PathIcon Width="16"
                                       Height="16"
-                                      Data="{Binding Source=content_copy, Converter={StaticResource MetricIconConverter}}" />
-                            <TextBlock Text="复制" />
+                                      Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
+                            <TextBlock Text="刷新" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="secondary stitch-command"
+                            MinHeight="32"
+                            Height="32"
+                            Margin="0,0,8,0"
+                            Command="{Binding ToggleRemoteCredentialsCommand}">
+                        <ToolTip.Tip>
+                            <ToolTip Classes="stitch-tooltip"
+                                     Placement="Top"
+                                     VerticalOffset="-6"
+                                     Content="{Binding LogModeToggleTooltip}" />
+                        </ToolTip.Tip>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6">
+                            <PathIcon Width="16"
+                                      Height="16"
+                                      Data="{Binding Source=terminal, Converter={StaticResource MetricIconConverter}}" />
+                            <TextBlock Text="{Binding LogModeToggleText}" />
                         </StackPanel>
                     </Button>
 
@@ -210,6 +231,26 @@
                             <TextBlock Text="清空" />
                         </StackPanel>
                     </Button>
+                </WrapPanel>
+
+                <WrapPanel Grid.Row="2"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding IsRemoteCredentialsVisible}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="0,0,12,8"
+                                VerticalAlignment="Center">
+                        <TextBlock Classes="group-label"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   Text="远程:" />
+                        <TextBlock Classes="code"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   Text="{Binding RemoteLogPath}" />
+                    </StackPanel>
+
                 </WrapPanel>
             </Grid>
         </Border>
@@ -267,7 +308,7 @@
                                Margin="12,0"
                                VerticalAlignment="Center"
                                Foreground="{StaticResource FrpCodeMutedBrush}"
-                               Text="File: frpc_client_daemon.log" />
+                               Text="{Binding LogFileText}" />
                     <StackPanel DockPanel.Dock="Right"
                                 Orientation="Horizontal"
                                 Spacing="16"

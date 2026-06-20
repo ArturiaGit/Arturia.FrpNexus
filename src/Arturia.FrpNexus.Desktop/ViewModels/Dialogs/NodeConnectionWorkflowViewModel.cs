@@ -256,6 +256,7 @@ public sealed partial class NodeConnectionWorkflowViewModel : ObservableObject
 
         IsConnected = true;
         SetConnectionStatus("已连接", sessionSnapshot.Message, "success");
+        await RefreshRuntimeStatusAsync(cancellationToken, showIdleStatus: false);
         if (_options.SkipInitialDeploymentPresenceCheck)
         {
             ShowDeploymentPreparationFromKnownMissingState();
@@ -294,6 +295,7 @@ public sealed partial class NodeConnectionWorkflowViewModel : ObservableObject
                 }
 
                 SetConnectionStatus("连接成功", result.Message, "success");
+                await RefreshRuntimeStatusAsync(cancellationToken, showIdleStatus: false);
                 await RefreshDeploymentPresenceAsync(cancellationToken);
                 return;
             }

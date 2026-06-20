@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Runtime;
 using Serilog;
@@ -34,7 +35,7 @@ public sealed class RemoteLogService(
             return
             [
                 new(
-                    DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                    LogTimestampParser.UnknownTimestamp,
                     "ERROR",
                     request.Node.Name,
                     request.ProcessName,
@@ -76,13 +77,22 @@ public sealed class RemoteLogService(
 
     private static LogEntry ParseLog(string nodeName, string processName, string line)
     {
-        var level = DetectLevel(line);
+        var cleanedLine = LogTextSanitizer.StripControlSequences(line).Trim();
+        var timestamp = LogTimestampParser.UnknownTimestamp;
+        var message = cleanedLine;
+        if (LogTimestampParser.TryParseFrpLine(cleanedLine, out var parsedTimestamp, out var parsedMessage))
+        {
+            timestamp = parsedTimestamp;
+            message = string.IsNullOrWhiteSpace(parsedMessage) ? cleanedLine : parsedMessage;
+        }
+
+        var level = DetectLevel(cleanedLine);
         return new LogEntry(
-            DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+            timestamp,
             level,
             nodeName,
             processName,
-            line,
+            message,
             LevelToStatus(level));
     }
 
@@ -137,6 +147,8 @@ public sealed class RemoteLogService(
     {
         return string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
-            : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+            : LogTextSanitizer
+                .StripControlSequences(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
+                .Trim();
     }
 }

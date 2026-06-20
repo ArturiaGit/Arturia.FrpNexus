@@ -50,6 +50,34 @@ public sealed class LocalFrpcProcessServiceTests
     }
 
     [Fact]
+    public async Task ApplyNodeTunnelsAsync_WhenFrpcPathIsNotWindowsExecutable_ShouldReturnFriendlyErrorBeforeWritingConfig()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var service = new LocalFrpcProcessService(Logger.None, new TomlConfigurationService());
+        using var disposable = service;
+        var fakeFrpcPath = Path.Combine(Path.GetTempPath(), "FrpNexusTests", Guid.NewGuid().ToString("N"), "frpc");
+        Directory.CreateDirectory(Path.GetDirectoryName(fakeFrpcPath)!);
+        await File.WriteAllTextAsync(fakeFrpcPath, "#!/bin/sh\necho linux frpc");
+        var configPath = CreateTempConfigPath();
+        File.Delete(configPath);
+        var request = new LocalFrpcProcessRequest(
+            CreateNode(),
+            [CreateTunnel()],
+            fakeFrpcPath,
+            configPath);
+
+        var result = await service.ApplyNodeTunnelsAsync(request);
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Contains("不是 Windows 可执行文件", result.Message);
+        Assert.False(File.Exists(configPath));
+    }
+
+    [Fact]
     public void CommandUsesConfigPath_ShouldMatchFrpcCommandLineConfigPath()
     {
         var commandLine = "\"D:\\E\\frp\\frpc.exe\" -c \"D:\\E\\frp\\frpc.toml\"";

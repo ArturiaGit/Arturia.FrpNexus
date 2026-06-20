@@ -7,4 +7,5 @@ public sealed record RuntimeProcess(
     FrpNexusStatus Status,
     string ProcessId,
     string Uptime,
-    string ListenAddress);
+    string ListenAddress,
+    string CommandLine = "");

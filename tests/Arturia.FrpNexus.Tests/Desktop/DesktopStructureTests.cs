@@ -1,6 +1,7 @@
 using Arturia.FrpNexus.Desktop.Composition;
 using Arturia.FrpNexus.Desktop.Converters;
 using Arturia.FrpNexus.Desktop.Logging;
+using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
@@ -56,6 +57,8 @@ public sealed class DesktopStructureTests
         Assert.Equal("Arturia.FrpNexus.Desktop.Converters", typeof(StatusClassesConverter).Namespace);
         Assert.Equal("Arturia.FrpNexus.Desktop.Converters", typeof(TunnelProtocolTextConverter).Namespace);
         Assert.Equal("Arturia.FrpNexus.Desktop.Logging", typeof(DesktopLogging).Namespace);
+        Assert.Equal("Arturia.FrpNexus.Desktop.Services", typeof(ILocalApplicationLogService).Namespace);
+        Assert.Equal("Arturia.FrpNexus.Desktop.Services", typeof(LocalApplicationLogService).Namespace);
         Assert.Equal("Arturia.FrpNexus.Desktop.Composition", typeof(DesktopCompositionRoot).Namespace);
     }
 
@@ -233,6 +236,27 @@ public sealed class DesktopStructureTests
         Assert.DoesNotContain("生成 frps.toml", configurationsXaml);
         Assert.DoesNotContain("服务端端口", configurationsXaml);
         Assert.DoesNotContain("远程 frps 配置", configurationsXaml);
+    }
+
+    [Fact]
+    public void LogsPage_ShouldExposeRealLogCommandsAndNoStaticSampleNodes()
+    {
+        var logsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "LogsPageView.axaml"));
+
+        Assert.Contains("RefreshLogsCommand", logsXaml);
+        Assert.Contains("ToggleRemoteCredentialsCommand", logsXaml);
+        Assert.DoesNotContain("ReadRemoteLogsCommand", logsXaml);
+        Assert.Contains("RemoteLogPath", logsXaml);
+        Assert.DoesNotContain("CanReadRemoteLogs", logsXaml);
+        Assert.Contains("LogFileText", logsXaml);
+        Assert.DoesNotContain("SshSessionPassword", logsXaml);
+        Assert.DoesNotContain("会话密码", logsXaml);
+        Assert.DoesNotContain("Web-Server-HK", logsXaml);
+        Assert.DoesNotContain("DB-Node-SH", logsXaml);
     }
 
     [Fact]

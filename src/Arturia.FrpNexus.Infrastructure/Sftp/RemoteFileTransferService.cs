@@ -67,11 +67,6 @@ public sealed class RemoteFileTransferService(
                     ? "远程 frps 和 frps.toml 尚未上传。"
                     : "远程部署文件不完整，需要补齐缺失文件。";
 
-            logger.Information(
-                "SFTP remote FRP files presence checked for node {NodeName} using {AuthenticationMode}",
-                request.Node.Name,
-                request.Credential.AuthenticationMode);
-
             return new RemoteFilePresenceResult(
                 request.Node.Name,
                 entries,

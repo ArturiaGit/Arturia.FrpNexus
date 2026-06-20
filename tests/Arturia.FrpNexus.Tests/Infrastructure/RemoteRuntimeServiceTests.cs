@@ -1,7 +1,9 @@
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Runtime;
+using Serilog;
 using Serilog.Core;
+using Serilog.Events;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
 
@@ -26,6 +28,7 @@ public sealed class RemoteRuntimeServiceTests
         Assert.Contains(processes, process => process.ProcessKind == "frpc" && process.ProcessId == "2048" && process.Uptime == "00:13");
         Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "4096" && process.Uptime == "01:45");
         Assert.Contains(processes, process => process.ProcessKind == "frps" && process.ProcessId == "8192" && process.Uptime == "1-02:03:04");
+        Assert.Contains(processes, process => process.ProcessId == "4096" && process.CommandLine.Contains("/etc/frp/frps.toml", StringComparison.Ordinal));
         Assert.Equal(3, runtimeRecordService.SavedProcesses.Count);
         Assert.Equal(request.Node.Name, runtimeRecordService.ReplacementNodeName);
         Assert.Equal(3, runtimeRecordService.ReplacementProcesses.Count);
@@ -66,6 +69,27 @@ public sealed class RemoteRuntimeServiceTests
 
         Assert.Empty(processes);
         Assert.Empty(runtimeRecordService.SavedProcesses);
+    }
+
+    [Fact]
+    public async Task GetProcessesAsync_ShouldNotWriteInformationLogForPollingReadSuccess()
+    {
+        var sink = new CollectingLogSink();
+        var logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "2048|00:13|/opt/frp/frpc -c /etc/frp/frpc.toml",
+                string.Empty)),
+            new FakeRuntimeRecordService(),
+            logger);
+
+        await service.GetProcessesAsync(CreateQueryRequest());
+
+        Assert.DoesNotContain(sink.Events, item => item.Level == LogEventLevel.Information);
     }
 
     [Fact]
@@ -226,6 +250,16 @@ public sealed class RemoteRuntimeServiceTests
         {
             SavedProcesses.RemoveAll(process => process.Name == processName);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CollectingLogSink : ILogEventSink
+    {
+        public List<LogEvent> Events { get; } = [];
+
+        public void Emit(LogEvent logEvent)
+        {
+            Events.Add(logEvent);
         }
     }
 }
