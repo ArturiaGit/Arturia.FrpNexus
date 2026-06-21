@@ -67,18 +67,25 @@
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
-
                 </StackPanel>
             </Border>
 
             <TextBlock Classes="section-title" Text="安全与认证" />
             <Border Classes="settings-card">
                 <StackPanel>
-                    <controls:SettingsRowControl Title="SSH 密钥管理"
-                                                 Description="管理用于安全连接到远程 FRP 服务器的私钥凭据；示例仅展示名称、用途和脱敏指纹">
+                    <controls:SettingsRowControl Title="凭据安全中心"
+                                                 Description="查看节点认证方式和 DPAPI 已保存会话密码状态，不显示或回填任何密码明文">
                         <controls:SettingsRowControl.ValueContent>
-                            <Button Classes="primary stitch-command"
-                                    Content="导入新密钥" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Spacing="8">
+                                <Button Classes="secondary stitch-command"
+                                        Content="刷新状态"
+                                        Command="{Binding RefreshCredentialSecurityCommand}" />
+                                <Button Classes="secondary stitch-command danger"
+                                        Content="清除全部保存密码"
+                                        Command="{Binding ClearAllSavedSessionPasswordsCommand}" />
+                            </StackPanel>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
 
@@ -86,64 +93,121 @@
 
                     <Border Classes="subtle-panel"
                             Margin="16"
+                            Padding="12">
+                        <Grid ColumnDefinitions="*,*,*,*,*"
+                              ColumnSpacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="helper" Text="节点总数" />
+                                <TextBlock FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding CredentialNodeCount}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Classes="helper" Text="会话密码" />
+                                <TextBlock FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding SessionPasswordNodeCount}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="2">
+                                <TextBlock Classes="helper" Text="私钥路径" />
+                                <TextBlock FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding PrivateKeyNodeCount}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Spacing="2">
+                                <TextBlock Classes="helper" Text="SSH Agent" />
+                                <TextBlock FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding SshAgentNodeCount}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" Spacing="2">
+                                <TextBlock Classes="helper" Text="已保存密码" />
+                                <TextBlock FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding SavedSessionPasswordNodeCount}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Classes="settings-divider" />
+
+                    <Border Classes="subtle-panel"
+                            Margin="16,0,16,16"
                             Padding="0">
                         <StackPanel>
-                            <Grid ColumnDefinitions="2*,2*,3*,Auto"
+                            <Grid HorizontalAlignment="Stretch"
+                                  ColumnDefinitions="2*,1.4*,2*,1.2*,64"
                                   ColumnSpacing="12"
                                   MinHeight="36"
                                   Margin="12,0">
                                 <TextBlock Classes="helper"
                                            VerticalAlignment="Center"
                                            FontWeight="SemiBold"
-                                           Text="名称" />
+                                           Text="节点" />
                                 <TextBlock Grid.Column="1"
                                            Classes="helper"
                                            VerticalAlignment="Center"
                                            FontWeight="SemiBold"
-                                           Text="用途" />
+                                           HorizontalAlignment="Stretch"
+                                           TextAlignment="Center"
+                                           Text="认证方式" />
                                 <TextBlock Grid.Column="2"
                                            Classes="helper"
                                            VerticalAlignment="Center"
                                            FontWeight="SemiBold"
-                                           Text="Fingerprint" />
+                                           Text="私钥摘要" />
                                 <TextBlock Grid.Column="3"
                                            Classes="helper"
                                            VerticalAlignment="Center"
                                            FontWeight="SemiBold"
-                                           HorizontalAlignment="Right"
+                                           HorizontalAlignment="Stretch"
+                                           TextAlignment="Center"
+                                           Text="保存密码" />
+                                <TextBlock Grid.Column="4"
+                                           Classes="helper"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Stretch"
+                                           TextAlignment="Right"
                                            Text="操作" />
                             </Grid>
 
                             <Border Classes="settings-divider" />
 
-                            <ItemsControl ItemsSource="{Binding SshKeys}">
+                            <ItemsControl HorizontalAlignment="Stretch"
+                                          ItemsSource="{Binding CredentialSecurityNodes}">
                                 <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnDefinitions="2*,2*,3*,Auto"
+                                    <DataTemplate DataType="pages:CredentialSecurityNodeViewModel">
+                                        <Grid HorizontalAlignment="Stretch"
+                                              ColumnDefinitions="2*,1.4*,2*,1.2*,64"
                                               ColumnSpacing="12"
                                               MinHeight="42"
                                               Margin="12,0">
                                             <TextBlock VerticalAlignment="Center"
-                                                       Text="{Binding Name}" />
+                                                       Text="{Binding NodeName}" />
                                             <TextBlock Grid.Column="1"
                                                        Foreground="{StaticResource Brush.TextSecondary}"
                                                        VerticalAlignment="Center"
-                                                       Text="{Binding Description}" />
+                                                       HorizontalAlignment="Stretch"
+                                                       TextAlignment="Center"
+                                                       Text="{Binding AuthenticationModeText}" />
                                             <TextBlock Grid.Column="2"
                                                        Classes="code"
                                                        Foreground="{StaticResource Brush.TextSecondary}"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
-                                                       Text="{Binding Fingerprint}" />
-                                            <StackPanel Grid.Column="3"
-                                                        Orientation="Horizontal"
-                                                        Spacing="6"
-                                                        VerticalAlignment="Center">
-                                                <Button Classes="secondary stitch-command compact"
-                                                        Content="编辑" />
-                                                <Button Classes="secondary stitch-command danger compact"
-                                                        Content="删除" />
-                                            </StackPanel>
+                                                       Text="{Binding PrivateKeySummary}" />
+                                            <TextBlock Grid.Column="3"
+                                                       Foreground="{StaticResource Brush.TextSecondary}"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Stretch"
+                                                       TextAlignment="Center"
+                                                       Text="{Binding SavedPasswordStatusText}" />
+                                            <Button Grid.Column="4"
+                                                    Classes="secondary stitch-command danger compact"
+                                                    HorizontalAlignment="Right"
+                                                    Content="清除"
+                                                    Command="{Binding ClearSavedSessionPasswordCommand}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -151,15 +215,13 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Classes="settings-divider" />
+                    <TextBlock Classes="helper"
+                               Margin="16,0,16,12"
+                               TextWrapping="Wrap"
+                               Text="{Binding CredentialSecurityStatusText}" />
 
-                    <controls:SettingsRowControl Title="敏感信息显示"
-                                                 Description="Token、SSH 密码和私钥内容不在界面样例中展示">
-                        <controls:SettingsRowControl.ValueContent>
-                            <TextBlock Classes="helper"
-                                       HorizontalAlignment="Right"
-                                       Text="仅显示脱敏摘要" />
-                        </controls:SettingsRowControl.ValueContent>
+                    <controls:SettingsRowControl Title="安全边界"
+                                                 Description="保存密码仅受当前 Windows 用户 DPAPI 保护，不会进入 SQLite、导出或备份">
                     </controls:SettingsRowControl>
                 </StackPanel>
             </Border>

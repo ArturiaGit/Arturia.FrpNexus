@@ -197,6 +197,73 @@ public sealed class DesktopStructureTests
     }
 
     [Fact]
+    public void SettingsPageSecuritySection_ShouldUseRealCredentialSecurityCenter()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("凭据安全中心", settingsXaml);
+        Assert.Contains("CredentialSecurityNodes", settingsXaml);
+        Assert.Contains("RefreshCredentialSecurityCommand", settingsXaml);
+        Assert.Contains("ClearAllSavedSessionPasswordsCommand", settingsXaml);
+        Assert.DoesNotContain("id_rsa_prod_server", settingsXaml);
+        Assert.DoesNotContain("导入新密钥", settingsXaml);
+    }
+
+    [Fact]
+    public void SettingsPageCredentialSecurityTable_ShouldUseStableColumnAlignment()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+        var normalizedXaml = settingsXaml.Replace("\r\n", "\n");
+
+        Assert.Contains("ColumnDefinitions=\"2*,1.4*,2*,1.2*,64\"", settingsXaml);
+        Assert.DoesNotContain("ColumnDefinitions=\"2*,1.4*,2*,1.2*,Auto\"", settingsXaml);
+        Assert.Contains("<ItemsControl HorizontalAlignment=\"Stretch\"", settingsXaml);
+        Assert.Contains("<Grid HorizontalAlignment=\"Stretch\"", settingsXaml);
+        Assert.Contains(
+            "HorizontalAlignment=\"Stretch\"\n"
+            + "                                                       TextAlignment=\"Center\"\n"
+            + "                                                       Text=\"{Binding AuthenticationModeText}\"",
+            normalizedXaml);
+        Assert.Contains(
+            "HorizontalAlignment=\"Stretch\"\n"
+            + "                                                       TextAlignment=\"Center\"\n"
+            + "                                                       Text=\"{Binding SavedPasswordStatusText}\"",
+            normalizedXaml);
+    }
+
+    [Fact]
+    public void SettingsPageCredentialSecurityStatus_ShouldSitBelowTableBeforeSecurityBoundary()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        var statusIndex = settingsXaml.IndexOf("Text=\"{Binding CredentialSecurityStatusText}\"", StringComparison.Ordinal);
+        var securityBoundaryIndex = settingsXaml.IndexOf("Title=\"安全边界\"", StringComparison.Ordinal);
+        var securityBoundaryEndIndex = settingsXaml.IndexOf(
+            "</controls:SettingsRowControl>",
+            securityBoundaryIndex,
+            StringComparison.Ordinal);
+        var securityBoundaryBlock = settingsXaml[securityBoundaryIndex..securityBoundaryEndIndex];
+
+        Assert.True(statusIndex > 0);
+        Assert.True(securityBoundaryIndex > 0);
+        Assert.True(statusIndex < securityBoundaryIndex);
+        Assert.Contains("Margin=\"16,0,16,12\"", settingsXaml);
+        Assert.DoesNotContain("CredentialSecurityStatusText", securityBoundaryBlock);
+    }
+
+    [Fact]
     public void NodeConnectionWorkflowDialogView_ShouldKeepFooterOutsideScrollableContent()
     {
         var dialogXaml = File.ReadAllText(Path.Combine(

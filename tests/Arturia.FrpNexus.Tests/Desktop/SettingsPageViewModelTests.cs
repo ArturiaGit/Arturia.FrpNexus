@@ -1,4 +1,5 @@
 ﻿using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels.Dialogs;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
@@ -19,7 +20,9 @@ public sealed class SettingsPageViewModelTests
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.LoadSettingsAsync();
 
@@ -44,7 +47,9 @@ public sealed class SettingsPageViewModelTests
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
         await viewModel.LoadSettingsAsync();
 
         viewModel.SelectedFrpDownloadSourceOption = viewModel.FrpDownloadSourceOptions.Single(option => option.Value == "Custom");
@@ -69,7 +74,9 @@ public sealed class SettingsPageViewModelTests
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
         await viewModel.LoadSettingsAsync();
         viewModel.SelectedFrpDownloadSourceOption = viewModel.FrpDownloadSourceOptions.Single(option => option.Value == "Custom");
         viewModel.CustomFrpDownloadSourceUrl = "https://mirror.example.com/repos/fatedier/frp/releases";
@@ -90,7 +97,9 @@ public sealed class SettingsPageViewModelTests
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
         await viewModel.LoadSettingsAsync();
         viewModel.SelectedFrpDownloadSourceOption = viewModel.FrpDownloadSourceOptions.Single(option => option.Value == "Custom");
         viewModel.CustomFrpDownloadSourceUrl = "not-a-url";
@@ -108,7 +117,9 @@ public sealed class SettingsPageViewModelTests
             new FailingSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
@@ -125,7 +136,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
 
@@ -151,7 +164,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService("Custom", customFrpDownloadSourceUrl: string.Empty),
             releaseService,
             filePicker,
-            downloadOptionsDialog);
+            downloadOptionsDialog,
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
         await viewModel.LoadSettingsAsync();
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
@@ -174,7 +189,9 @@ public sealed class SettingsPageViewModelTests
                 "https://mirror.example.com/repos/fatedier/frp/releases"),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
         await viewModel.LoadSettingsAsync();
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
@@ -197,7 +214,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
-            downloadOptionsDialog);
+            downloadOptionsDialog,
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
 
@@ -219,7 +238,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             releaseService,
             filePicker,
-            new FakeFrpCoreDownloadOptionsDialogService(null));
+            new FakeFrpCoreDownloadOptionsDialogService(null),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
 
@@ -236,7 +257,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
 
@@ -253,7 +276,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             releaseService,
             filePicker,
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         await viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
 
@@ -272,7 +297,9 @@ public sealed class SettingsPageViewModelTests
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
 
         var runningTask = viewModel.DownloadLatestFrpReleaseCommand.ExecuteAsync(null);
         await releaseService.WaitUntilPreparingAsync();
@@ -287,6 +314,98 @@ public sealed class SettingsPageViewModelTests
         Assert.True(viewModel.DownloadLatestFrpReleaseCommand.CanExecute(null));
     }
 
+    [Fact]
+    public async Task LoadSettingsAsync_ShouldSummarizeCredentialSecurityState()
+    {
+        var nodeManagementService = new FakeNodeManagementService(
+            CreateNode("session-node", "SessionPassword"),
+            CreateNode("private-key-node", @"PrivateKey:C:\Users\Arturia\.ssh\id_ed25519"),
+            CreateNode("agent-node", "SshAgent"));
+        var secretService = new FakeNodeCredentialSecretService("session-node");
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            nodeManagementService,
+            secretService);
+
+        await viewModel.LoadSettingsAsync();
+
+        Assert.Equal(3, viewModel.CredentialNodeCount);
+        Assert.Equal(1, viewModel.SessionPasswordNodeCount);
+        Assert.Equal(1, viewModel.PrivateKeyNodeCount);
+        Assert.Equal(1, viewModel.SshAgentNodeCount);
+        Assert.Equal(1, viewModel.SavedSessionPasswordNodeCount);
+        Assert.Equal("已读取 3 个节点的认证状态，其中 1 个节点保存了会话密码。", viewModel.CredentialSecurityStatusText);
+        var privateKeyRow = Assert.Single(viewModel.CredentialSecurityNodes, row => row.NodeName == "private-key-node");
+        Assert.Equal("id_ed25519", privateKeyRow.PrivateKeySummary);
+    }
+
+    [Fact]
+    public async Task ClearSavedSessionPasswordCommand_ShouldDeleteSingleNodeAndRefreshState()
+    {
+        var nodeManagementService = new FakeNodeManagementService(
+            CreateNode("session-node", "SessionPassword"));
+        var secretService = new FakeNodeCredentialSecretService("session-node");
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            nodeManagementService,
+            secretService);
+        await viewModel.LoadSettingsAsync();
+
+        var row = Assert.Single(viewModel.CredentialSecurityNodes);
+        await row.ClearSavedSessionPasswordCommand.ExecuteAsync(null);
+
+        Assert.Equal(["session-node"], secretService.DeletedNodeNames);
+        Assert.Equal(0, viewModel.SavedSessionPasswordNodeCount);
+        Assert.False(row.HasSavedSessionPassword);
+        Assert.Equal("已清除 session-node 的保存密码。", viewModel.CredentialSecurityStatusText);
+    }
+
+    [Fact]
+    public async Task ClearAllSavedSessionPasswordsCommand_ShouldDeleteOnlySavedPasswordNodes()
+    {
+        var nodeManagementService = new FakeNodeManagementService(
+            CreateNode("saved-a", "SessionPassword"),
+            CreateNode("unsaved", "SessionPassword"),
+            CreateNode("saved-b", "PrivateKey"));
+        var secretService = new FakeNodeCredentialSecretService("saved-a", "saved-b");
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            nodeManagementService,
+            secretService);
+        await viewModel.LoadSettingsAsync();
+
+        await viewModel.ClearAllSavedSessionPasswordsCommand.ExecuteAsync(null);
+
+        Assert.Equal(["saved-a", "saved-b"], secretService.DeletedNodeNames);
+        Assert.Equal(0, viewModel.SavedSessionPasswordNodeCount);
+        Assert.Equal("已清除 2 个节点的保存密码。", viewModel.CredentialSecurityStatusText);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_ShouldReportCredentialSecurityFailure()
+    {
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FailingNodeManagementService(),
+            new FakeNodeCredentialSecretService());
+
+        await viewModel.LoadSettingsAsync();
+
+        Assert.Equal("凭据安全状态失败，请检查输入、网络或本地数据状态后重试。", viewModel.CredentialSecurityStatusText);
+    }
+
     private static FakeSettingsService CreateDefaultSettingsService(
         string frpDownloadSource = "GitHub Releases",
         string customFrpDownloadSourceUrl = "")
@@ -296,6 +415,22 @@ public sealed class SettingsPageViewModelTests
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
             customFrpDownloadSourceUrl));
+    }
+
+    private static NodeProfile CreateNode(string name, string authentication)
+    {
+        return new NodeProfile(
+            name,
+            "127.0.0.1",
+            22,
+            "root",
+            authentication,
+            "Linux",
+            FrpNexusStatus.Ready,
+            FrpNexusStatus.Stopped,
+            "-",
+            "-",
+            "/etc/frp/frpc.toml");
     }
 
     private sealed class FakeSettingsService(FrpNexusSettingsSnapshot settings) : ISettingsService
@@ -324,6 +459,127 @@ public sealed class SettingsPageViewModelTests
         public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("设置保存失败");
+        }
+    }
+
+    private sealed class FakeNodeManagementService(params NodeProfile[] nodes) : INodeManagementService
+    {
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<NodeProfile>>(nodes);
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(nodes.FirstOrDefault(node =>
+                string.Equals(node.Name, nodeName, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateLastConnectionAsync(
+            string nodeName,
+            DateTimeOffset connectedAt,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateConnectionTestResultAsync(
+            string nodeName,
+            FrpNexusStatus status,
+            DateTimeOffset testedAt,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FailingNodeManagementService : INodeManagementService
+    {
+        public Task<IReadOnlyList<NodeProfile>> ListNodesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("节点读取失败");
+        }
+
+        public Task<NodeProfile?> GetNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveNodeAsync(NodeProfile node, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task DeleteNodeAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task UpdateLastConnectionAsync(
+            string nodeName,
+            DateTimeOffset connectedAt,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task UpdateConnectionTestResultAsync(
+            string nodeName,
+            FrpNexusStatus status,
+            DateTimeOffset testedAt,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FakeNodeCredentialSecretService(params string[] savedNodeNames) : INodeCredentialSecretService
+    {
+        private readonly HashSet<string> _savedNodeNames = new(savedNodeNames, StringComparer.OrdinalIgnoreCase);
+        private readonly List<string> _deletedNodeNames = [];
+
+        public IReadOnlyList<string> DeletedNodeNames => _deletedNodeNames;
+
+        public Task<bool> HasSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_savedNodeNames.Contains(nodeName));
+        }
+
+        public Task<string?> GetSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(_savedNodeNames.Contains(nodeName) ? "secret" : null);
+        }
+
+        public Task SaveSessionPasswordAsync(
+            string nodeName,
+            string password,
+            CancellationToken cancellationToken = default)
+        {
+            _savedNodeNames.Add(nodeName);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteSessionPasswordAsync(
+            string nodeName,
+            CancellationToken cancellationToken = default)
+        {
+            _deletedNodeNames.Add(nodeName);
+            _savedNodeNames.Remove(nodeName);
+            return Task.CompletedTask;
         }
     }
 

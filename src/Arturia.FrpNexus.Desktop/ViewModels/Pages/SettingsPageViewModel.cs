@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,6 +23,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private readonly IFrpReleaseService _frpReleaseService;
     private readonly IFilePickerService _filePickerService;
     private readonly IFrpCoreDownloadOptionsDialogService _downloadOptionsDialogService;
+    private readonly INodeManagementService _nodeManagementService;
+    private readonly INodeCredentialSecretService _nodeCredentialSecretService;
 
     private static readonly SettingsOptionViewModel[] FrpDownloadSourceOptionValues =
     [
@@ -54,32 +58,53 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     [ObservableProperty]
     private string _saveStatusText = "设置会保存在本地 SQLite 数据库。";
 
+    [ObservableProperty]
+    private string _credentialSecurityStatusText = "凭据状态会从本地节点和 Windows DPAPI 安全存储读取。";
+
+    [ObservableProperty]
+    private int _credentialNodeCount;
+
+    [ObservableProperty]
+    private int _sessionPasswordNodeCount;
+
+    [ObservableProperty]
+    private int _privateKeyNodeCount;
+
+    [ObservableProperty]
+    private int _sshAgentNodeCount;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ClearAllSavedSessionPasswordsCommand))]
+    private int _savedSessionPasswordNodeCount;
+
     public SettingsPageViewModel(
         ISettingsService settingsService,
         IFrpReleaseService frpReleaseService,
         IFilePickerService filePickerService,
-        IFrpCoreDownloadOptionsDialogService downloadOptionsDialogService)
+        IFrpCoreDownloadOptionsDialogService downloadOptionsDialogService,
+        INodeManagementService nodeManagementService,
+        INodeCredentialSecretService nodeCredentialSecretService)
         : base("设置", "FRP 下载源、本地路径、密钥、日志和本地数据")
     {
         _settingsService = settingsService;
         _frpReleaseService = frpReleaseService;
         _filePickerService = filePickerService;
         _downloadOptionsDialogService = downloadOptionsDialogService;
+        _nodeManagementService = nodeManagementService;
+        _nodeCredentialSecretService = nodeCredentialSecretService;
 
-        SshKeys =
-        [
-            new("id_rsa_prod_server", "SHA256: 4a6x9p...L8Q=", "生产服务器"),
-            new("id_ed25519_home_nas", "SHA256: zT91bc...K3M=", "家庭 NAS")
-        ];
+        CredentialSecurityNodes = [];
 
         _ = LoadSettingsAsync();
     }
 
-    public ObservableCollection<SshKeyViewModel> SshKeys { get; }
+    public ObservableCollection<CredentialSecurityNodeViewModel> CredentialSecurityNodes { get; }
 
     public IReadOnlyList<SettingsOptionViewModel> FrpDownloadSourceOptions => FrpDownloadSourceOptionValues;
 
     public string DownloadLatestFrpReleaseButtonText => IsFrpReleaseDownloading ? "下载中..." : "下载最新版";
+
+    public bool HasSavedSessionPasswords => SavedSessionPasswordNodeCount > 0;
 
     public async Task LoadSettingsAsync(CancellationToken cancellationToken = default)
     {
@@ -106,6 +131,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         LogDirectory = settings.LogDirectory;
         SqliteDatabasePath = settings.SqliteDatabasePath;
         SaveStatusText = "已加载本地设置。";
+        await LoadCredentialSecurityAsync(cancellationToken);
     }
 
     [RelayCommand(CanExecute = nameof(CanDownloadLatestFrpRelease))]
@@ -229,6 +255,46 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         }
     }
 
+    [RelayCommand]
+    private Task RefreshCredentialSecurityAsync(CancellationToken cancellationToken = default)
+    {
+        return LoadCredentialSecurityAsync(cancellationToken);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSavedSessionPasswords))]
+    private async Task ClearAllSavedSessionPasswordsAsync(CancellationToken cancellationToken = default)
+    {
+        var rowsToClear = CredentialSecurityNodes
+            .Where(row => row.HasSavedSessionPassword)
+            .ToArray();
+
+        if (rowsToClear.Length == 0)
+        {
+            CredentialSecurityStatusText = "当前没有已保存的会话密码。";
+            return;
+        }
+
+        try
+        {
+            foreach (var row in rowsToClear)
+            {
+                await _nodeCredentialSecretService.DeleteSessionPasswordAsync(row.NodeName, cancellationToken);
+                row.HasSavedSessionPassword = false;
+            }
+
+            await LoadCredentialSecurityAsync(cancellationToken);
+            CredentialSecurityStatusText = $"已清除 {rowsToClear.Length} 个节点的保存密码。";
+        }
+        catch (OperationCanceledException)
+        {
+            CredentialSecurityStatusText = "清除保存密码已取消。";
+        }
+        catch (Exception ex)
+        {
+            CredentialSecurityStatusText = ViewModelErrorText.ForUser("清除保存密码", ex);
+        }
+    }
+
     partial void OnSelectedFrpDownloadSourceOptionChanged(SettingsOptionViewModel value)
     {
         FrpDownloadSource = value.Value;
@@ -238,6 +304,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     partial void OnIsFrpReleaseDownloadingChanged(bool value)
     {
         OnPropertyChanged(nameof(DownloadLatestFrpReleaseButtonText));
+    }
+
+    partial void OnSavedSessionPasswordNodeCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(HasSavedSessionPasswords));
     }
 
     private bool CanDownloadLatestFrpRelease()
@@ -261,6 +332,166 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         }
 
         return new FrpReleaseSourceOptions(CustomDownloadSource, savedUrl);
+    }
+
+    private async Task LoadCredentialSecurityAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
+            var rows = new List<CredentialSecurityNodeViewModel>(nodes.Count);
+            var sessionPasswordCount = 0;
+            var privateKeyCount = 0;
+            var sshAgentCount = 0;
+            var savedPasswordCount = 0;
+
+            foreach (var node in nodes.OrderBy(node => node.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                var authenticationMode = ResolveAuthenticationMode(node.Authentication);
+                switch (authenticationMode)
+                {
+                    case SshAuthenticationMode.PrivateKey:
+                        privateKeyCount++;
+                        break;
+                    case SshAuthenticationMode.SshAgent:
+                        sshAgentCount++;
+                        break;
+                    default:
+                        sessionPasswordCount++;
+                        break;
+                }
+
+                var hasSavedPassword = await _nodeCredentialSecretService.HasSessionPasswordAsync(
+                    node.Name,
+                    cancellationToken);
+                if (hasSavedPassword)
+                {
+                    savedPasswordCount++;
+                }
+
+                rows.Add(new CredentialSecurityNodeViewModel(
+                    node.Name,
+                    ToAuthenticationModeText(authenticationMode),
+                    ResolvePrivateKeySummary(node.Authentication, authenticationMode),
+                    hasSavedPassword,
+                    ClearSavedSessionPasswordForNodeAsync));
+            }
+
+            CredentialSecurityNodes.Clear();
+            foreach (var row in rows)
+            {
+                CredentialSecurityNodes.Add(row);
+            }
+
+            CredentialNodeCount = nodes.Count;
+            SessionPasswordNodeCount = sessionPasswordCount;
+            PrivateKeyNodeCount = privateKeyCount;
+            SshAgentNodeCount = sshAgentCount;
+            SavedSessionPasswordNodeCount = savedPasswordCount;
+            CredentialSecurityStatusText =
+                $"已读取 {nodes.Count} 个节点的认证状态，其中 {savedPasswordCount} 个节点保存了会话密码。";
+        }
+        catch (OperationCanceledException)
+        {
+            CredentialSecurityStatusText = "凭据安全状态读取已取消。";
+        }
+        catch (Exception ex)
+        {
+            CredentialSecurityStatusText = ViewModelErrorText.ForUser("凭据安全状态", ex);
+        }
+    }
+
+    private async Task ClearSavedSessionPasswordForNodeAsync(
+        CredentialSecurityNodeViewModel row,
+        CancellationToken cancellationToken)
+    {
+        if (!row.HasSavedSessionPassword)
+        {
+            CredentialSecurityStatusText = $"{row.NodeName} 没有已保存的会话密码。";
+            return;
+        }
+
+        try
+        {
+            await _nodeCredentialSecretService.DeleteSessionPasswordAsync(row.NodeName, cancellationToken);
+            row.HasSavedSessionPassword = false;
+            await LoadCredentialSecurityAsync(cancellationToken);
+            CredentialSecurityStatusText = $"已清除 {row.NodeName} 的保存密码。";
+        }
+        catch (OperationCanceledException)
+        {
+            CredentialSecurityStatusText = "清除保存密码已取消。";
+        }
+        catch (Exception ex)
+        {
+            CredentialSecurityStatusText = ViewModelErrorText.ForUser("清除保存密码", ex);
+        }
+    }
+
+    private static SshAuthenticationMode ResolveAuthenticationMode(string value)
+    {
+        if (ContainsIgnoreCase(value, "SshAgent") || ContainsIgnoreCase(value, "SSH Agent"))
+        {
+            return SshAuthenticationMode.SshAgent;
+        }
+
+        if (ContainsIgnoreCase(value, "PrivateKey")
+            || ContainsIgnoreCase(value, "私钥")
+            || ContainsIgnoreCase(value, "密钥"))
+        {
+            return SshAuthenticationMode.PrivateKey;
+        }
+
+        return SshAuthenticationMode.SessionPassword;
+    }
+
+    private static string ToAuthenticationModeText(SshAuthenticationMode mode)
+    {
+        return mode switch
+        {
+            SshAuthenticationMode.PrivateKey => "私钥路径",
+            SshAuthenticationMode.SshAgent => "SSH Agent",
+            _ => "会话密码"
+        };
+    }
+
+    private static string ResolvePrivateKeySummary(string value, SshAuthenticationMode mode)
+    {
+        if (mode != SshAuthenticationMode.PrivateKey)
+        {
+            return "-";
+        }
+
+        var candidatePath = ExtractPrivateKeyPath(value);
+        if (string.IsNullOrWhiteSpace(candidatePath))
+        {
+            return "仅保存路径引用";
+        }
+
+        return Path.GetFileName(candidatePath) is { Length: > 0 } fileName
+            ? fileName
+            : "仅保存路径引用";
+    }
+
+    private static string ExtractPrivateKeyPath(string value)
+    {
+        var trimmedValue = value.Trim();
+        foreach (var prefix in new[] { "PrivateKey:", "PrivateKey=", "私钥文件:", "私钥路径:" })
+        {
+            if (trimmedValue.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmedValue[prefix.Length..].Trim();
+            }
+        }
+
+        return trimmedValue.Contains('\\') || trimmedValue.Contains('/')
+            ? trimmedValue
+            : string.Empty;
+    }
+
+    private static bool ContainsIgnoreCase(string value, string candidate)
+    {
+        return value.Contains(candidate, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsCustomDownloadSource(string value)

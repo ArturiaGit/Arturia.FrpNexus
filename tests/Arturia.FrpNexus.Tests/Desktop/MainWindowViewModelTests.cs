@@ -245,7 +245,7 @@ public sealed class MainWindowViewModelTests
         var viewModel = serviceProvider.GetRequiredService<SettingsPageViewModel>();
 
         Assert.NotNull(viewModel);
-        Assert.NotEmpty(viewModel.SshKeys);
+        Assert.NotNull(viewModel.CredentialSecurityNodes);
     }
 
     [Fact]
@@ -556,7 +556,9 @@ public sealed class MainWindowViewModelTests
             new FakeSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
-            new FakeFrpCoreDownloadOptionsDialogService());
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
     }
 
     private static NodeProfile CreateNode(string name, string configPath)
