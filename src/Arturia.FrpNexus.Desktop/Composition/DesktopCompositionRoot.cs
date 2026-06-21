@@ -31,6 +31,7 @@ public static class DesktopCompositionRoot
         services.AddSingleton<IModalOverlayService, ModalOverlayService>();
         services.AddSingleton<IModalDialogHostService, ModalDialogHostService>();
         services.AddSingleton<IConfirmationDialogService, ConfirmationDialogService>();
+        services.AddSingleton<IFrpCoreDownloadOptionsDialogService, FrpCoreDownloadOptionsDialogService>();
         services.AddSingleton<IFrpLifecycleStateService, FrpLifecycleStateService>();
         services.AddSingleton<IRemoteFrpsRetentionService, RemoteFrpsRetentionService>();
 

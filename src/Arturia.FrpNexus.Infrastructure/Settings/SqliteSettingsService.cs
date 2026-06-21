@@ -9,8 +9,7 @@ public sealed class SqliteSettingsService(
     IFrpNexusDatabasePathProvider databasePathProvider) : ISettingsService
 {
     private const string FrpDownloadSourceKey = "frp_download_source";
-    private const string CoreDirectoryKey = "core_directory";
-    private const string ConfigDirectoryKey = "config_directory";
+    private const string CustomFrpDownloadSourceUrlKey = "frp_custom_download_source_url";
     private const string LogDirectoryKey = "log_directory";
 
     public async Task<FrpNexusSettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken = default)
@@ -36,8 +35,7 @@ public sealed class SqliteSettingsService(
         return defaults with
         {
             FrpDownloadSource = GetValue(values, FrpDownloadSourceKey, defaults.FrpDownloadSource),
-            CoreDirectory = GetValue(values, CoreDirectoryKey, defaults.CoreDirectory),
-            ConfigDirectory = GetValue(values, ConfigDirectoryKey, defaults.ConfigDirectory),
+            CustomFrpDownloadSourceUrl = GetValue(values, CustomFrpDownloadSourceUrlKey, defaults.CustomFrpDownloadSourceUrl),
             LogDirectory = GetValue(values, LogDirectoryKey, defaults.LogDirectory),
             SqliteDatabasePath = databasePathProvider.GetDatabasePath()
         };
@@ -53,8 +51,7 @@ public sealed class SqliteSettingsService(
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
         await UpsertAsync(connection, FrpDownloadSourceKey, settings.FrpDownloadSource, cancellationToken);
-        await UpsertAsync(connection, CoreDirectoryKey, settings.CoreDirectory, cancellationToken);
-        await UpsertAsync(connection, ConfigDirectoryKey, settings.ConfigDirectory, cancellationToken);
+        await UpsertAsync(connection, CustomFrpDownloadSourceUrlKey, settings.CustomFrpDownloadSourceUrl, cancellationToken);
         await UpsertAsync(connection, LogDirectoryKey, settings.LogDirectory, cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
@@ -67,10 +64,9 @@ public sealed class SqliteSettingsService(
 
         return new FrpNexusSettingsSnapshot(
             "GitHub Releases",
-            Path.Combine(root, "core"),
-            Path.Combine(root, "configs"),
             Path.Combine(root, "logs"),
-            databasePathProvider.GetDatabasePath());
+            databasePathProvider.GetDatabasePath(),
+            string.Empty);
     }
 
     private static string GetValue(IReadOnlyDictionary<string, string> values, string key, string defaultValue)

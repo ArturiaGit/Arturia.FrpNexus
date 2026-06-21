@@ -3,8 +3,10 @@ using Arturia.FrpNexus.Desktop.Converters;
 using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
+using Arturia.FrpNexus.Desktop.ViewModels.Dialogs;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
+using Arturia.FrpNexus.Desktop.Views.Dialogs;
 using Arturia.FrpNexus.Desktop.Views.Pages;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -142,6 +144,56 @@ public sealed class DesktopStructureTests
         Assert.Contains("CancelButtonText", confirmationXaml);
         Assert.DoesNotContain("Width=\"640\"", confirmationXaml);
         Assert.DoesNotContain("MaxHeight=\"680\"", confirmationXaml);
+    }
+
+    [Fact]
+    public void MainWindow_ShouldExposeFrpCoreDownloadOptionsDialogTemplate()
+    {
+        var desktopProject = GetDesktopProjectPath();
+        var mainWindowXaml = File.ReadAllText(Path.Combine(desktopProject, "Views", "MainWindow.axaml"));
+        var dialogXaml = File.ReadAllText(Path.Combine(
+            desktopProject,
+            "Views",
+            "Dialogs",
+            "FrpCoreDownloadOptionsDialogView.axaml"));
+
+        Assert.Equal("Arturia.FrpNexus.Desktop.Views.Dialogs", typeof(FrpCoreDownloadOptionsDialogView).Namespace);
+        Assert.Equal("Arturia.FrpNexus.Desktop.ViewModels.Dialogs", typeof(FrpCoreDownloadOptionsDialogViewModel).Namespace);
+        Assert.Contains("FrpCoreDownloadOptionsDialogViewModel", mainWindowXaml);
+        Assert.Contains("FrpCoreDownloadOptionsDialogView", mainWindowXaml);
+        Assert.Contains("IsFrpCoreDownloadOptionsDialogVisible", mainWindowXaml);
+        Assert.Contains("Width=\"480\"", mainWindowXaml);
+        Assert.Contains("MaxHeight=\"420\"", mainWindowXaml);
+        Assert.Contains("选择 FRP 核心", dialogXaml);
+        Assert.Contains("ContinueCommand", dialogXaml);
+        Assert.Contains("CancelCommand", dialogXaml);
+    }
+
+    [Fact]
+    public void SettingsPageFrpCoreDownloadButton_ShouldBeRightAligned()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("MinWidth=\"180\"", settingsXaml);
+        Assert.Contains("HorizontalAlignment=\"Right\"", settingsXaml);
+        Assert.Contains("DownloadLatestFrpReleaseButtonText", settingsXaml);
+    }
+
+    [Fact]
+    public void SettingsPage_ShouldNotExposeDefaultConfigDirectorySetting()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.DoesNotContain("默认配置目录", settingsXaml);
+        Assert.DoesNotContain("ConfigDirectory", settingsXaml);
     }
 
     [Fact]

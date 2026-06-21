@@ -72,7 +72,7 @@ public sealed class LocalDataPortabilityServiceTests
         var snapshot = new LocalDataExportSnapshot(
             "frpnexus.local-data.v0",
             DateTimeOffset.UtcNow,
-            new FrpNexusSettingsSnapshot("GitHub Releases", "core", "configs", "logs", "db"),
+            new FrpNexusSettingsSnapshot("GitHub Releases", "logs", "db"),
             [],
             [],
             [],
@@ -106,8 +106,6 @@ public sealed class LocalDataPortabilityServiceTests
     {
         var settings = new FrpNexusSettingsSnapshot(
             "GitHub Releases",
-            @"D:\FrpNexus\core",
-            @"D:\FrpNexus\configs",
             @"D:\FrpNexus\logs",
             @"D:\FrpNexus\data\frpnexus.db");
 

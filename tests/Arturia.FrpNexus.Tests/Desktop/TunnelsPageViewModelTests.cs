@@ -1486,5 +1486,10 @@ public sealed class TunnelsPageViewModelTests
         {
             return Task.FromResult(LocalFrpcConfigPath);
         }
+
+        public Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
     }
 }

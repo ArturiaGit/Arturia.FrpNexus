@@ -29,33 +29,45 @@
 
                     <Border Classes="settings-divider" />
 
-                    <controls:SettingsRowControl Title="FRP 核心目录"
-                                                 Description="保存 frpc、frps 及版本缓存的本地目录">
+                    <controls:SettingsRowControl Title="自定义镜像源地址"
+                                                 Description="填写 GitHub API 兼容的 FRP Releases 地址"
+                                                 IsVisible="{Binding IsCustomFrpDownloadSourceSelected}">
                         <controls:SettingsRowControl.ValueContent>
-                            <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Classes="stitch-input code"
-                                         Text="{Binding CoreDirectory}" />
-                                <Button Grid.Column="1"
-                                        Classes="secondary stitch-command"
-                                        Content="更改路径" />
+                            <StackPanel Spacing="6"
+                                        Width="420">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBox Classes="stitch-input code"
+                                             PlaceholderText="https://mirror.example.com/repos/fatedier/frp/releases"
+                                             Text="{Binding CustomFrpDownloadSourceUrl}" />
+                                    <Button Grid.Column="1"
+                                            Classes="secondary stitch-command"
+                                            Content="保存地址"
+                                            Command="{Binding SaveCustomFrpDownloadSourceUrlCommand}" />
+                                </Grid>
+                                <TextBlock Classes="helper"
+                                           TextWrapping="Wrap"
+                                           Text="请仅使用可信赖的下载源；第三方下载源可能带来安全风险，使用后果需自行承担。" />
+                            </StackPanel>
+                        </controls:SettingsRowControl.ValueContent>
+                    </controls:SettingsRowControl>
+
+                    <Border Classes="settings-divider"
+                            IsVisible="{Binding IsCustomFrpDownloadSourceSelected}" />
+
+                    <controls:SettingsRowControl Title="FRP 核心下载"
+                                                 Description="下载最新版 FRP 核心；自定义源需使用 GitHub API 兼容 Releases 地址">
+                        <controls:SettingsRowControl.ValueContent>
+                            <Grid MinWidth="180"
+                                  HorizontalAlignment="Right">
+                                <Button Classes="secondary stitch-command"
+                                        MinWidth="104"
+                                        HorizontalAlignment="Right"
+                                        Content="{Binding DownloadLatestFrpReleaseButtonText}"
+                                        Command="{Binding DownloadLatestFrpReleaseCommand}" />
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
 
-                    <Border Classes="settings-divider" />
-
-                    <controls:SettingsRowControl Title="默认配置目录"
-                                                 Description="保存生成的 TOML 配置与导出文件">
-                        <controls:SettingsRowControl.ValueContent>
-                            <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Classes="stitch-input code"
-                                         Text="{Binding ConfigDirectory}" />
-                                <Button Grid.Column="1"
-                                        Classes="secondary stitch-command"
-                                        Content="打开目录" />
-                            </Grid>
-                        </controls:SettingsRowControl.ValueContent>
-                    </controls:SettingsRowControl>
                 </StackPanel>
             </Border>
 

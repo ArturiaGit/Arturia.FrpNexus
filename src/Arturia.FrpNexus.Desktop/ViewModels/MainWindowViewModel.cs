@@ -99,7 +99,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsConfirmationDialogVisible => CurrentModalDialog is ConfirmationDialogViewModel;
 
-    public bool IsWorkflowDialogVisible => IsModalDialogVisible && !IsConfirmationDialogVisible;
+    public bool IsFrpCoreDownloadOptionsDialogVisible => CurrentModalDialog is FrpCoreDownloadOptionsDialogViewModel;
+
+    public bool IsWorkflowDialogVisible => IsModalDialogVisible
+        && !IsConfirmationDialogVisible
+        && !IsFrpCoreDownloadOptionsDialogVisible;
 
     public object? CurrentModalDialog => _modalDialogHostService.CurrentDialog;
 
@@ -407,6 +411,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(IsModalDialogVisible));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
+            OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
 
@@ -415,6 +420,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(CurrentModalDialog));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
+            OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
     }

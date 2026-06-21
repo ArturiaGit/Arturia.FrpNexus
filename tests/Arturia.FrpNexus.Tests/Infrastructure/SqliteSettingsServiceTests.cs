@@ -26,8 +26,7 @@ public sealed class SqliteSettingsServiceTests
         var settings = await service.GetSettingsAsync();
 
         Assert.Equal("GitHub Releases", settings.FrpDownloadSource);
-        Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "core"), settings.CoreDirectory);
-        Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "configs"), settings.ConfigDirectory);
+        Assert.Equal(string.Empty, settings.CustomFrpDownloadSourceUrl);
         Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "logs"), settings.LogDirectory);
         Assert.Equal(pathProvider.GetDatabasePath(), settings.SqliteDatabasePath);
     }
@@ -39,18 +38,16 @@ public sealed class SqliteSettingsServiceTests
         var service = CreateService(pathProvider);
         var expected = new FrpNexusSettingsSnapshot(
             "GHProxy",
-            @"D:\FrpNexus\core",
-            @"D:\FrpNexus\configs",
             @"D:\FrpNexus\logs",
-            @"D:\Should\Not\Override\frpnexus.db");
+            @"D:\Should\Not\Override\frpnexus.db",
+            "https://mirror.example.com/repos/fatedier/frp/releases");
 
         await service.SaveSettingsAsync(expected);
 
         var actual = await service.GetSettingsAsync();
 
         Assert.Equal(expected.FrpDownloadSource, actual.FrpDownloadSource);
-        Assert.Equal(expected.CoreDirectory, actual.CoreDirectory);
-        Assert.Equal(expected.ConfigDirectory, actual.ConfigDirectory);
+        Assert.Equal(expected.CustomFrpDownloadSourceUrl, actual.CustomFrpDownloadSourceUrl);
         Assert.Equal(expected.LogDirectory, actual.LogDirectory);
         Assert.NotEqual(expected.SqliteDatabasePath, actual.SqliteDatabasePath);
         Assert.Equal(pathProvider.GetDatabasePath(), actual.SqliteDatabasePath);
@@ -69,6 +66,7 @@ public sealed class SqliteSettingsServiceTests
         Assert.DoesNotContain(properties, property => property.Contains("PrivateKey", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("Theme", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(properties, property => property.Contains("Language", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("ConfigDirectory", properties);
     }
 
     [Fact]

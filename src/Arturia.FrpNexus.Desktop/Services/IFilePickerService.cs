@@ -12,4 +12,6 @@ public interface IFilePickerService
     Task<string?> PickLocalFrpcConfigPathAsync(
         string suggestedFileName,
         CancellationToken cancellationToken = default);
+
+    Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default);
 }

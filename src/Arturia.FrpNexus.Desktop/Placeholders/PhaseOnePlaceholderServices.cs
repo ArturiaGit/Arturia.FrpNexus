@@ -146,7 +146,9 @@ public sealed class PhaseOneRemoteFileTransferService : IRemoteFileTransferServi
 
 public sealed class PhaseOneFrpReleaseService : IFrpReleaseService
 {
-    public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(
+        FrpReleaseSourceOptions? sourceOptions = null,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<FrpReleaseVersion> versions =
@@ -281,10 +283,9 @@ public sealed class PhaseOneSettingsService : ISettingsService
         cancellationToken.ThrowIfCancellationRequested();
         var settings = new FrpNexusSettingsSnapshot(
             "GitHub Releases",
-            "%LocalAppData%\\Arturia\\FrpNexus\\core",
-            "%LocalAppData%\\Arturia\\FrpNexus\\configs",
             "%LocalAppData%\\Arturia\\FrpNexus\\logs",
-            "%LocalAppData%\\Arturia\\FrpNexus\\data\\frpnexus.db");
+            "%LocalAppData%\\Arturia\\FrpNexus\\data\\frpnexus.db",
+            string.Empty);
 
         return Task.FromResult(settings);
     }
