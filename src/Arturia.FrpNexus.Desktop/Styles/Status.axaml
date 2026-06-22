@@ -1,7 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Style Selector="Border.badge">
-        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
         <Setter Property="Padding" Value="8,2" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
@@ -9,75 +9,75 @@
     <Style Selector="Border.topbar-status-badge">
         <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="8,0" />
-        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="Border.topbar-status-badge.success">
-        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
-        <Setter Property="BorderBrush" Value="#B7E4C7" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusSuccessBorderBrush}" />
     </Style>
 
     <Style Selector="Border.badge.success">
-        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
-        <Setter Property="BorderBrush" Value="#B7E4C7" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusSuccessBorderBrush}" />
     </Style>
 
     <Style Selector="Border.badge.warning">
-        <Setter Property="Background" Value="{StaticResource FrpStatusWarningSoftBrush}" />
-        <Setter Property="BorderBrush" Value="#F8D49A" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusWarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusWarningBorderBrush}" />
     </Style>
 
     <Style Selector="Border.badge.error">
-        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
-        <Setter Property="BorderBrush" Value="#F3B6B6" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusErrorBorderBrush}" />
     </Style>
 
     <Style Selector="Border.badge.info">
-        <Setter Property="Background" Value="{StaticResource FrpStatusInfoSoftBrush}" />
-        <Setter Property="BorderBrush" Value="#BFDBFE" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusInfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusInfoBorderBrush}" />
     </Style>
 
     <Style Selector="Border.badge.neutral">
-        <Setter Property="Background" Value="{StaticResource FrpStatusNeutralSoftBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusNeutralSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
     </Style>
 
     <Style Selector="Border.status-callout.info">
-        <Setter Property="Background" Value="{StaticResource FrpStatusInfoSoftBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusInfoBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusInfoSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusInfoBrush}" />
     </Style>
 
     <Style Selector="Border.status-callout.success">
-        <Setter Property="Background" Value="{StaticResource FrpStatusSuccessSoftBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusSuccessBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusSuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusSuccessBrush}" />
     </Style>
 
     <Style Selector="Border.status-callout.warning">
-        <Setter Property="Background" Value="{StaticResource FrpStatusWarningSoftBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusWarningSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusWarningBrush}" />
     </Style>
 
     <Style Selector="Border.status-callout.error">
-        <Setter Property="Background" Value="{StaticResource FrpStatusErrorSoftBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpStatusErrorSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusErrorBrush}" />
     </Style>
 
     <Style Selector="PathIcon.status-callout-icon.info">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusInfoBrush}" />
     </Style>
 
     <Style Selector="PathIcon.status-callout-icon.success">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusSuccessBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusSuccessBrush}" />
     </Style>
 
     <Style Selector="PathIcon.status-callout-icon.warning">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusWarningBrush}" />
     </Style>
 
     <Style Selector="PathIcon.status-callout-icon.error">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusErrorBrush}" />
     </Style>
 
     <Style Selector="TextBlock.status-text">
@@ -87,55 +87,56 @@
     </Style>
 
     <Style Selector="TextBlock.status-text.success">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusSuccessBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusSuccessBrush}" />
     </Style>
 
     <Style Selector="TextBlock.status-text.warning">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusWarningBrush}" />
     </Style>
 
     <Style Selector="TextBlock.status-text.error">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusErrorBrush}" />
     </Style>
 
     <Style Selector="TextBlock.status-text.info">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusInfoBrush}" />
     </Style>
 
     <Style Selector="TextBlock.status-text.neutral">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusNeutralBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusNeutralBrush}" />
     </Style>
 
     <Style Selector="Ellipse.status-dot.success">
-        <Setter Property="Fill" Value="{StaticResource FrpStatusSuccessBrush}" />
+        <Setter Property="Fill" Value="{DynamicResource FrpStatusSuccessBrush}" />
     </Style>
 
     <Style Selector="Ellipse.status-dot.warning">
-        <Setter Property="Fill" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Fill" Value="{DynamicResource FrpStatusWarningBrush}" />
     </Style>
 
     <Style Selector="Ellipse.status-dot.error">
-        <Setter Property="Fill" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Fill" Value="{DynamicResource FrpStatusErrorBrush}" />
     </Style>
 
     <Style Selector="Ellipse.status-dot.info">
-        <Setter Property="Fill" Value="{StaticResource FrpStatusInfoBrush}" />
+        <Setter Property="Fill" Value="{DynamicResource FrpStatusInfoBrush}" />
     </Style>
 
     <Style Selector="Ellipse.status-dot.neutral">
-        <Setter Property="Fill" Value="{StaticResource FrpStatusNeutralBrush}" />
+        <Setter Property="Fill" Value="{DynamicResource FrpStatusNeutralBrush}" />
     </Style>
 
     <Style Selector="Border.protocol-badge">
-        <Setter Property="Background" Value="{StaticResource FrpSurfaceLowBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpBorderDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
 
     <Style Selector="TextBlock.protocol-text">
-        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 </Styles>
+

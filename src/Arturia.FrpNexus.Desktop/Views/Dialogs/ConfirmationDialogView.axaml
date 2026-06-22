@@ -40,13 +40,16 @@
                         HorizontalAlignment="Right"
                         Spacing="8">
                 <Button Classes="secondary"
+                        AutomationProperties.Name="{Binding CancelButtonText}"
                         Command="{Binding CancelCommand}"
                         Content="{Binding CancelButtonText}" />
                 <Button Classes="secondary"
+                        AutomationProperties.Name="{Binding SecondaryButtonText}"
                         IsVisible="{Binding HasSecondaryAction}"
                         Command="{Binding SecondaryCommand}"
                         Content="{Binding SecondaryButtonText}" />
                 <Button Classes="primary"
+                        AutomationProperties.Name="{Binding ConfirmButtonText}"
                         Command="{Binding ConfirmCommand}"
                         Content="{Binding ConfirmButtonText}" />
             </StackPanel>

@@ -11,19 +11,22 @@
                 <StackPanel Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <ComboBox Width="150"
+                    <ComboBox Classes="stitch-input"
+                              Width="150"
                               SelectedIndex="0">
                         <ComboBoxItem Content="全部节点" />
                         <ComboBoxItem Content="Web-Server-HK" />
                         <ComboBoxItem Content="DB-Node-SH" />
                     </ComboBox>
-                    <ComboBox Width="130"
+                    <ComboBox Classes="stitch-input"
+                              Width="130"
                               SelectedIndex="0">
                         <ComboBoxItem Content="全部进程" />
                         <ComboBoxItem Content="frpc" />
                         <ComboBoxItem Content="frps" />
                     </ComboBox>
-                    <ComboBox Width="130"
+                    <ComboBox Classes="stitch-input"
+                              Width="130"
                               SelectedIndex="0">
                         <ComboBoxItem Content="所有状态" />
                         <ComboBoxItem Content="运行中" />
@@ -35,16 +38,16 @@
                             Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <Button Classes="primary"
+                    <Button Classes="primary stitch-command"
                             Content="启动"
                             Command="{Binding StartSelectedProcessCommand}" />
-                    <Button Classes="secondary"
+                    <Button Classes="secondary stitch-command"
                             Content="停止"
                             Command="{Binding StopSelectedProcessCommand}" />
-                    <Button Classes="secondary"
+                    <Button Classes="secondary stitch-command"
                             Content="重启"
                             Command="{Binding RestartSelectedProcessCommand}" />
-                    <Button Classes="secondary"
+                    <Button Classes="secondary stitch-command"
                             Content="刷新"
                             Command="{Binding RefreshRemoteProcessesCommand}" />
                 </StackPanel>
@@ -54,7 +57,7 @@
             <Border Classes="panel">
                 <Grid RowDefinitions="Auto,*">
                     <Border Padding="16,12"
-                            BorderBrush="{StaticResource Brush.BorderDefault}"
+                            BorderBrush="{DynamicResource Brush.BorderDefault}"
                             BorderThickness="0,0,0,1">
                         <StackPanel>
                     <TextBlock Classes="section-title" Text="运行记录" />
@@ -63,7 +66,8 @@
                     </Border>
                     <Grid Grid.Row="1"
                           RowDefinitions="*,40">
-                        <DataGrid ItemsSource="{Binding Processes}"
+                        <DataGrid Classes="runtime-grid"
+                                  ItemsSource="{Binding Processes}"
                                   SelectedItem="{Binding SelectedProcess}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True">
@@ -83,7 +87,7 @@
                                 <DataGridTextColumn Header="监听地址" Binding="{Binding ListenAddress}" Width="2*" />
                             </DataGrid.Columns>
                         </DataGrid>
-                        <DockPanel Grid.Row="1" Background="{StaticResource Brush.SurfaceSubtle}">
+                        <DockPanel Grid.Row="1" Background="{DynamicResource Brush.SurfaceSubtle}">
                             <TextBlock Classes="helper"
                                        Margin="12,0"
                                        VerticalAlignment="Center"
@@ -104,22 +108,25 @@
                         <TextBlock Classes="helper"
                                    TextWrapping="Wrap"
                                    Text="凭据仅用于本次远程命令。密码、私钥内容和 passphrase 不会写入 SQLite。" />
-                        <ComboBox SelectedItem="{Binding SelectedSshAuthenticationMode}">
+                        <ComboBox Classes="stitch-input"
+                                  SelectedItem="{Binding SelectedSshAuthenticationMode}">
                             <sys:String>SessionPassword</sys:String>
                             <sys:String>PrivateKey</sys:String>
                             <sys:String>SshAgent</sys:String>
                         </ComboBox>
-                        <TextBox Classes="code"
+                        <TextBox Classes="stitch-input code"
                                  PlaceholderText="私钥文件路径"
                                  Text="{Binding SshPrivateKeyPath}" />
-                        <TextBox PasswordChar="*"
+                        <TextBox Classes="stitch-input"
+                                 PasswordChar="*"
                                  PlaceholderText="会话密码，仅本次使用"
                                  Text="{Binding SshSessionPassword}" />
-                        <TextBox PasswordChar="*"
+                        <TextBox Classes="stitch-input"
+                                 PasswordChar="*"
                                  PlaceholderText="私钥 passphrase，仅本次使用"
                                  Text="{Binding SshPrivateKeyPassphrase}" />
                         <TextBlock Classes="helper" Text="远程命令" />
-                        <TextBox Classes="code"
+                        <TextBox Classes="stitch-input code"
                                  AcceptsReturn="True"
                                  MinHeight="72"
                                  TextWrapping="Wrap"

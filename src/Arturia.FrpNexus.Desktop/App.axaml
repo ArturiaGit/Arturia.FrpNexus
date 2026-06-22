@@ -8,11 +8,13 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Arturia.FrpNexus.Desktop/Styles/DesignTokens.axaml" />
+                <ResourceInclude Source="avares://Arturia.FrpNexus.Desktop/Styles/MotionTokens.axaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:StatusTextConverter x:Key="StatusTextConverter" />
             <converters:StatusClassesConverter x:Key="StatusClassesConverter" />
             <converters:TunnelProtocolTextConverter x:Key="TunnelProtocolTextConverter" />
             <converters:NavigationIconConverter x:Key="NavigationIconConverter" />
+            <converters:BoolToDoubleConverter x:Key="BoolToDoubleConverter" />
         </ResourceDictionary>
     </Application.Resources>
 

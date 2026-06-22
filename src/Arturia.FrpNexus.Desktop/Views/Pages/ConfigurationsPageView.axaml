@@ -32,7 +32,7 @@
         </Style>
 
         <Style Selector="Button.code-command:pressed">
-            <Setter Property="Background" Value="#394044" />
+            <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
         </Style>
 
@@ -48,7 +48,7 @@
             <Setter Property="FontFamily" Value="{DynamicResource Font.Code}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="LineHeight" Value="18" />
-            <Setter Property="Foreground" Value="#4A5568" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpCodeLineNumberBrush}" />
             <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
 
@@ -60,7 +60,7 @@
         </Style>
 
         <Style Selector="TextBlock.toml-token.key">
-            <Setter Property="Foreground" Value="#8F3A2C" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpCodeKeyBrush}" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
 

@@ -85,9 +85,11 @@
                         HorizontalAlignment="Right"
                         Spacing="8">
                 <Button Classes="secondary"
+                        AutomationProperties.Name="取消 FRP 核心下载选择"
                         Command="{Binding CancelCommand}"
                         Content="取消" />
                 <Button Classes="primary"
+                        AutomationProperties.Name="继续下载 FRP 核心"
                         Command="{Binding ContinueCommand}"
                         Content="继续下载" />
             </StackPanel>
