@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+             xmlns:pages="using:Arturia.FrpNexus.Desktop.ViewModels.Pages"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.FrpCoreDownloadOptionsDialogView"
+             x:DataType="dialogs:FrpCoreDownloadOptionsDialogViewModel">
+    <Border Padding="20"
+            Background="{StaticResource FrpSurfaceWhiteBrush}">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+              RowSpacing="16"
+              HorizontalAlignment="Stretch">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="section-title"
+                           Text="选择 FRP 核心" />
+                <TextBlock Classes="helper"
+                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Text="选择本次要下载的核心类型和目标系统架构；下载目录将在下一步选择。" />
+            </StackPanel>
+
+            <Border Grid.Row="1"
+                    Classes="subtle-panel"
+                    Padding="14">
+                <Grid RowDefinitions="Auto,Auto"
+                      RowSpacing="12">
+                    <Grid ColumnDefinitions="112,*"
+                          ColumnSpacing="12">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="group-label"
+                                       Text="核心类型" />
+                            <TextBlock Classes="helper"
+                                       Text="frpc / frps" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  Classes="stitch-input"
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding BinaryOptions}"
+                                  SelectedItem="{Binding SelectedBinaryOption}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="pages:SettingsOptionViewModel">
+                                    <TextBlock Text="{Binding DisplayText}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="112,*"
+                          ColumnSpacing="12">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="group-label"
+                                       Text="目标平台" />
+                            <TextBlock Classes="helper"
+                                       Text="系统架构" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  Classes="stitch-input"
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding TargetRuntimeOptions}"
+                                  SelectedItem="{Binding SelectedTargetRuntimeOption}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="pages:SettingsOptionViewModel">
+                                    <TextBlock Text="{Binding DisplayText}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2"
+                    Padding="10,8"
+                    Background="{StaticResource FrpStatusInfoSoftBrush}"
+                    BorderBrush="{StaticResource FrpStatusInfoBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                <TextBlock Classes="helper"
+                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Text="请确认目标服务器或本机架构后再下载，避免上传或运行不匹配的 FRP 核心。" />
+            </Border>
+
+            <StackPanel Grid.Row="3"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button Classes="secondary"
+                        Command="{Binding CancelCommand}"
+                        Content="取消" />
+                <Button Classes="primary"
+                        Command="{Binding ContinueCommand}"
+                        Content="继续下载" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

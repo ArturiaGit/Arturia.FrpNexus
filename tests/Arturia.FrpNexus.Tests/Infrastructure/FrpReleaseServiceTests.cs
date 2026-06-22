@@ -10,14 +10,19 @@ public sealed class FrpReleaseServiceTests
     [Fact]
     public async Task ListAvailableVersionsAsync_ShouldReturnVersionsFromClient()
     {
+        var releaseClient = new FakeReleaseClient();
         var service = new FrpReleaseService(
-            new FakeReleaseClient(),
+            releaseClient,
             new TestReleaseCachePathProvider(),
             Logger.None);
 
-        var versions = await service.ListAvailableVersionsAsync();
+        var sourceOptions = new FrpReleaseSourceOptions(
+            "Custom",
+            "https://mirror.example.com/repos/fatedier/frp/releases");
+        var versions = await service.ListAvailableVersionsAsync(sourceOptions);
 
         Assert.Contains(versions, version => version.Version == "v0.61.1");
+        Assert.Equal(sourceOptions, releaseClient.LastListSourceOptions);
     }
 
     [Fact]
@@ -61,6 +66,51 @@ public sealed class FrpReleaseServiceTests
     }
 
     [Fact]
+    public async Task PrepareReleaseAsync_ShouldUseRequestedDownloadDirectoryWhenProvided()
+    {
+        var cachePathProvider = new TestReleaseCachePathProvider();
+        var downloadDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "FrpNexusTests",
+            Guid.NewGuid().ToString("N"),
+            "selected-downloads");
+        var releaseClient = new FakeReleaseClient(CreateZipArchive("frp_0.61.1_windows_amd64/frpc.exe", "binary"));
+        var service = new FrpReleaseService(releaseClient, cachePathProvider, Logger.None);
+
+        var result = await service.PrepareReleaseAsync(new FrpReleasePreparationRequest(
+            "v0.61.1",
+            "windows_amd64",
+            "frpc",
+            downloadDirectory));
+
+        Assert.StartsWith(downloadDirectory, result.LocalPath, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(Path.Combine("v0.61.1", "windows_amd64"), result.LocalPath);
+        Assert.False(
+            result.LocalPath.StartsWith(cachePathProvider.GetReleaseCacheDirectory(), StringComparison.OrdinalIgnoreCase));
+        Assert.True(File.Exists(result.LocalPath));
+    }
+
+    [Fact]
+    public async Task PrepareReleaseAsync_ShouldPassSourceOptionsToReleaseClient()
+    {
+        var cachePathProvider = new TestReleaseCachePathProvider();
+        var releaseClient = new FakeReleaseClient(CreateZipArchive("frp_0.61.1_windows_amd64/frpc.exe", "binary"));
+        var service = new FrpReleaseService(releaseClient, cachePathProvider, Logger.None);
+        var sourceOptions = new FrpReleaseSourceOptions(
+            "Custom",
+            "https://mirror.example.com/repos/fatedier/frp/releases");
+
+        await service.PrepareReleaseAsync(new FrpReleasePreparationRequest(
+            "v0.61.1",
+            "windows_amd64",
+            "frpc",
+            DownloadDirectory: null,
+            SourceOptions: sourceOptions));
+
+        Assert.Equal(sourceOptions, releaseClient.LastDownloadSourceOptions);
+    }
+
+    [Fact]
     public async Task PrepareReleaseAsync_ShouldRejectUnexpectedBinaryName()
     {
         var service = new FrpReleaseService(
@@ -95,8 +145,15 @@ public sealed class FrpReleaseServiceTests
     {
         public int DownloadCount { get; private set; }
 
-        public Task<IReadOnlyList<FrpReleaseVersion>> ListVersionsAsync(CancellationToken cancellationToken = default)
+        public FrpReleaseSourceOptions? LastListSourceOptions { get; private set; }
+
+        public FrpReleaseSourceOptions? LastDownloadSourceOptions { get; private set; }
+
+        public Task<IReadOnlyList<FrpReleaseVersion>> ListVersionsAsync(
+            FrpReleaseSourceOptions? sourceOptions = null,
+            CancellationToken cancellationToken = default)
         {
+            LastListSourceOptions = sourceOptions;
             IReadOnlyList<FrpReleaseVersion> versions =
             [
                 new("v0.61.1", DateTimeOffset.Parse("2026-06-01T00:00:00+00:00"))
@@ -105,9 +162,14 @@ public sealed class FrpReleaseServiceTests
             return Task.FromResult(versions);
         }
 
-        public Task<Stream> DownloadAssetAsync(string version, string targetRuntime, CancellationToken cancellationToken = default)
+        public Task<Stream> DownloadAssetAsync(
+            string version,
+            string targetRuntime,
+            FrpReleaseSourceOptions? sourceOptions = null,
+            CancellationToken cancellationToken = default)
         {
             DownloadCount++;
+            LastDownloadSourceOptions = sourceOptions;
             return Task.FromResult(archiveStream ?? CreateZipArchive("frp/frpc", "binary") as Stream);
         }
     }

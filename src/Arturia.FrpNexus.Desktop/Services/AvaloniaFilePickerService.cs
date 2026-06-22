@@ -49,6 +49,34 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
         return file?.TryGetLocalPath();
     }
 
+    public async Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        return await PickLocalDirectoryAsync("选择 FRP 核心下载目录", cancellationToken);
+    }
+
+    public async Task<string?> PickLocalDirectoryAsync(
+        string title,
+        CancellationToken cancellationToken = default)
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop
+            || desktop.MainWindow is null)
+        {
+            return null;
+        }
+
+        var folders = await desktop.MainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false
+        });
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return folders.Count == 0
+            ? null
+            : folders[0].TryGetLocalPath();
+    }
+
     private static async Task<string?> PickFrpBinaryCoreAsync(
         string title,
         CancellationToken cancellationToken)

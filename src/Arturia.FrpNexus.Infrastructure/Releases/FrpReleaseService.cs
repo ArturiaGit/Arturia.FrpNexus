@@ -10,9 +10,11 @@ public sealed class FrpReleaseService(
     IFrpReleaseCachePathProvider cachePathProvider,
     ILogger logger) : IFrpReleaseService
 {
-    public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(
+        FrpReleaseSourceOptions? sourceOptions = null,
+        CancellationToken cancellationToken = default)
     {
-        return releaseClient.ListVersionsAsync(cancellationToken);
+        return releaseClient.ListVersionsAsync(sourceOptions, cancellationToken);
     }
 
     public async Task<FrpReleasePreparationResult> PrepareReleaseAsync(
@@ -40,6 +42,7 @@ public sealed class FrpReleaseService(
         await using var archiveStream = await releaseClient.DownloadAssetAsync(
             request.Version,
             request.TargetRuntime,
+            request.SourceOptions,
             cancellationToken);
 
         var archivePath = Path.Combine(targetDirectory, $"frp-{request.Version}-{request.TargetRuntime}.archive");
@@ -72,8 +75,12 @@ public sealed class FrpReleaseService(
 
     private string GetTargetDirectory(FrpReleasePreparationRequest request)
     {
+        var baseDirectory = string.IsNullOrWhiteSpace(request.DownloadDirectory)
+            ? cachePathProvider.GetReleaseCacheDirectory()
+            : request.DownloadDirectory;
+
         return Path.Combine(
-            cachePathProvider.GetReleaseCacheDirectory(),
+            baseDirectory,
             SanitizePathSegment(request.Version),
             SanitizePathSegment(request.TargetRuntime));
     }

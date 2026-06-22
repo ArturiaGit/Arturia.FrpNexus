@@ -52,6 +52,9 @@
         <DataTemplate DataType="dialogs:ConfirmationDialogViewModel">
             <dialogViews:ConfirmationDialogView />
         </DataTemplate>
+        <DataTemplate DataType="dialogs:FrpCoreDownloadOptionsDialogViewModel">
+            <dialogViews:FrpCoreDownloadOptionsDialogView />
+        </DataTemplate>
     </Window.DataTemplates>
 
     <Grid ColumnDefinitions="212,*">
@@ -214,6 +217,24 @@
                 IsHitTestVisible="True"
                 IsVisible="{Binding IsModalOverlayVisible}"
                 ZIndex="1000" />
+
+        <Grid Grid.ColumnSpan="2"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              IsVisible="{Binding IsFrpCoreDownloadOptionsDialogVisible}"
+              ZIndex="1001">
+            <Border Width="480"
+                    MaxHeight="420"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModalDialog}" />
+            </Border>
+        </Grid>
 
         <Grid Grid.ColumnSpan="2"
               HorizontalAlignment="Center"

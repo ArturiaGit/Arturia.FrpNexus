@@ -3,8 +3,10 @@ using Arturia.FrpNexus.Desktop.Converters;
 using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
+using Arturia.FrpNexus.Desktop.ViewModels.Dialogs;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
+using Arturia.FrpNexus.Desktop.Views.Dialogs;
 using Arturia.FrpNexus.Desktop.Views.Pages;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -142,6 +144,141 @@ public sealed class DesktopStructureTests
         Assert.Contains("CancelButtonText", confirmationXaml);
         Assert.DoesNotContain("Width=\"640\"", confirmationXaml);
         Assert.DoesNotContain("MaxHeight=\"680\"", confirmationXaml);
+    }
+
+    [Fact]
+    public void MainWindow_ShouldExposeFrpCoreDownloadOptionsDialogTemplate()
+    {
+        var desktopProject = GetDesktopProjectPath();
+        var mainWindowXaml = File.ReadAllText(Path.Combine(desktopProject, "Views", "MainWindow.axaml"));
+        var dialogXaml = File.ReadAllText(Path.Combine(
+            desktopProject,
+            "Views",
+            "Dialogs",
+            "FrpCoreDownloadOptionsDialogView.axaml"));
+
+        Assert.Equal("Arturia.FrpNexus.Desktop.Views.Dialogs", typeof(FrpCoreDownloadOptionsDialogView).Namespace);
+        Assert.Equal("Arturia.FrpNexus.Desktop.ViewModels.Dialogs", typeof(FrpCoreDownloadOptionsDialogViewModel).Namespace);
+        Assert.Contains("FrpCoreDownloadOptionsDialogViewModel", mainWindowXaml);
+        Assert.Contains("FrpCoreDownloadOptionsDialogView", mainWindowXaml);
+        Assert.Contains("IsFrpCoreDownloadOptionsDialogVisible", mainWindowXaml);
+        Assert.Contains("Width=\"480\"", mainWindowXaml);
+        Assert.Contains("MaxHeight=\"420\"", mainWindowXaml);
+        Assert.Contains("选择 FRP 核心", dialogXaml);
+        Assert.Contains("ContinueCommand", dialogXaml);
+        Assert.Contains("CancelCommand", dialogXaml);
+    }
+
+    [Fact]
+    public void SettingsPageFrpCoreDownloadButton_ShouldBeRightAligned()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("MinWidth=\"180\"", settingsXaml);
+        Assert.Contains("HorizontalAlignment=\"Right\"", settingsXaml);
+        Assert.Contains("DownloadLatestFrpReleaseButtonText", settingsXaml);
+    }
+
+    [Fact]
+    public void SettingsPage_ShouldNotExposeDefaultConfigDirectorySetting()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.DoesNotContain("默认配置目录", settingsXaml);
+        Assert.DoesNotContain("ConfigDirectory", settingsXaml);
+    }
+
+    [Fact]
+    public void SettingsPageSecuritySection_ShouldUseRealCredentialSecurityCenter()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("凭据安全中心", settingsXaml);
+        Assert.Contains("CredentialSecurityNodes", settingsXaml);
+        Assert.Contains("RefreshCredentialSecurityCommand", settingsXaml);
+        Assert.Contains("ClearAllSavedSessionPasswordsCommand", settingsXaml);
+        Assert.DoesNotContain("id_rsa_prod_server", settingsXaml);
+        Assert.DoesNotContain("导入新密钥", settingsXaml);
+    }
+
+    [Fact]
+    public void SettingsPageCredentialSecurityTable_ShouldUseStableColumnAlignment()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+        var normalizedXaml = settingsXaml.Replace("\r\n", "\n");
+
+        Assert.Contains("ColumnDefinitions=\"2*,1.4*,2*,1.2*,64\"", settingsXaml);
+        Assert.DoesNotContain("ColumnDefinitions=\"2*,1.4*,2*,1.2*,Auto\"", settingsXaml);
+        Assert.Contains("<ItemsControl HorizontalAlignment=\"Stretch\"", settingsXaml);
+        Assert.Contains("<Grid HorizontalAlignment=\"Stretch\"", settingsXaml);
+        Assert.Contains(
+            "HorizontalAlignment=\"Stretch\"\n"
+            + "                                                       TextAlignment=\"Center\"\n"
+            + "                                                       Text=\"{Binding AuthenticationModeText}\"",
+            normalizedXaml);
+        Assert.Contains(
+            "HorizontalAlignment=\"Stretch\"\n"
+            + "                                                       TextAlignment=\"Center\"\n"
+            + "                                                       Text=\"{Binding SavedPasswordStatusText}\"",
+            normalizedXaml);
+    }
+
+    [Fact]
+    public void SettingsPageCredentialSecurityStatus_ShouldSitBelowTableBeforeSecurityBoundary()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        var statusIndex = settingsXaml.IndexOf("Text=\"{Binding CredentialSecurityStatusText}\"", StringComparison.Ordinal);
+        var securityBoundaryIndex = settingsXaml.IndexOf("Title=\"安全边界\"", StringComparison.Ordinal);
+        var securityBoundaryEndIndex = settingsXaml.IndexOf(
+            "</controls:SettingsRowControl>",
+            securityBoundaryIndex,
+            StringComparison.Ordinal);
+        var securityBoundaryBlock = settingsXaml[securityBoundaryIndex..securityBoundaryEndIndex];
+
+        Assert.True(statusIndex > 0);
+        Assert.True(securityBoundaryIndex > 0);
+        Assert.True(statusIndex < securityBoundaryIndex);
+        Assert.Contains("Margin=\"16,0,16,12\"", settingsXaml);
+        Assert.DoesNotContain("CredentialSecurityStatusText", securityBoundaryBlock);
+    }
+
+    [Fact]
+    public void SettingsPageLocalDataActions_ShouldBindRealCommands()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("OpenLogDirectoryCommand", settingsXaml);
+        Assert.Contains("ClearLocalCacheCommand", settingsXaml);
+        Assert.Contains("默认 FRP 核心下载缓存", settingsXaml);
+        Assert.Contains("SelectLogDirectoryCommand", settingsXaml);
+        Assert.Contains("SelectSqliteDatabaseDirectoryCommand", settingsXaml);
+        Assert.Contains("OpenSqliteDatabaseDirectoryCommand", settingsXaml);
+        Assert.DoesNotContain("结构化本地数据默认通过 SQLite 保存", settingsXaml);
     }
 
     [Fact]

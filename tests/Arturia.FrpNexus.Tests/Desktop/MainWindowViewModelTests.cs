@@ -217,6 +217,7 @@ public sealed class MainWindowViewModelTests
         Assert.NotNull(serviceProvider.GetRequiredService<ILocalApplicationLogService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IFilePickerService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IClipboardService>());
+        Assert.NotNull(serviceProvider.GetRequiredService<IFrpCoreDownloadOptionsDialogService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IModalOverlayService>());
         Assert.NotNull(serviceProvider.GetRequiredService<IModalDialogHostService>());
         Assert.IsType<SqliteNodeManagementService>(serviceProvider.GetRequiredService<INodeManagementService>());
@@ -244,7 +245,7 @@ public sealed class MainWindowViewModelTests
         var viewModel = serviceProvider.GetRequiredService<SettingsPageViewModel>();
 
         Assert.NotNull(viewModel);
-        Assert.NotEmpty(viewModel.SshKeys);
+        Assert.NotNull(viewModel.CredentialSecurityNodes);
     }
 
     [Fact]
@@ -551,7 +552,13 @@ public sealed class MainWindowViewModelTests
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()
     {
-        return new SettingsPageViewModel(new FakeSettingsService(), new FakeThemeService());
+        return new SettingsPageViewModel(
+            new FakeSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
     }
 
     private static NodeProfile CreateNode(string name, string configPath)
@@ -573,13 +580,10 @@ public sealed class MainWindowViewModelTests
     private sealed class FakeSettingsService : ISettingsService
     {
         private readonly FrpNexusSettingsSnapshot _settings = new(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
-            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core",
-            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\configs",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
-            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db");
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
+            string.Empty);
 
         public Task<FrpNexusSettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken = default)
         {
@@ -589,18 +593,6 @@ public sealed class MainWindowViewModelTests
         public Task SaveSettingsAsync(FrpNexusSettingsSnapshot settings, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeThemeService : IThemeService
-    {
-        public Task InitializeAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void ApplyTheme(string theme)
-        {
         }
     }
 
@@ -853,6 +845,11 @@ public sealed class MainWindowViewModelTests
         public Task<string?> PickLocalFrpcConfigPathAsync(
             string suggestedFileName,
             CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<string?>(null);
         }
@@ -1292,6 +1289,33 @@ public sealed class MainWindowViewModelTests
         {
             ReadCallCount++;
             return Task.FromResult<IReadOnlyList<LogEntry>>(logs.Take(lineCount).ToArray());
+        }
+    }
+
+    private sealed class FakeFrpReleaseService : IFrpReleaseService
+    {
+        public Task<IReadOnlyList<FrpReleaseVersion>> ListAvailableVersionsAsync(
+            FrpReleaseSourceOptions? sourceOptions = null,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<FrpReleaseVersion>>([]);
+        }
+
+        public Task<FrpReleasePreparationResult> PrepareReleaseAsync(
+            FrpReleasePreparationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("MainWindow tests do not prepare FRP releases.");
+        }
+    }
+
+    private sealed class FakeFrpCoreDownloadOptionsDialogService : IFrpCoreDownloadOptionsDialogService
+    {
+        public Task<FrpCoreDownloadOptions?> ShowAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<FrpCoreDownloadOptions?>(new FrpCoreDownloadOptions(
+                "frpc",
+                "windows_amd64"));
         }
     }
 
