@@ -232,25 +232,38 @@
                     <controls:SettingsRowControl Title="日志目录"
                                                  Description="Serilog 本地文件日志默认记录 Warning 及以上级别">
                         <controls:SettingsRowControl.ValueContent>
-                            <Grid Width="360" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Grid Width="480" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <TextBox Classes="stitch-input code"
                                          Text="{Binding LogDirectory}" />
                                 <Button Grid.Column="1"
                                         Classes="secondary stitch-command"
-                                        Content="打开目录" />
+                                        Content="选择目录"
+                                        Command="{Binding SelectLogDirectoryCommand}" />
+                                <Button Grid.Column="2"
+                                        Classes="secondary stitch-command"
+                                        Content="打开目录"
+                                        Command="{Binding OpenLogDirectoryCommand}" />
                             </Grid>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
 
                     <Border Classes="settings-divider" />
 
-                    <controls:SettingsRowControl Title="SQLite 数据库"
-                                                 Description="结构化本地数据默认通过 SQLite 保存，由 Application 接口访问">
+                    <controls:SettingsRowControl Title="SQLite 数据库">
                         <controls:SettingsRowControl.ValueContent>
-                            <TextBox Classes="stitch-input code"
-                                     Width="360"
-                                     IsReadOnly="True"
-                                     Text="{Binding SqliteDatabasePath}" />
+                            <Grid Width="480" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <TextBox Classes="stitch-input code"
+                                         IsReadOnly="True"
+                                         Text="{Binding SqliteDatabasePath}" />
+                                <Button Grid.Column="1"
+                                        Classes="secondary stitch-command"
+                                        Content="选择目录"
+                                        Command="{Binding SelectSqliteDatabaseDirectoryCommand}" />
+                                <Button Grid.Column="2"
+                                        Classes="secondary stitch-command"
+                                        Content="打开目录"
+                                        Command="{Binding OpenSqliteDatabaseDirectoryCommand}" />
+                            </Grid>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
 
@@ -268,10 +281,11 @@
                     <Border Classes="settings-divider" />
 
                     <controls:SettingsRowControl Title="本地缓存"
-                                                 Description="清理下载缓存、临时配置和旧版本运行产物">
+                                                 Description="清理默认 FRP 核心下载缓存，不会删除 SQLite、日志、凭据、配置或用户选择的下载目录">
                         <controls:SettingsRowControl.ValueContent>
                             <Button Classes="secondary stitch-command"
-                                    Content="清理缓存" />
+                                    Content="清理缓存"
+                                    Command="{Binding ClearLocalCacheCommand}" />
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
                 </StackPanel>

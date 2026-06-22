@@ -264,6 +264,24 @@ public sealed class DesktopStructureTests
     }
 
     [Fact]
+    public void SettingsPageLocalDataActions_ShouldBindRealCommands()
+    {
+        var settingsXaml = File.ReadAllText(Path.Combine(
+            GetDesktopProjectPath(),
+            "Views",
+            "Pages",
+            "SettingsPageView.axaml"));
+
+        Assert.Contains("OpenLogDirectoryCommand", settingsXaml);
+        Assert.Contains("ClearLocalCacheCommand", settingsXaml);
+        Assert.Contains("默认 FRP 核心下载缓存", settingsXaml);
+        Assert.Contains("SelectLogDirectoryCommand", settingsXaml);
+        Assert.Contains("SelectSqliteDatabaseDirectoryCommand", settingsXaml);
+        Assert.Contains("OpenSqliteDatabaseDirectoryCommand", settingsXaml);
+        Assert.DoesNotContain("结构化本地数据默认通过 SQLite 保存", settingsXaml);
+    }
+
+    [Fact]
     public void NodeConnectionWorkflowDialogView_ShouldKeepFooterOutsideScrollableContent()
     {
         var dialogXaml = File.ReadAllText(Path.Combine(

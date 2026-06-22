@@ -1,3 +1,5 @@
+using Arturia.FrpNexus.Application.Abstractions;
+
 namespace Arturia.FrpNexus.Infrastructure.Persistence;
 
 public interface IFrpNexusDatabasePathProvider
@@ -7,9 +9,15 @@ public interface IFrpNexusDatabasePathProvider
 
 public sealed class FrpNexusDatabasePathProvider : IFrpNexusDatabasePathProvider
 {
+    private readonly string _databasePath;
+
+    public FrpNexusDatabasePathProvider(ILocalStoragePathSettingsService pathSettingsService)
+    {
+        _databasePath = pathSettingsService.GetSqliteDatabasePath();
+    }
+
     public string GetDatabasePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(localAppData, "Arturia", "FrpNexus", "data", "frpnexus.db");
+        return _databasePath;
     }
 }

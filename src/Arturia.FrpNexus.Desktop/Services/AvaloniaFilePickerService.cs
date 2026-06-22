@@ -51,6 +51,13 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
 
     public async Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default)
     {
+        return await PickLocalDirectoryAsync("选择 FRP 核心下载目录", cancellationToken);
+    }
+
+    public async Task<string?> PickLocalDirectoryAsync(
+        string title,
+        CancellationToken cancellationToken = default)
+    {
         if (Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop
             || desktop.MainWindow is null)
         {
@@ -59,7 +66,7 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
 
         var folders = await desktop.MainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "选择 FRP 核心下载目录",
+            Title = title,
             AllowMultiple = false
         });
 

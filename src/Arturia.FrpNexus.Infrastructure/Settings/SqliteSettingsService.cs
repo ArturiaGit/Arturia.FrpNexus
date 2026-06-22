@@ -6,7 +6,8 @@ namespace Arturia.FrpNexus.Infrastructure.Settings;
 public sealed class SqliteSettingsService(
     ISqliteConnectionFactory connectionFactory,
     ISqliteDatabaseInitializer databaseInitializer,
-    IFrpNexusDatabasePathProvider databasePathProvider) : ISettingsService
+    IFrpNexusDatabasePathProvider databasePathProvider,
+    ILocalStoragePathSettingsService pathSettingsService) : ISettingsService
 {
     private const string FrpDownloadSourceKey = "frp_download_source";
     private const string CustomFrpDownloadSourceUrlKey = "frp_custom_download_source_url";
@@ -31,13 +32,15 @@ public sealed class SqliteSettingsService(
         }
 
         var defaults = CreateDefaultSettings();
+        var pathSettings = pathSettingsService.GetSettings();
 
         return defaults with
         {
             FrpDownloadSource = GetValue(values, FrpDownloadSourceKey, defaults.FrpDownloadSource),
             CustomFrpDownloadSourceUrl = GetValue(values, CustomFrpDownloadSourceUrlKey, defaults.CustomFrpDownloadSourceUrl),
-            LogDirectory = GetValue(values, LogDirectoryKey, defaults.LogDirectory),
-            SqliteDatabasePath = databasePathProvider.GetDatabasePath()
+            LogDirectory = pathSettings.LogDirectory,
+            SqliteDatabasePath = databasePathProvider.GetDatabasePath(),
+            SqliteDatabaseDirectory = pathSettings.SqliteDatabaseDirectory
         };
     }
 
@@ -59,14 +62,14 @@ public sealed class SqliteSettingsService(
 
     public FrpNexusSettingsSnapshot CreateDefaultSettings()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var root = Path.Combine(localAppData, "Arturia", "FrpNexus");
+        var pathSettings = pathSettingsService.GetSettings();
 
         return new FrpNexusSettingsSnapshot(
             "GitHub Releases",
-            Path.Combine(root, "logs"),
+            pathSettings.LogDirectory,
             databasePathProvider.GetDatabasePath(),
-            string.Empty);
+            string.Empty,
+            pathSettings.SqliteDatabaseDirectory);
     }
 
     private static string GetValue(IReadOnlyDictionary<string, string> values, string key, string defaultValue)

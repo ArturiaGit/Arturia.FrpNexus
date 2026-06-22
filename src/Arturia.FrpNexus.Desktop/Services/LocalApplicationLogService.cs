@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Logging;
@@ -10,6 +11,7 @@ public sealed class LocalApplicationLogService : ILocalApplicationLogService
 {
     private const string LocalNodeName = "客户端";
     private const string ProcessName = "FrpNexus";
+    private readonly ILocalStoragePathSettingsService? _pathSettingsService;
     private readonly string? _logDirectory;
 
     public LocalApplicationLogService()
@@ -21,7 +23,15 @@ public sealed class LocalApplicationLogService : ILocalApplicationLogService
         _logDirectory = logDirectory;
     }
 
-    public string CurrentLogDirectory => _logDirectory ?? DesktopLogPaths.GetWarningLogDirectory();
+    public LocalApplicationLogService(ILocalStoragePathSettingsService pathSettingsService)
+    {
+        _pathSettingsService = pathSettingsService;
+    }
+
+    public string CurrentLogDirectory =>
+        _logDirectory
+        ?? _pathSettingsService?.GetLogDirectory()
+        ?? DesktopLogPaths.GetWarningLogDirectory();
 
     public async Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
         int lineCount = 200,

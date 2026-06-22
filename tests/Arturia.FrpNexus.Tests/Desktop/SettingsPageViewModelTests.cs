@@ -63,7 +63,7 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal("https://mirror.example.com/repos/fatedier/frp/releases", settingsService.SavedSettings.CustomFrpDownloadSourceUrl);
         Assert.Equal(@"D:\Tools\frp-logs", settingsService.SavedSettings.LogDirectory);
         Assert.Equal(@"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db", settingsService.SavedSettings.SqliteDatabasePath);
-        Assert.Equal("设置已保存到本地 SQLite。", viewModel.SaveStatusText);
+        Assert.Contains("历史日志已复制到新目录", viewModel.SaveStatusText);
     }
 
     [Fact]
@@ -120,10 +120,226 @@ public sealed class SettingsPageViewModelTests
             new FakeFrpCoreDownloadOptionsDialogService(),
             new FakeNodeManagementService(),
             new FakeNodeCredentialSecretService());
+        viewModel.LogDirectory = @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs";
+        viewModel.SqliteDatabaseDirectory = @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data";
+        viewModel.SqliteDatabasePath = @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db";
 
         await viewModel.SaveSettingsCommand.ExecuteAsync(null);
 
         Assert.Equal("设置保存失败，请检查输入、网络或本地数据状态后重试。", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task OpenLogDirectoryCommand_ShouldOpenCurrentLogDirectory()
+    {
+        var folderLauncher = new FakeLocalFolderLauncherService();
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            folderLauncher,
+            new FakeLocalCacheMaintenanceService(),
+            new FakeConfirmationDialogService());
+        await viewModel.LoadSettingsAsync();
+
+        await viewModel.OpenLogDirectoryCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs", folderLauncher.OpenedPath);
+        Assert.Equal("已打开日志目录。", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task OpenLogDirectoryCommand_ShouldRejectEmptyLogDirectory()
+    {
+        var viewModel = new SettingsPageViewModel(
+            new FakeSettingsService(new FrpNexusSettingsSnapshot(
+                "GitHub Releases",
+                string.Empty,
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
+                string.Empty)),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            new FakeLocalFolderLauncherService(),
+            new FakeLocalCacheMaintenanceService(),
+            new FakeConfirmationDialogService());
+        await viewModel.LoadSettingsAsync();
+
+        await viewModel.OpenLogDirectoryCommand.ExecuteAsync(null);
+
+        Assert.Equal("日志目录为空，请先填写有效路径。", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task SelectLogDirectoryCommand_ShouldUpdateLogDirectoryWhenDirectoryIsPicked()
+    {
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(localDirectory: @"D:\FrpNexus\logs"),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
+
+        await viewModel.SelectLogDirectoryCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"D:\FrpNexus\logs", viewModel.LogDirectory);
+        Assert.Equal("已选择日志目录，请保存设置。", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task SelectSqliteDatabaseDirectoryCommand_ShouldUpdateDirectoryAndDerivedDatabasePath()
+    {
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(localDirectory: @"D:\FrpNexus\data"),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService());
+
+        await viewModel.SelectSqliteDatabaseDirectoryCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"D:\FrpNexus\data", viewModel.SqliteDatabaseDirectory);
+        Assert.Equal(@"D:\FrpNexus\data\frpnexus.db", viewModel.SqliteDatabasePath);
+        Assert.Equal("已选择 SQLite 数据库目录，请保存设置并重启应用。", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task SaveSettingsCommand_ShouldPersistPathSettingsAndPrepareSqliteCopy()
+    {
+        var pathSettingsService = new FakeLocalStoragePathSettingsService(
+            new LocalStoragePathSettings(
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            localStoragePathSettingsService: pathSettingsService);
+        await viewModel.LoadSettingsAsync();
+        viewModel.LogDirectory = @"D:\FrpNexus\logs";
+        viewModel.SqliteDatabaseDirectory = @"D:\FrpNexus\data";
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(pathSettingsService.SavedSettings);
+        Assert.Equal(@"D:\FrpNexus\logs", pathSettingsService.SavedSettings!.LogDirectory);
+        Assert.Equal(@"D:\FrpNexus\data", pathSettingsService.SavedSettings.SqliteDatabaseDirectory);
+        Assert.Equal(@"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
+            pathSettingsService.PreparedSourceDatabasePath);
+        Assert.Equal(@"D:\FrpNexus\data", pathSettingsService.PreparedTargetDatabaseDirectory);
+        Assert.Contains("重启", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task SaveSettingsCommand_ShouldCopyLogsWhenLogDirectoryChanges()
+    {
+        var pathSettingsService = new FakeLocalStoragePathSettingsService(
+            new LocalStoragePathSettings(
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            localStoragePathSettingsService: pathSettingsService);
+        await viewModel.LoadSettingsAsync();
+        viewModel.LogDirectory = @"D:\FrpNexus\logs";
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+            pathSettingsService.PreparedSourceLogDirectory);
+        Assert.Equal(@"D:\FrpNexus\logs", pathSettingsService.PreparedTargetLogDirectory);
+        Assert.Contains("历史日志已复制到新目录", viewModel.SaveStatusText);
+        Assert.Contains("旧文件已保留", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task SaveSettingsCommand_ShouldReportDatabaseAndLogsWhenBothDirectoriesChange()
+    {
+        var pathSettingsService = new FakeLocalStoragePathSettingsService(
+            new LocalStoragePathSettings(
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            localStoragePathSettingsService: pathSettingsService);
+        await viewModel.LoadSettingsAsync();
+        viewModel.LogDirectory = @"D:\FrpNexus\logs";
+        viewModel.SqliteDatabaseDirectory = @"D:\FrpNexus\data";
+
+        await viewModel.SaveSettingsCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"D:\FrpNexus\logs", pathSettingsService.PreparedTargetLogDirectory);
+        Assert.Equal(@"D:\FrpNexus\data", pathSettingsService.PreparedTargetDatabaseDirectory);
+        Assert.Contains("数据库和历史日志已复制到新目录", viewModel.SaveStatusText);
+        Assert.Contains("SQLite 将在重启后生效", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task ClearLocalCacheCommand_ShouldClearDefaultReleaseCacheWhenConfirmed()
+    {
+        var cacheMaintenanceService = new FakeLocalCacheMaintenanceService(
+            new LocalCacheCleanupResult(3, 2048, @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core\releases"));
+        var confirmationDialog = new FakeConfirmationDialogService(confirm: true);
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            new FakeLocalFolderLauncherService(),
+            cacheMaintenanceService,
+            confirmationDialog);
+
+        await viewModel.ClearLocalCacheCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, confirmationDialog.ShowCount);
+        Assert.Equal(1, cacheMaintenanceService.ClearDefaultFrpReleaseCacheCallCount);
+        Assert.Contains("已清理默认 FRP 核心下载缓存", viewModel.SaveStatusText);
+        Assert.Contains("3 个文件", viewModel.SaveStatusText);
+    }
+
+    [Fact]
+    public async Task ClearLocalCacheCommand_ShouldNotClearCacheWhenCancelled()
+    {
+        var cacheMaintenanceService = new FakeLocalCacheMaintenanceService();
+        var confirmationDialog = new FakeConfirmationDialogService(confirm: false);
+        var viewModel = new SettingsPageViewModel(
+            CreateDefaultSettingsService(),
+            new FakeFrpReleaseService(),
+            new FakeFilePickerService(),
+            new FakeFrpCoreDownloadOptionsDialogService(),
+            new FakeNodeManagementService(),
+            new FakeNodeCredentialSecretService(),
+            new FakeLocalFolderLauncherService(),
+            cacheMaintenanceService,
+            confirmationDialog);
+
+        await viewModel.ClearLocalCacheCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, confirmationDialog.ShowCount);
+        Assert.Equal(0, cacheMaintenanceService.ClearDefaultFrpReleaseCacheCallCount);
+        Assert.Equal("已取消清理本地缓存。", viewModel.SaveStatusText);
     }
 
     [Fact]
@@ -414,7 +630,8 @@ public sealed class SettingsPageViewModelTests
             frpDownloadSource,
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
-            customFrpDownloadSourceUrl));
+            customFrpDownloadSourceUrl,
+            @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
     }
 
     private static NodeProfile CreateNode(string name, string authentication)
@@ -615,7 +832,9 @@ public sealed class SettingsPageViewModelTests
         }
     }
 
-    private sealed class FakeFilePickerService(string? frpDownloadDirectory = null) : IFilePickerService
+    private sealed class FakeFilePickerService(
+        string? frpDownloadDirectory = null,
+        string? localDirectory = null) : IFilePickerService
     {
         public int PickFrpDownloadDirectoryCount { get; private set; }
 
@@ -641,6 +860,13 @@ public sealed class SettingsPageViewModelTests
             PickFrpDownloadDirectoryCount++;
             return Task.FromResult(frpDownloadDirectory);
         }
+
+        public Task<string?> PickLocalDirectoryAsync(
+            string title,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(localDirectory);
+        }
     }
 
     private sealed class FakeFrpCoreDownloadOptionsDialogService : IFrpCoreDownloadOptionsDialogService
@@ -663,6 +889,132 @@ public sealed class SettingsPageViewModelTests
         {
             ShowCount++;
             return Task.FromResult(_result);
+        }
+    }
+
+    private sealed class FakeLocalFolderLauncherService : ILocalFolderLauncherService
+    {
+        public string? OpenedPath { get; private set; }
+
+        public Task OpenFolderAsync(string folderPath, CancellationToken cancellationToken = default)
+        {
+            OpenedPath = folderPath;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeLocalCacheMaintenanceService(
+        LocalCacheCleanupResult? cleanupResult = null) : ILocalCacheMaintenanceService
+    {
+        public int ClearDefaultFrpReleaseCacheCallCount { get; private set; }
+
+        public Task<LocalCacheCleanupResult> ClearDefaultFrpReleaseCacheAsync(
+            CancellationToken cancellationToken = default)
+        {
+            ClearDefaultFrpReleaseCacheCallCount++;
+            return Task.FromResult(cleanupResult
+                ?? new LocalCacheCleanupResult(0, 0, @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core\releases"));
+        }
+    }
+
+    private sealed class FakeConfirmationDialogService(bool confirm = true) : IConfirmationDialogService
+    {
+        public int ShowCount { get; private set; }
+
+        public Task<bool> ShowAsync(
+            ConfirmationDialogRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ShowCount++;
+            return Task.FromResult(confirm);
+        }
+
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(
+            ConfirmationDialogChoiceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FakeLocalStoragePathSettingsService(
+        LocalStoragePathSettings settings) : ILocalStoragePathSettingsService
+    {
+        public LocalStoragePathSettings? SavedSettings { get; private set; }
+
+        public string? PreparedSourceDatabasePath { get; private set; }
+
+        public string? PreparedTargetDatabaseDirectory { get; private set; }
+
+        public string? PreparedSourceLogDirectory { get; private set; }
+
+        public string? PreparedTargetLogDirectory { get; private set; }
+
+        public LocalStoragePathSettings GetSettings()
+        {
+            return SavedSettings ?? settings;
+        }
+
+        public string GetLogDirectory()
+        {
+            return GetSettings().LogDirectory;
+        }
+
+        public string GetSqliteDatabaseDirectory()
+        {
+            return GetSettings().SqliteDatabaseDirectory;
+        }
+
+        public string GetSqliteDatabasePath()
+        {
+            return Path.Combine(GetSettings().SqliteDatabaseDirectory, "frpnexus.db");
+        }
+
+        public Task SaveSettingsAsync(
+            LocalStoragePathSettings pathSettings,
+            CancellationToken cancellationToken = default)
+        {
+            SavedSettings = pathSettings;
+            return Task.CompletedTask;
+        }
+
+        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
+            string currentDatabasePath,
+            string targetDatabaseDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            PreparedSourceDatabasePath = currentDatabasePath;
+            PreparedTargetDatabaseDirectory = targetDatabaseDirectory;
+            SavedSettings = (SavedSettings ?? settings) with
+            {
+                SqliteDatabaseDirectory = targetDatabaseDirectory
+            };
+
+            return Task.FromResult(new SqliteDatabaseRelocationResult(
+                currentDatabasePath,
+                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
+                Copied: true,
+                BackupCreated: false,
+                BackupPath: null));
+        }
+
+        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
+            string currentLogDirectory,
+            string targetLogDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            PreparedSourceLogDirectory = currentLogDirectory;
+            PreparedTargetLogDirectory = targetLogDirectory;
+            SavedSettings = (SavedSettings ?? settings) with
+            {
+                LogDirectory = targetLogDirectory
+            };
+
+            return Task.FromResult(new LogDirectoryRelocationResult(
+                currentLogDirectory,
+                targetLogDirectory,
+                CopiedFileCount: 2,
+                SkippedFileCount: 0));
         }
     }
 

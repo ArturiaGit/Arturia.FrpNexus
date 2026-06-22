@@ -9,11 +9,15 @@ public sealed class SqliteSettingsServiceTests
     [Fact]
     public void DatabasePathProvider_ShouldUseLocalApplicationData()
     {
-        var provider = new FrpNexusDatabasePathProvider();
+        var root = Path.Combine(Path.GetTempPath(), "FrpNexusTests", Guid.NewGuid().ToString("N"));
+        var pathSettingsService = new JsonLocalStoragePathSettingsService(
+            Path.Combine(root, "paths.json"),
+            root);
+        var provider = new FrpNexusDatabasePathProvider(pathSettingsService);
 
         var path = provider.GetDatabasePath();
 
-        Assert.Contains(Path.Combine("Arturia", "FrpNexus", "data"), path);
+        Assert.Contains(Path.Combine("data", "frpnexus.db"), path);
         Assert.EndsWith("frpnexus.db", path);
     }
 
@@ -27,7 +31,7 @@ public sealed class SqliteSettingsServiceTests
 
         Assert.Equal("GitHub Releases", settings.FrpDownloadSource);
         Assert.Equal(string.Empty, settings.CustomFrpDownloadSourceUrl);
-        Assert.EndsWith(Path.Combine("Arturia", "FrpNexus", "logs"), settings.LogDirectory);
+        Assert.EndsWith("logs", settings.LogDirectory);
         Assert.Equal(pathProvider.GetDatabasePath(), settings.SqliteDatabasePath);
     }
 
@@ -48,7 +52,7 @@ public sealed class SqliteSettingsServiceTests
 
         Assert.Equal(expected.FrpDownloadSource, actual.FrpDownloadSource);
         Assert.Equal(expected.CustomFrpDownloadSourceUrl, actual.CustomFrpDownloadSourceUrl);
-        Assert.Equal(expected.LogDirectory, actual.LogDirectory);
+        Assert.NotEqual(expected.LogDirectory, actual.LogDirectory);
         Assert.NotEqual(expected.SqliteDatabasePath, actual.SqliteDatabasePath);
         Assert.Equal(pathProvider.GetDatabasePath(), actual.SqliteDatabasePath);
     }
@@ -119,7 +123,11 @@ public sealed class SqliteSettingsServiceTests
         var connectionFactory = new SqliteConnectionFactory(pathProvider);
         var initializer = new SqliteDatabaseInitializer(connectionFactory);
 
-        return new SqliteSettingsService(connectionFactory, initializer, pathProvider);
+        var pathSettingsService = new FakeLocalStoragePathSettingsService(Path.Combine(
+            Path.GetDirectoryName(pathProvider.GetDatabasePath())!,
+            "logs"));
+
+        return new SqliteSettingsService(connectionFactory, initializer, pathProvider, pathSettingsService);
     }
 
     private static SqliteLocalFrpcConfigurationService CreateLocalFrpcConfigurationService(TestDatabasePathProvider pathProvider)
@@ -141,6 +149,63 @@ public sealed class SqliteSettingsServiceTests
         public string GetDatabasePath()
         {
             return _databasePath;
+        }
+    }
+
+    private sealed class FakeLocalStoragePathSettingsService(string logDirectory) : ILocalStoragePathSettingsService
+    {
+        public LocalStoragePathSettings GetSettings()
+        {
+            return new LocalStoragePathSettings(
+                logDirectory,
+                Path.GetDirectoryName(GetSqliteDatabasePath()) ?? string.Empty);
+        }
+
+        public string GetLogDirectory()
+        {
+            return GetSettings().LogDirectory;
+        }
+
+        public string GetSqliteDatabaseDirectory()
+        {
+            return Path.Combine(Path.GetTempPath(), "FrpNexusTests", "data");
+        }
+
+        public string GetSqliteDatabasePath()
+        {
+            return Path.Combine(GetSqliteDatabaseDirectory(), "frpnexus.db");
+        }
+
+        public Task SaveSettingsAsync(
+            LocalStoragePathSettings pathSettings,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
+            string currentDatabasePath,
+            string targetDatabaseDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SqliteDatabaseRelocationResult(
+                currentDatabasePath,
+                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
+                false,
+                false,
+                null));
+        }
+
+        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
+            string currentLogDirectory,
+            string targetLogDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LogDirectoryRelocationResult(
+                currentLogDirectory,
+                targetLogDirectory,
+                0,
+                0));
         }
     }
 }

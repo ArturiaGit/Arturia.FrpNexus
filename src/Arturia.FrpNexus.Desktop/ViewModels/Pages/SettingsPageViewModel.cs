@@ -25,6 +25,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private readonly IFrpCoreDownloadOptionsDialogService _downloadOptionsDialogService;
     private readonly INodeManagementService _nodeManagementService;
     private readonly INodeCredentialSecretService _nodeCredentialSecretService;
+    private readonly ILocalFolderLauncherService _localFolderLauncherService;
+    private readonly ILocalCacheMaintenanceService _localCacheMaintenanceService;
+    private readonly IConfirmationDialogService _confirmationDialogService;
+    private readonly ILocalStoragePathSettingsService _localStoragePathSettingsService;
+    private string _loadedLogDirectory = string.Empty;
+    private string _loadedSqliteDatabaseDirectory = string.Empty;
+    private string _loadedSqliteDatabasePath = string.Empty;
 
     private static readonly SettingsOptionViewModel[] FrpDownloadSourceOptionValues =
     [
@@ -56,6 +63,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private string _sqliteDatabasePath = string.Empty;
 
     [ObservableProperty]
+    private string _sqliteDatabaseDirectory = string.Empty;
+
+    [ObservableProperty]
     private string _saveStatusText = "设置会保存在本地 SQLite 数据库。";
 
     [ObservableProperty]
@@ -83,7 +93,11 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         IFilePickerService filePickerService,
         IFrpCoreDownloadOptionsDialogService downloadOptionsDialogService,
         INodeManagementService nodeManagementService,
-        INodeCredentialSecretService nodeCredentialSecretService)
+        INodeCredentialSecretService nodeCredentialSecretService,
+        ILocalFolderLauncherService? localFolderLauncherService = null,
+        ILocalCacheMaintenanceService? localCacheMaintenanceService = null,
+        IConfirmationDialogService? confirmationDialogService = null,
+        ILocalStoragePathSettingsService? localStoragePathSettingsService = null)
         : base("设置", "FRP 下载源、本地路径、密钥、日志和本地数据")
     {
         _settingsService = settingsService;
@@ -92,6 +106,10 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         _downloadOptionsDialogService = downloadOptionsDialogService;
         _nodeManagementService = nodeManagementService;
         _nodeCredentialSecretService = nodeCredentialSecretService;
+        _localFolderLauncherService = localFolderLauncherService ?? new NoopLocalFolderLauncherService();
+        _localCacheMaintenanceService = localCacheMaintenanceService ?? new NoopLocalCacheMaintenanceService();
+        _confirmationDialogService = confirmationDialogService ?? new NoopConfirmationDialogService();
+        _localStoragePathSettingsService = localStoragePathSettingsService ?? new NoopLocalStoragePathSettingsService();
 
         CredentialSecurityNodes = [];
 
@@ -130,6 +148,10 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         IsCustomFrpDownloadSourceSelected = IsCustomDownloadSource(FrpDownloadSource);
         LogDirectory = settings.LogDirectory;
         SqliteDatabasePath = settings.SqliteDatabasePath;
+        SqliteDatabaseDirectory = ResolveSqliteDatabaseDirectory(settings);
+        _loadedLogDirectory = LogDirectory;
+        _loadedSqliteDatabaseDirectory = SqliteDatabaseDirectory;
+        _loadedSqliteDatabasePath = SqliteDatabasePath;
         SaveStatusText = "已加载本地设置。";
         await LoadCredentialSecurityAsync(cancellationToken);
     }
@@ -214,7 +236,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel
             FrpDownloadSource,
             LogDirectory,
             SqliteDatabasePath,
-            CustomFrpDownloadSourceUrl);
+            CustomFrpDownloadSourceUrl,
+            SqliteDatabaseDirectory);
 
         try
         {
@@ -234,16 +257,57 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     [RelayCommand]
     private async Task SaveSettingsAsync()
     {
+        if (string.IsNullOrWhiteSpace(LogDirectory))
+        {
+            SaveStatusText = "日志目录不能为空，请选择有效目录。";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SqliteDatabaseDirectory))
+        {
+            SaveStatusText = "SQLite 数据库目录不能为空，请选择有效目录。";
+            return;
+        }
+
+        var normalizedLogDirectory = Path.GetFullPath(LogDirectory.Trim());
+        var normalizedSqliteDirectory = Path.GetFullPath(SqliteDatabaseDirectory.Trim());
+        var sqliteDirectoryChanged = !PathEquals(normalizedSqliteDirectory, _loadedSqliteDatabaseDirectory);
+        var logDirectoryChanged = !PathEquals(normalizedLogDirectory, _loadedLogDirectory);
+        var nextSqliteDatabasePath = Path.Combine(normalizedSqliteDirectory, "frpnexus.db");
+
         var settings = new FrpNexusSettingsSnapshot(
             FrpDownloadSource,
-            LogDirectory,
-            SqliteDatabasePath,
-            CustomFrpDownloadSourceUrl);
+            normalizedLogDirectory,
+            nextSqliteDatabasePath,
+            CustomFrpDownloadSourceUrl,
+            normalizedSqliteDirectory);
 
         try
         {
             await _settingsService.SaveSettingsAsync(settings);
-            SaveStatusText = "设置已保存到本地 SQLite。";
+            if (sqliteDirectoryChanged)
+            {
+                await _localStoragePathSettingsService.PrepareSqliteDatabaseDirectoryAsync(
+                    string.IsNullOrWhiteSpace(_loadedSqliteDatabasePath) ? SqliteDatabasePath : _loadedSqliteDatabasePath,
+                    normalizedSqliteDirectory);
+            }
+
+            if (logDirectoryChanged)
+            {
+                await _localStoragePathSettingsService.PrepareLogDirectoryAsync(
+                    _loadedLogDirectory,
+                    normalizedLogDirectory);
+            }
+
+            await _localStoragePathSettingsService.SaveSettingsAsync(
+                new LocalStoragePathSettings(normalizedLogDirectory, normalizedSqliteDirectory));
+            LogDirectory = normalizedLogDirectory;
+            SqliteDatabaseDirectory = normalizedSqliteDirectory;
+            SqliteDatabasePath = nextSqliteDatabasePath;
+            _loadedLogDirectory = normalizedLogDirectory;
+            _loadedSqliteDatabaseDirectory = normalizedSqliteDirectory;
+            _loadedSqliteDatabasePath = nextSqliteDatabasePath;
+            SaveStatusText = BuildPathSaveStatusText(sqliteDirectoryChanged, logDirectoryChanged);
         }
         catch (OperationCanceledException)
         {
@@ -252,6 +316,120 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         catch (Exception ex)
         {
             SaveStatusText = ViewModelErrorText.ForUser("设置保存", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SelectLogDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        var directory = await _filePickerService.PickLocalDirectoryAsync("选择日志目录", cancellationToken);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            SaveStatusText = "已取消选择日志目录。";
+            return;
+        }
+
+        LogDirectory = directory;
+        SaveStatusText = "已选择日志目录，请保存设置。";
+    }
+
+    [RelayCommand]
+    private async Task SelectSqliteDatabaseDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        var directory = await _filePickerService.PickLocalDirectoryAsync("选择 SQLite 数据库目录", cancellationToken);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            SaveStatusText = "已取消选择 SQLite 数据库目录。";
+            return;
+        }
+
+        SqliteDatabaseDirectory = directory;
+        SqliteDatabasePath = Path.Combine(directory, "frpnexus.db");
+        SaveStatusText = "已选择 SQLite 数据库目录，请保存设置并重启应用。";
+    }
+
+    [RelayCommand]
+    private async Task OpenLogDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(LogDirectory))
+        {
+            SaveStatusText = "日志目录为空，请先填写有效路径。";
+            return;
+        }
+
+        try
+        {
+            await _localFolderLauncherService.OpenFolderAsync(LogDirectory.Trim(), cancellationToken);
+            SaveStatusText = "已打开日志目录。";
+        }
+        catch (OperationCanceledException)
+        {
+            SaveStatusText = "打开日志目录已取消。";
+        }
+        catch (Exception ex)
+        {
+            SaveStatusText = ViewModelErrorText.ForUser("打开日志目录", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenSqliteDatabaseDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        var directory = !string.IsNullOrWhiteSpace(SqliteDatabaseDirectory)
+            ? SqliteDatabaseDirectory
+            : Path.GetDirectoryName(SqliteDatabasePath);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            SaveStatusText = "SQLite 数据库目录为空，请先选择有效目录。";
+            return;
+        }
+
+        try
+        {
+            await _localFolderLauncherService.OpenFolderAsync(directory.Trim(), cancellationToken);
+            SaveStatusText = "已打开 SQLite 数据库目录。";
+        }
+        catch (OperationCanceledException)
+        {
+            SaveStatusText = "打开 SQLite 数据库目录已取消。";
+        }
+        catch (Exception ex)
+        {
+            SaveStatusText = ViewModelErrorText.ForUser("打开 SQLite 数据库目录", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ClearLocalCacheAsync(CancellationToken cancellationToken = default)
+    {
+        var confirmed = await _confirmationDialogService.ShowAsync(
+            new ConfirmationDialogRequest(
+                "清理本地缓存",
+                "将清理 FrpNexus 默认 FRP 核心下载缓存，不会删除 SQLite 数据库、日志、凭据、配置或用户选择的下载目录。",
+                "清理缓存",
+                "取消",
+                "warning"),
+            cancellationToken);
+        if (!confirmed)
+        {
+            SaveStatusText = "已取消清理本地缓存。";
+            return;
+        }
+
+        try
+        {
+            var result = await _localCacheMaintenanceService.ClearDefaultFrpReleaseCacheAsync(cancellationToken);
+            SaveStatusText = result.DeletedFileCount == 0
+                ? "默认 FRP 核心下载缓存无需清理。"
+                : $"已清理默认 FRP 核心下载缓存：{result.DeletedFileCount} 个文件，释放 {FormatBytes(result.DeletedByteCount)}。";
+        }
+        catch (OperationCanceledException)
+        {
+            SaveStatusText = "清理本地缓存已取消。";
+        }
+        catch (Exception ex)
+        {
+            SaveStatusText = ViewModelErrorText.ForUser("清理本地缓存", ex);
         }
     }
 
@@ -518,5 +696,145 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     {
         return options.FirstOrDefault(option => string.Equals(option.Value, value, StringComparison.OrdinalIgnoreCase))
             ?? options[0];
+    }
+
+    private static string ResolveSqliteDatabaseDirectory(FrpNexusSettingsSnapshot settings)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.SqliteDatabaseDirectory))
+        {
+            return settings.SqliteDatabaseDirectory;
+        }
+
+        return Path.GetDirectoryName(settings.SqliteDatabasePath) ?? string.Empty;
+    }
+
+    private static bool PathEquals(string left, string right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            Path.GetFullPath(left.Trim()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+            Path.GetFullPath(right.Trim()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildPathSaveStatusText(bool sqliteDirectoryChanged, bool logDirectoryChanged)
+    {
+        return (sqliteDirectoryChanged, logDirectoryChanged) switch
+        {
+            (true, true) => "设置已保存。数据库和历史日志已复制到新目录，旧文件已保留用于回滚；SQLite 将在重启后生效。",
+            (true, false) => "设置已保存。SQLite 数据库已复制到新目录，旧文件已保留用于回滚；SQLite 将在重启后生效。",
+            (false, true) => "设置已保存。历史日志已复制到新目录，旧文件已保留用于回滚；新日志文件将在下次启动完全生效。",
+            _ => "设置已保存到本地 SQLite。"
+        };
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024)
+        {
+            return $"{bytes} B";
+        }
+
+        var kib = bytes / 1024d;
+        if (kib < 1024)
+        {
+            return $"{kib:0.#} KB";
+        }
+
+        var mib = kib / 1024d;
+        return $"{mib:0.#} MB";
+    }
+
+    private sealed class NoopLocalFolderLauncherService : ILocalFolderLauncherService
+    {
+        public Task OpenFolderAsync(string folderPath, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class NoopLocalCacheMaintenanceService : ILocalCacheMaintenanceService
+    {
+        public Task<LocalCacheCleanupResult> ClearDefaultFrpReleaseCacheAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LocalCacheCleanupResult(0, 0, string.Empty));
+        }
+    }
+
+    private sealed class NoopConfirmationDialogService : IConfirmationDialogService
+    {
+        public Task<bool> ShowAsync(
+            ConfirmationDialogRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(
+            ConfirmationDialogChoiceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(ConfirmationDialogResult.Cancel);
+        }
+    }
+
+    private sealed class NoopLocalStoragePathSettingsService : ILocalStoragePathSettingsService
+    {
+        public LocalStoragePathSettings GetSettings()
+        {
+            return new LocalStoragePathSettings(string.Empty, string.Empty);
+        }
+
+        public string GetLogDirectory()
+        {
+            return string.Empty;
+        }
+
+        public string GetSqliteDatabaseDirectory()
+        {
+            return string.Empty;
+        }
+
+        public string GetSqliteDatabasePath()
+        {
+            return string.Empty;
+        }
+
+        public Task SaveSettingsAsync(
+            LocalStoragePathSettings pathSettings,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
+            string currentDatabasePath,
+            string targetDatabaseDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SqliteDatabaseRelocationResult(
+                currentDatabasePath,
+                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
+                false,
+                false,
+                null));
+        }
+
+        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
+            string currentLogDirectory,
+            string targetLogDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LogDirectoryRelocationResult(
+                currentLogDirectory,
+                targetLogDirectory,
+                0,
+                0));
+        }
     }
 }

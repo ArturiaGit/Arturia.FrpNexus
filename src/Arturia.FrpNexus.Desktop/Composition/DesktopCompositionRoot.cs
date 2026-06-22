@@ -19,14 +19,16 @@ public static class DesktopCompositionRoot
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<ILogger>(_ => DesktopLogging.CreateLogger());
         services.AddFrpNexusInfrastructure();
+        services.AddSingleton<ILogger>(sp => DesktopLogging.CreateLogger(
+            sp.GetRequiredService<ILocalStoragePathSettingsService>().GetLogDirectory()));
         services.AddSingleton<IThemeService, AvaloniaThemeService>();
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IRemoteDirectoryPickerService, AvaloniaRemoteDirectoryPickerService>();
         services.AddSingleton<INodeConnectionWorkflowDialogService, AvaloniaNodeConnectionWorkflowDialogService>();
         services.AddSingleton<ILocalApplicationLogService, LocalApplicationLogService>();
+        services.AddSingleton<ILocalFolderLauncherService, LocalFolderLauncherService>();
         services.AddSingleton<INavigationRequestService, NavigationRequestService>();
         services.AddSingleton<IModalOverlayService, ModalOverlayService>();
         services.AddSingleton<IModalDialogHostService, ModalDialogHostService>();
