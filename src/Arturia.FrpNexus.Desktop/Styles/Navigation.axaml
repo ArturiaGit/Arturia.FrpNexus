@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Style Selector="Button.nav-button">
         <Setter Property="MinHeight" Value="40" />
@@ -16,26 +16,33 @@
     </Style>
 
     <Style Selector="Button.nav-button:pointerover Border.nav-item">
-        <Setter Property="Background" Value="{StaticResource FrpSidebarHoverBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSidebarHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.nav-button:focus-visible Border.nav-item">
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpFocusRingBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
     </Style>
 
     <Style Selector="Border.nav-item.selected">
-        <Setter Property="Background" Value="{StaticResource FrpSidebarSelectedBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSidebarSelectedBrush}" />
     </Style>
 
     <Style Selector="PathIcon.nav-icon">
         <Setter Property="Width" Value="18" />
         <Setter Property="Height" Value="18" />
-        <Setter Property="Foreground" Value="{StaticResource FrpSidebarMutedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpSidebarMutedBrush}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="Border.nav-item.selected PathIcon.nav-icon">
-        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
     </Style>
 
     <Style Selector="Border.nav-item.selected TextBlock.nav-title">
-        <Setter Property="Foreground" Value="{StaticResource FrpPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
     </Style>
 </Styles>
+

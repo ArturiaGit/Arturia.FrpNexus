@@ -1,0 +1,9 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:TimeSpan x:Key="FrpMotionFastDuration">0:0:0.12</sys:TimeSpan>
+    <sys:TimeSpan x:Key="FrpMotionNormalDuration">0:0:0.18</sys:TimeSpan>
+    <sys:TimeSpan x:Key="FrpMotionSlowDuration">0:0:0.24</sys:TimeSpan>
+
+    <CubicEaseOut x:Key="FrpMotionEaseOut" />
+</ResourceDictionary>

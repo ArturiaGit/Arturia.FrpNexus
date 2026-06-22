@@ -29,13 +29,15 @@
                         <Ellipse x:Name="PART_Knob"
                                  Width="16"
                                  Height="16"
-                                 Margin="2,2,14,2"
+                                 Margin="2"
                                  HorizontalAlignment="Left"
                                  VerticalAlignment="Center"
                                  Fill="{DynamicResource FrpSurfaceWhiteBrush}">
                             <Ellipse.Transitions>
                                 <Transitions>
-                                    <ThicknessTransition Property="Margin" Duration="0:0:0.16" />
+                                    <TransformOperationsTransition Property="RenderTransform"
+                                                                   Duration="{StaticResource FrpMotionFastDuration}"
+                                                                   Easing="{StaticResource FrpMotionEaseOut}" />
                                 </Transitions>
                             </Ellipse.Transitions>
                         </Ellipse>
@@ -50,7 +52,7 @@
         </Style>
 
         <Style Selector="ToggleButton.log-auto-refresh:checked /template/ Ellipse#PART_Knob">
-            <Setter Property="Margin" Value="14,2,2,2" />
+            <Setter Property="RenderTransform" Value="translate(12px, 0)" />
         </Style>
 
         <Style Selector="ToggleButton.log-auto-refresh:pointerover">
@@ -163,6 +165,7 @@
                                 Margin="0,0,12,0"
                                 VerticalAlignment="Center">
                         <ToggleButton Classes="log-auto-refresh"
+                                      AutomationProperties.Name="自动刷新日志"
                                       IsChecked="{Binding IsAutoRefreshEnabled}" />
                         <TextBlock VerticalAlignment="Center"
                                    Text="自动刷新" />
@@ -174,6 +177,7 @@
                             Background="{StaticResource FrpBorderDefaultBrush}" />
 
                     <Button Classes="secondary stitch-command"
+                            AutomationProperties.Name="刷新当前日志"
                             MinHeight="32"
                             Height="32"
                             Margin="0,0,8,0"
@@ -194,6 +198,7 @@
                     </Button>
 
                     <Button Classes="secondary stitch-command"
+                            AutomationProperties.Name="{Binding LogModeToggleText}"
                             MinHeight="32"
                             Height="32"
                             Margin="0,0,8,0"
@@ -214,6 +219,7 @@
                     </Button>
 
                     <Button Classes="secondary stitch-command danger"
+                            AutomationProperties.Name="清空日志"
                             MinHeight="32"
                             Height="32"
                             Command="{Binding ClearLogsCommand}">

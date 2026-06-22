@@ -83,6 +83,7 @@
                                         Content="刷新状态"
                                         Command="{Binding RefreshCredentialSecurityCommand}" />
                                 <Button Classes="secondary stitch-command danger"
+                                        AutomationProperties.Name="清除全部保存密码"
                                         Content="清除全部保存密码"
                                         Command="{Binding ClearAllSavedSessionPasswordsCommand}" />
                             </StackPanel>
@@ -205,6 +206,7 @@
                                                        Text="{Binding SavedPasswordStatusText}" />
                                             <Button Grid.Column="4"
                                                     Classes="secondary stitch-command danger compact"
+                                                    AutomationProperties.Name="清除该节点保存密码"
                                                     HorizontalAlignment="Right"
                                                     Content="清除"
                                                     Command="{Binding ClearSavedSessionPasswordCommand}" />
@@ -283,9 +285,14 @@
                     <controls:SettingsRowControl Title="本地缓存"
                                                  Description="清理默认 FRP 核心下载缓存，不会删除 SQLite、日志、凭据、配置或用户选择的下载目录">
                         <controls:SettingsRowControl.ValueContent>
-                            <Button Classes="secondary stitch-command"
-                                    Content="清理缓存"
-                                    Command="{Binding ClearLocalCacheCommand}" />
+                            <Grid MinWidth="180"
+                                  HorizontalAlignment="Right">
+                                <Button Classes="secondary stitch-command"
+                                        AutomationProperties.Name="清理本地缓存"
+                                        HorizontalAlignment="Right"
+                                        Content="清理缓存"
+                                        Command="{Binding ClearLocalCacheCommand}" />
+                            </Grid>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
                 </StackPanel>
