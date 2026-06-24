@@ -5,5 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove=".artifacts\**\*.cs;artifacts\**\*.cs;bin\**\*.cs;obj\**\*.cs;**\.artifacts\**\*.cs;**\artifacts\**\*.cs;**\bin\**\*.cs;**\obj\**\*.cs" />
+  </ItemGroup>
 </Project>

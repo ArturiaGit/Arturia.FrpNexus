@@ -16,7 +16,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
-public sealed partial class NodesPageViewModel : PageViewModel
+public sealed partial class NodesPageViewModel : PageViewModel, IDisposable
 {
     public const string DefaultSshPort = "22";
     public const string DefaultUserName = "deploy";
@@ -40,16 +40,15 @@ public sealed partial class NodesPageViewModel : PageViewModel
     private readonly ITomlConfigurationService _tomlConfigurationService;
     private readonly IFilePickerService _filePickerService;
     private readonly IRemoteDirectoryPickerService _remoteDirectoryPickerService;
-    private readonly INodeCredentialSecretService _nodeCredentialSecretService;
+    private readonly INodeCredentialWorkflow _nodeCredentialWorkflow;
+    private readonly INodeRemoteFrpsWorkflow _nodeRemoteFrpsWorkflow;
     private readonly IDeploymentRecordService _deploymentRecordService;
     private readonly INodeConnectionWorkflowDialogService _nodeConnectionWorkflowDialogService;
     private readonly IConfirmationDialogService _confirmationDialogService;
     private readonly IFrpLifecycleStateService _frpLifecycleStateService;
     private readonly IRemoteFrpsRetentionService _remoteFrpsRetentionService;
     private readonly HashSet<string> _nodeConnectionOperations = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _deploymentPresenceCheckedKeys = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, DeploymentPresenceStatusSnapshot> _deploymentPresenceStatusCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, int> _deploymentPresenceCacheVersions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly NodeDeploymentPresenceState _deploymentPresenceState = new();
     private bool _isDeleteConfirmationPending;
     private bool _isRemoteFrpDeleteConfirmationPending;
     private CancellationTokenSource? _remoteFrpsUptimeTickerCts;
@@ -57,6 +56,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
     private DateTimeOffset? _selectedFrpsUptimeCapturedAt;
     private DateTimeOffset? _lastRemoteFrpsVerificationAt;
     private bool _isRemoteFrpsBackgroundRefreshRunning;
+    private bool _isDisposed;
     private string? _editingOriginalName;
 
     [ObservableProperty]
@@ -220,12 +220,13 @@ public sealed partial class NodesPageViewModel : PageViewModel
         ITomlConfigurationService tomlConfigurationService,
         IFilePickerService filePickerService,
         IRemoteDirectoryPickerService remoteDirectoryPickerService,
-        INodeCredentialSecretService nodeCredentialSecretService,
+        INodeCredentialWorkflow nodeCredentialWorkflow,
+        INodeRemoteFrpsWorkflow nodeRemoteFrpsWorkflow,
         IDeploymentRecordService deploymentRecordService,
-        INodeConnectionWorkflowDialogService? nodeConnectionWorkflowDialogService = null,
-        IConfirmationDialogService? confirmationDialogService = null,
-        IFrpLifecycleStateService? frpLifecycleStateService = null,
-        IRemoteFrpsRetentionService? remoteFrpsRetentionService = null)
+        INodeConnectionWorkflowDialogService nodeConnectionWorkflowDialogService,
+        IConfirmationDialogService confirmationDialogService,
+        IFrpLifecycleStateService frpLifecycleStateService,
+        IRemoteFrpsRetentionService remoteFrpsRetentionService)
         : base("节点管理", "管理远程 Linux 节点并为 SSH/SFTP 工作流预留入口")
     {
         _nodeManagementService = nodeManagementService;
@@ -235,36 +236,30 @@ public sealed partial class NodesPageViewModel : PageViewModel
         _tomlConfigurationService = tomlConfigurationService;
         _filePickerService = filePickerService;
         _remoteDirectoryPickerService = remoteDirectoryPickerService;
-        _nodeCredentialSecretService = nodeCredentialSecretService;
+        _nodeCredentialWorkflow = nodeCredentialWorkflow;
+        _nodeRemoteFrpsWorkflow = nodeRemoteFrpsWorkflow;
         _deploymentRecordService = deploymentRecordService;
-        _nodeConnectionWorkflowDialogService = nodeConnectionWorkflowDialogService
-            ?? NoOpNodeConnectionWorkflowDialogService.Instance;
-        _confirmationDialogService = confirmationDialogService
-            ?? NoOpConfirmationDialogService.Instance;
-        _frpLifecycleStateService = frpLifecycleStateService
-            ?? NoOpFrpLifecycleStateService.Instance;
-        _remoteFrpsRetentionService = remoteFrpsRetentionService
-            ?? NoOpRemoteFrpsRetentionService.Instance;
+        _nodeConnectionWorkflowDialogService = nodeConnectionWorkflowDialogService;
+        _confirmationDialogService = confirmationDialogService;
+        _frpLifecycleStateService = frpLifecycleStateService;
+        _remoteFrpsRetentionService = remoteFrpsRetentionService;
         Nodes = [];
         NodeRows = [];
 
         _ = LoadNodesAsync();
     }
 
-    public NodesPageViewModel(
-        INodeManagementService nodeManagementService,
-        ISshConnectionService sshConnectionService)
-        : this(
-            nodeManagementService,
-            new LegacyNodeConnectionSessionService(sshConnectionService),
-            new LegacyRemoteRuntimeService(),
-            new LegacyRemoteFileTransferService(),
-            new Arturia.FrpNexus.Application.Configuration.TomlConfigurationService(),
-            new LegacyFilePickerService(),
-            new LegacyRemoteDirectoryPickerService(),
-            new LegacyNodeCredentialSecretService(),
-            new LegacyDeploymentRecordService())
+    internal bool IsRemoteFrpsUptimeTickerActiveForTest => _remoteFrpsUptimeTickerCts is not null;
+
+    public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        StopRemoteFrpsUptimeTicker();
     }
 
     [RelayCommand]
@@ -1225,7 +1220,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
                 && !string.Equals(_editingOriginalName, node.Name, System.StringComparison.OrdinalIgnoreCase))
             {
                 await _nodeManagementService.DeleteNodeAsync(_editingOriginalName);
-                await _nodeCredentialSecretService.DeleteSessionPasswordAsync(_editingOriginalName);
+                await _nodeCredentialWorkflow.DeleteSessionPasswordAsync(_editingOriginalName);
                 ClearDeploymentPresenceCacheForNode(_editingOriginalName);
             }
 
@@ -1294,7 +1289,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         {
             var deletedNodeName = SelectedNode.Name;
             await _nodeManagementService.DeleteNodeAsync(deletedNodeName);
-            await _nodeCredentialSecretService.DeleteSessionPasswordAsync(deletedNodeName);
+            await _nodeCredentialWorkflow.DeleteSessionPasswordAsync(deletedNodeName);
             await _deploymentRecordService.DeleteDeploymentRecordAsync(CreateCoreUploadStepName(deletedNodeName));
             ResetDeleteConfirmation();
             await LoadNodesAsync();
@@ -1311,6 +1306,11 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     partial void OnSelectedNodeChanged(NodeProfile? value)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         ResetDeleteConfirmation();
         ResetRemoteFrpDeleteConfirmation();
         ResetSelectedFrpsUptimeTracking();
@@ -1412,7 +1412,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
         try
         {
-            await _nodeCredentialSecretService.DeleteSessionPasswordAsync(SelectedNode.Name, cancellationToken);
+            await _nodeCredentialWorkflow.DeleteSessionPasswordAsync(SelectedNode.Name, cancellationToken);
             HasSavedSessionPassword = false;
             RememberSessionPassword = false;
             SavedSessionPasswordText = "未保存会话密码。";
@@ -1465,6 +1465,11 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private async Task RefreshSelectedFrpRuntimeAsync(CancellationToken cancellationToken, bool allowStatusMessage)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (SelectedNode is null)
         {
             StopRemoteFrpsUptimeTicker();
@@ -1505,13 +1510,10 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
         try
         {
-            var processes = await _remoteRuntimeService.GetProcessesAsync(
-                new RemoteRuntimeQueryRequest(node, credential),
-                cancellationToken);
-            var match = ResolveRemoteFrpsRuntimeProcess(processes, node.ConfigPath);
-            if (match.IsAmbiguous)
+            var result = await _nodeRemoteFrpsWorkflow.RefreshAsync(node, credential, cancellationToken);
+            if (result.IsAmbiguous)
             {
-                UpdateNodeFrpRuntime(nodeName, FrpNexusStatus.Warning, node.Uptime);
+                UpdateNodeFrpRuntime(nodeName, result.Status, result.Uptime);
                 if (allowStatusMessage)
                 {
                     SetConnectionTestStatus(
@@ -1524,15 +1526,12 @@ public sealed partial class NodesPageViewModel : PageViewModel
                 return;
             }
 
-            var displayProcess = match.Process;
+            UpdateNodeFrpRuntime(nodeName, result.Status, result.Uptime);
+            if (result.ShouldClearRetention)
+            {
+                await _remoteFrpsRetentionService.ClearAsync(nodeName, cancellationToken);
+            }
 
-            var frpStatus = displayProcess is null ? FrpNexusStatus.Stopped : FrpNexusStatus.Running;
-            var uptime = displayProcess is null || string.IsNullOrWhiteSpace(displayProcess.Uptime)
-                ? "-"
-                : displayProcess.Uptime;
-
-            UpdateNodeFrpRuntime(nodeName, frpStatus, uptime);
-            await _remoteFrpsRetentionService.ClearAsync(nodeName, cancellationToken);
             _lastRemoteFrpsVerificationAt = DateTimeOffset.UtcNow;
             RefreshNodeRows();
         }
@@ -1551,53 +1550,6 @@ public sealed partial class NodesPageViewModel : PageViewModel
             RefreshNodeRows();
         }
     }
-
-    private static RemoteFrpsRuntimeProcessMatch ResolveRemoteFrpsRuntimeProcess(
-        IReadOnlyList<RuntimeProcess> processes,
-        string configPath)
-    {
-        var frpsProcesses = processes
-            .Where(process => string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        if (frpsProcesses.Length == 0)
-        {
-            return new RemoteFrpsRuntimeProcessMatch(null, false);
-        }
-
-        var matchedByConfig = frpsProcesses
-            .Where(process => CommandUsesConfigPath(process.CommandLine, configPath))
-            .ToArray();
-        if (matchedByConfig.Length == 1)
-        {
-            return new RemoteFrpsRuntimeProcessMatch(matchedByConfig[0], false);
-        }
-
-        if (frpsProcesses.Length == 1)
-        {
-            return new RemoteFrpsRuntimeProcessMatch(frpsProcesses[0], false);
-        }
-
-        return new RemoteFrpsRuntimeProcessMatch(null, true);
-    }
-
-    private static bool CommandUsesConfigPath(string commandLine, string expectedConfigPath)
-    {
-        if (string.IsNullOrWhiteSpace(commandLine) || string.IsNullOrWhiteSpace(expectedConfigPath))
-        {
-            return false;
-        }
-
-        var normalizedCommand = NormalizeLinuxPathForCommandMatch(commandLine);
-        var normalizedExpectedPath = NormalizeLinuxPathForCommandMatch(expectedConfigPath);
-        return normalizedCommand.Contains(normalizedExpectedPath, StringComparison.Ordinal);
-    }
-
-    private static string NormalizeLinuxPathForCommandMatch(string value)
-    {
-        return value.Trim().Trim('"', '\'').Replace('\\', '/');
-    }
-
-    private sealed record RemoteFrpsRuntimeProcessMatch(RuntimeProcess? Process, bool IsAmbiguous);
 
     private async Task<NodeConnectionSessionResult?> DisconnectNodeAsync(
         NodeProfile node,
@@ -1774,31 +1726,17 @@ public sealed partial class NodesPageViewModel : PageViewModel
             return;
         }
 
-        var command = action switch
-        {
-            "启动" => BuildStartFrpsCommand(),
-            "停止" => "pkill -f '[f]rps' || true",
-            _ => $"pkill -f '[f]rps' || true; sleep 1; {BuildStartFrpsCommand()}"
-        };
-
         IsRemoteFrpsCommandRunning = true;
         SetRemoteFrpsStatus($"正在{action} frps", $"正在 {SelectedNode.Name} 上执行远程 frps {action}。", "info");
 
         try
         {
-            var request = new RemoteRuntimeCommandRequest(
+            var result = await _nodeRemoteFrpsWorkflow.ExecuteAsync(
                 SelectedNode,
                 credential,
-                $"frps-{SelectedNode.Name}",
-                "frps",
-                command);
-
-            var result = action switch
-            {
-                "启动" => await _remoteRuntimeService.StartAsync(request, cancellationToken),
-                "停止" => await _remoteRuntimeService.StopAsync(request, cancellationToken),
-                _ => await _remoteRuntimeService.RestartAsync(request, cancellationToken)
-            };
+                ResolveRemoteFrpsAction(action),
+                ResolveLastUploadedFrpsPath(),
+                cancellationToken);
 
             if (result.Status == FrpNexusStatus.Error)
             {
@@ -1848,33 +1786,22 @@ public sealed partial class NodesPageViewModel : PageViewModel
                 "请先选择一个节点。"));
         }
 
-        var request = new RemoteRuntimeCommandRequest(
+        return _nodeRemoteFrpsWorkflow.ExecuteAsync(
             SelectedNode,
             credential,
-            $"frps-{SelectedNode.Name}",
-            "frps",
-            "pkill -f '[f]rps' || true");
-
-        return _remoteRuntimeService.StopAsync(request, cancellationToken);
+            NodeRemoteFrpsAction.Stop,
+            ResolveLastUploadedFrpsPath(),
+            cancellationToken);
     }
 
-    private string BuildStartFrpsCommand()
+    private static NodeRemoteFrpsAction ResolveRemoteFrpsAction(string action)
     {
-        var binaryPath = ResolveLastUploadedFrpsPath();
-        var configPath = string.IsNullOrWhiteSpace(SelectedNode?.ConfigPath)
-            ? DefaultConfigPath
-            : SelectedNode.ConfigPath.Trim();
-
-        return string.Join(
-            " ",
-            $"chmod +x {ShellQuote(binaryPath)} &&",
-            $"(nohup {ShellQuote(binaryPath)} -c {ShellQuote(configPath)} >/tmp/frpnexus-frps.log 2>&1 &",
-            "frps_pid=$!;",
-            "sleep 1;",
-            "if kill -0 \"$frps_pid\" 2>/dev/null && ps -p \"$frps_pid\" -o args= | grep -q '[f]rps'; then exit 0; fi;",
-            "echo 'frps 启动后未保持运行。';",
-            "tail -n 20 /tmp/frpnexus-frps.log 2>/dev/null || true;",
-            "exit 1; )");
+        return action switch
+        {
+            "启动" => NodeRemoteFrpsAction.Start,
+            "停止" => NodeRemoteFrpsAction.Stop,
+            _ => NodeRemoteFrpsAction.Restart
+        };
     }
 
     private string ResolveLastUploadedFrpsPath()
@@ -1994,79 +1921,18 @@ public sealed partial class NodesPageViewModel : PageViewModel
         return string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
     }
 
-    private bool TryCreateCredentialReference(out SshCredentialReference credential)
-    {
-        return TryCreateCredentialReference(
-            out credential,
-            SshSessionPassword,
-            (title, message, severity) => SetConnectionTestStatus(title, message, severity));
-    }
-
-    private bool TryCreateCredentialReference(
-        out SshCredentialReference credential,
-        string? resolvedSessionPassword,
-        Action<string, string, string> setStatus)
-    {
-        credential = new SshCredentialReference(SshAuthenticationMode.SessionPassword);
-
-        if (!TryParseAuthenticationMode(SelectedSshAuthenticationMode, out var mode))
-        {
-            setStatus("请选择认证方式", "请选择有效的 SSH 认证方式。", "warning");
-            return false;
-        }
-
-        if (mode == SshAuthenticationMode.SessionPassword && string.IsNullOrWhiteSpace(resolvedSessionPassword))
-        {
-            setStatus("缺少会话密码", "请输入本次会话使用的 SSH 密码，或使用已保存的会话密码。", "warning");
-            return false;
-        }
-
-        if (mode == SshAuthenticationMode.PrivateKey && string.IsNullOrWhiteSpace(SshPrivateKeyPath))
-        {
-            setStatus("缺少私钥路径", "请输入私钥文件路径，私钥内容和 passphrase 不会保存到 SQLite。", "warning");
-            return false;
-        }
-
-        credential = new SshCredentialReference(
-            mode,
-            string.IsNullOrWhiteSpace(SshPrivateKeyPath) ? null : SshPrivateKeyPath.Trim(),
-            string.IsNullOrWhiteSpace(resolvedSessionPassword) ? null : resolvedSessionPassword,
-            string.IsNullOrWhiteSpace(SshPrivateKeyPassphrase) ? null : SshPrivateKeyPassphrase);
-
-        return true;
-    }
-
     private async Task<CredentialCreationResult> TryCreateCredentialReferenceAsync(CancellationToken cancellationToken)
     {
-        var resolvedSessionPassword = SshSessionPassword;
-        if (TryParseAuthenticationMode(SelectedSshAuthenticationMode, out var mode)
-            && mode == SshAuthenticationMode.SessionPassword
-            && string.IsNullOrWhiteSpace(resolvedSessionPassword)
-            && SelectedNode is not null)
+        var result = await _nodeCredentialWorkflow.CreateCredentialAsync(
+            CreateCredentialInput(),
+            cancellationToken);
+        if (!result.Success)
         {
-            try
-            {
-                resolvedSessionPassword = await _nodeCredentialSecretService.GetSessionPasswordAsync(
-                    SelectedNode.Name,
-                    cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                SetConnectionTestStatus("读取保存密码失败", ViewModelErrorText.ForUser("保存密码读取", ex), "error");
-                return CredentialCreationResult.Failed;
-            }
+            SetConnectionTestStatus(result.StatusTitle, result.StatusMessage, result.StatusSeverity);
+            return CredentialCreationResult.Failed;
         }
 
-        return TryCreateCredentialReference(
-            out var credential,
-            resolvedSessionPassword,
-            (title, message, severity) => SetConnectionTestStatus(title, message, severity))
-            ? new CredentialCreationResult(true, credential)
-            : CredentialCreationResult.Failed;
+        return new CredentialCreationResult(true, result.Credential);
     }
 
     private async Task SaveRememberedSessionPasswordIfNeededAsync(
@@ -2074,53 +1940,46 @@ public sealed partial class NodesPageViewModel : PageViewModel
         string typedSessionPassword,
         CancellationToken cancellationToken)
     {
-        if (!IsSessionPasswordMode || !RememberSessionPassword || string.IsNullOrWhiteSpace(typedSessionPassword))
-        {
-            return;
-        }
-
-        await _nodeCredentialSecretService.SaveSessionPasswordAsync(
+        var state = await _nodeCredentialWorkflow.SaveRememberedSessionPasswordIfNeededAsync(
             nodeName,
+            IsSessionPasswordMode,
+            RememberSessionPassword,
             typedSessionPassword,
             cancellationToken);
-        HasSavedSessionPassword = true;
-        SavedSessionPasswordText = "已保存会话密码，可直接连接。";
-        OnPropertyChanged(nameof(CanClearSavedSessionPassword));
+        if (state.HasSavedSessionPassword)
+        {
+            ApplySavedSessionPasswordState(state);
+        }
     }
 
     private async Task RefreshSavedSessionPasswordStateAsync(CancellationToken cancellationToken = default)
     {
-        if (SelectedNode is null)
+        var state = await _nodeCredentialWorkflow.GetSavedSessionPasswordStateAsync(
+            SelectedNode?.Name,
+            cancellationToken);
+        ApplySavedSessionPasswordState(state);
+    }
+
+    private NodeCredentialInput CreateCredentialInput()
+    {
+        return new NodeCredentialInput(
+            SelectedNode?.Name,
+            SelectedSshAuthenticationMode,
+            SshSessionPassword,
+            SshPrivateKeyPath,
+            SshPrivateKeyPassphrase);
+    }
+
+    private void ApplySavedSessionPasswordState(SavedSessionPasswordState state)
+    {
+        HasSavedSessionPassword = state.HasSavedSessionPassword;
+        SavedSessionPasswordText = state.Text;
+        if (state.ShouldClearRememberSessionPassword)
         {
-            HasSavedSessionPassword = false;
             RememberSessionPassword = false;
-            SavedSessionPasswordText = "未保存会话密码。";
-            OnPropertyChanged(nameof(CanClearSavedSessionPassword));
-            return;
         }
 
-        try
-        {
-            HasSavedSessionPassword = await _nodeCredentialSecretService.HasSessionPasswordAsync(
-                SelectedNode.Name,
-                cancellationToken);
-            SavedSessionPasswordText = HasSavedSessionPassword
-                ? "已保存会话密码，可直接连接。"
-                : "未保存会话密码。";
-            if (!HasSavedSessionPassword)
-            {
-                RememberSessionPassword = false;
-            }
-        }
-        catch
-        {
-            HasSavedSessionPassword = false;
-            SavedSessionPasswordText = "保存密码状态读取失败。";
-        }
-        finally
-        {
-            OnPropertyChanged(nameof(CanClearSavedSessionPassword));
-        }
+        OnPropertyChanged(nameof(CanClearSavedSessionPassword));
     }
 
     private async Task SetCoreUploadResultAsync(RemoteFileTransferResult result, CancellationToken cancellationToken)
@@ -2161,7 +2020,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
         }
 
         var cacheKey = CreateDeploymentPresenceCacheKey(node);
-        if (!force && _deploymentPresenceCheckedKeys.Contains(cacheKey))
+        if (!force && _deploymentPresenceState.HasChecked(cacheKey))
         {
             RestoreDeploymentPresenceStatus(cacheKey);
             return;
@@ -2265,31 +2124,14 @@ public sealed partial class NodesPageViewModel : PageViewModel
         OnPropertyChanged(nameof(CanRunRemoteFrpsCommand));
     }
 
-    private static string CreateDeploymentPresenceCacheKey(NodeProfile node)
+    private string CreateDeploymentPresenceCacheKey(NodeProfile node)
     {
-        var normalizedConfigPath = NormalizeRemotePath(
-            string.IsNullOrWhiteSpace(node.ConfigPath) ? DefaultConfigPath : node.ConfigPath);
-        return $"{node.Name}|{normalizedConfigPath}";
+        return _deploymentPresenceState.CreateCacheKey(node, DefaultConfigPath);
     }
 
     private void ClearDeploymentPresenceCacheForNode(string nodeName)
     {
-        _deploymentPresenceCheckedKeys.RemoveWhere(
-            key => key.StartsWith($"{nodeName}|", StringComparison.OrdinalIgnoreCase));
-
-        foreach (var key in _deploymentPresenceStatusCache.Keys
-            .Where(key => key.StartsWith($"{nodeName}|", StringComparison.OrdinalIgnoreCase))
-            .ToArray())
-        {
-            _deploymentPresenceStatusCache.Remove(key);
-        }
-
-        foreach (var key in _deploymentPresenceCacheVersions.Keys
-            .Where(key => key.StartsWith($"{nodeName}|", StringComparison.OrdinalIgnoreCase))
-            .ToArray())
-        {
-            _deploymentPresenceCacheVersions.Remove(key);
-        }
+        _deploymentPresenceState.ClearNode(nodeName);
     }
 
     private void CacheDeploymentPresenceStatus(string cacheKey)
@@ -2299,14 +2141,12 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private void CacheDeploymentPresenceStatus(string cacheKey, string title, string text, string severity)
     {
-        _deploymentPresenceCheckedKeys.Add(cacheKey);
-        _deploymentPresenceStatusCache[cacheKey] = new DeploymentPresenceStatusSnapshot(title, text, severity);
-        _deploymentPresenceCacheVersions[cacheKey] = GetDeploymentPresenceCacheVersion(cacheKey) + 1;
+        _deploymentPresenceState.Cache(cacheKey, new DeploymentPresenceStatusSnapshot(title, text, severity));
     }
 
     private void RestoreDeploymentPresenceStatus(string cacheKey)
     {
-        if (_deploymentPresenceStatusCache.TryGetValue(cacheKey, out var status))
+        if (_deploymentPresenceState.TryRestore(cacheKey, out var status))
         {
             SetCoreUploadStatus(status.Title, status.Text, status.Severity);
         }
@@ -2314,17 +2154,17 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private int GetDeploymentPresenceCacheVersion(string cacheKey)
     {
-        return _deploymentPresenceCacheVersions.TryGetValue(cacheKey, out var version) ? version : 0;
+        return _deploymentPresenceState.GetVersion(cacheKey);
     }
 
     private bool TryRestoreNewerDeploymentPresenceStatus(string cacheKey, int previousVersion)
     {
-        if (GetDeploymentPresenceCacheVersion(cacheKey) <= previousVersion)
+        if (!_deploymentPresenceState.TryRestoreNewer(cacheKey, previousVersion, out var status))
         {
             return false;
         }
 
-        RestoreDeploymentPresenceStatus(cacheKey);
+        SetCoreUploadStatus(status.Title, status.Text, status.Severity);
         return true;
     }
 
@@ -2988,6 +2828,11 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private void UpdateSelectedFrpsUptimeTracking(NodeProfile node)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (node.FrpStatus != FrpNexusStatus.Running || !IsSelectedNodeOnline)
         {
             ResetSelectedFrpsUptimeTracking();
@@ -3008,12 +2853,15 @@ public sealed partial class NodesPageViewModel : PageViewModel
         _selectedFrpsUptimeCapturedAt = null;
         _lastRemoteFrpsVerificationAt = null;
         StopRemoteFrpsUptimeTicker();
-        OnPropertyChanged(nameof(SelectedFrpUptimeText));
+        if (!_isDisposed)
+        {
+            OnPropertyChanged(nameof(SelectedFrpUptimeText));
+        }
     }
 
     private void EnsureRemoteFrpsUptimeTicker()
     {
-        if (_remoteFrpsUptimeTickerCts is not null)
+        if (_isDisposed || _remoteFrpsUptimeTickerCts is not null)
         {
             return;
         }
@@ -3042,7 +2890,18 @@ public sealed partial class NodesPageViewModel : PageViewModel
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                RaiseOnUiThread(() => OnPropertyChanged(nameof(SelectedFrpUptimeText)));
+                if (_isDisposed)
+                {
+                    break;
+                }
+
+                RaiseOnUiThread(() =>
+                {
+                    if (!_isDisposed)
+                    {
+                        OnPropertyChanged(nameof(SelectedFrpUptimeText));
+                    }
+                });
 
                 if (ShouldVerifyRemoteFrpsRuntime())
                 {
@@ -3057,7 +2916,8 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private bool ShouldVerifyRemoteFrpsRuntime()
     {
-        return SelectedNode?.FrpStatus == FrpNexusStatus.Running
+        return !_isDisposed
+            && SelectedNode?.FrpStatus == FrpNexusStatus.Running
             && IsSelectedNodeOnline
             && !IsRemoteFrpsCommandRunning
             && !_isRemoteFrpsBackgroundRefreshRunning
@@ -3067,7 +2927,7 @@ public sealed partial class NodesPageViewModel : PageViewModel
 
     private async Task RefreshSelectedFrpRuntimeInBackgroundAsync(CancellationToken cancellationToken)
     {
-        if (_isRemoteFrpsBackgroundRefreshRunning)
+        if (_isDisposed || _isRemoteFrpsBackgroundRefreshRunning)
         {
             return;
         }
@@ -3164,11 +3024,6 @@ public sealed partial class NodesPageViewModel : PageViewModel
         Dispatcher.UIThread.Post(action);
     }
 
-    private static string ShellQuote(string value)
-    {
-        return $"'{value.Replace("'", "'\"'\"'", StringComparison.Ordinal)}'";
-    }
-
     private void NotifySelectedFrpStatusChanged()
     {
         OnPropertyChanged(nameof(SelectedFrpProcessText));
@@ -3199,347 +3054,6 @@ public sealed partial class NodesPageViewModel : PageViewModel
             new(false, new SshCredentialReference(SshAuthenticationMode.SessionPassword));
     }
 
-    private sealed record DeploymentPresenceStatusSnapshot(string Title, string Text, string Severity);
-
-    private sealed class NoOpNodeConnectionWorkflowDialogService : INodeConnectionWorkflowDialogService
-    {
-        public static NoOpNodeConnectionWorkflowDialogService Instance { get; } = new();
-
-        public Task<NodeConnectionWorkflowResult> ShowAsync(
-            NodeProfile node,
-            NodeConnectionWorkflowOptions? options = null,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new NodeConnectionWorkflowResult(node.Name, false, false, false));
-        }
-    }
-
-    private sealed class NoOpConfirmationDialogService : IConfirmationDialogService
-    {
-        public static NoOpConfirmationDialogService Instance { get; } = new();
-
-        public Task<bool> ShowAsync(
-            ConfirmationDialogRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(true);
-        }
-
-        public Task<ConfirmationDialogResult> ShowChoiceAsync(
-            ConfirmationDialogChoiceRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(ConfirmationDialogResult.Confirm);
-        }
-    }
-
-    private sealed class NoOpFrpLifecycleStateService : IFrpLifecycleStateService
-    {
-        public static NoOpFrpLifecycleStateService Instance { get; } = new();
-
-        public IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots()
-        {
-            return [];
-        }
-
-        public void UpdateRemoteFrpsState(
-            string nodeName,
-            bool isSshOnline,
-            FrpNexusStatus frpsStatus,
-            string configPath = "")
-        {
-        }
-
-        public void RemoveRemoteFrpsState(string nodeName)
-        {
-        }
-    }
-
-    private sealed class NoOpRemoteFrpsRetentionService : IRemoteFrpsRetentionService
-    {
-        public static NoOpRemoteFrpsRetentionService Instance { get; } = new();
-
-        public Task<IReadOnlyList<RemoteFrpsRetentionRecord>> ListAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<RemoteFrpsRetentionRecord>>([]);
-        }
-
-        public Task<RemoteFrpsRetentionRecord?> GetAsync(string nodeName, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<RemoteFrpsRetentionRecord?>(null);
-        }
-
-        public Task SaveAsync(RemoteFrpsRetentionRecord record, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task ClearAsync(string nodeName, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class LegacyNodeConnectionSessionService(
-        ISshConnectionService sshConnectionService) : INodeConnectionSessionService
-    {
-        private readonly Dictionary<string, NodeConnectionSessionSnapshot> _snapshots = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, SshCredentialReference> _credentials = new(StringComparer.OrdinalIgnoreCase);
-
-        public async Task<NodeConnectionSessionResult> ConnectAsync(
-            NodeProfile node,
-            SshCredentialReference credential,
-            CancellationToken cancellationToken = default)
-        {
-            var result = await sshConnectionService.TestConnectionAsync(
-                new SshConnectionTestRequest(node, credential),
-                cancellationToken);
-
-            var state = result.Status == FrpNexusStatus.Online
-                ? NodeConnectionSessionState.Online
-                : NodeConnectionSessionState.Error;
-            if (state == NodeConnectionSessionState.Online)
-            {
-                _credentials[node.Name] = credential;
-            }
-
-            _snapshots[node.Name] = new NodeConnectionSessionSnapshot(
-                node.Name,
-                state,
-                result.TestedAt,
-                result.Message);
-
-            return new NodeConnectionSessionResult(node.Name, state, result.TestedAt, result.Message);
-        }
-
-        public Task<NodeConnectionSessionResult> DisconnectAsync(
-            string nodeName,
-            CancellationToken cancellationToken = default)
-        {
-            _credentials.Remove(nodeName);
-            _snapshots[nodeName] = new NodeConnectionSessionSnapshot(
-                nodeName,
-                NodeConnectionSessionState.Disconnected,
-                null,
-                "SSH 节点连接已断开。");
-
-            return Task.FromResult(new NodeConnectionSessionResult(
-                nodeName,
-                NodeConnectionSessionState.Disconnected,
-                null,
-                "SSH 节点连接已断开。"));
-        }
-
-        public NodeConnectionSessionSnapshot GetSessionStatus(string nodeName)
-        {
-            return _snapshots.TryGetValue(nodeName, out var snapshot)
-                ? snapshot
-                : new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "尚未连接。");
-        }
-
-        public SshCredentialReference? GetConnectedCredential(string nodeName)
-        {
-            return _credentials.TryGetValue(nodeName, out var credential) ? credential : null;
-        }
-
-        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
-        {
-            return _snapshots.Values
-                .Where(snapshot => snapshot.State == NodeConnectionSessionState.Online)
-                .ToArray();
-        }
-    }
-
-    private sealed class LegacyRemoteRuntimeService : IRemoteRuntimeService
-    {
-        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(
-            RemoteRuntimeQueryRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<RuntimeProcess>>([]);
-        }
-
-        public Task<RemoteRuntimeCommandResult> StartAsync(
-            RemoteRuntimeCommandRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(CreateCommandResult(request));
-        }
-
-        public Task<RemoteRuntimeCommandResult> StopAsync(
-            RemoteRuntimeCommandRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(CreateCommandResult(request));
-        }
-
-        public Task<RemoteRuntimeCommandResult> RestartAsync(
-            RemoteRuntimeCommandRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(CreateCommandResult(request));
-        }
-
-        private static RemoteRuntimeCommandResult CreateCommandResult(RemoteRuntimeCommandRequest request)
-        {
-            return new RemoteRuntimeCommandResult(
-                request.Node.Name,
-                request.ProcessKind,
-                FrpNexusStatus.Ready,
-                DateTimeOffset.UtcNow,
-                "远程运行命令已执行。");
-        }
-    }
-
-    private sealed class LegacyRemoteFileTransferService : IRemoteFileTransferService
-    {
-        public Task<RemoteFilePresenceResult> CheckRemoteFilesAsync(
-            RemoteFilePresenceRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new RemoteFilePresenceResult(
-                request.Node.Name,
-                request.RemotePaths.Select(path => new RemoteFilePresenceEntry(path, true)).ToArray(),
-                FrpNexusStatus.Ready,
-                DateTimeOffset.UtcNow,
-                "远程 frps 和 frps.toml 已就绪。"));
-        }
-
-        public Task<RemoteFileTransferResult> UploadFrpBinaryAsync(
-            RemoteFileUploadRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new RemoteFileTransferResult(
-                request.Node.Name,
-                request.RemotePath,
-                FrpNexusStatus.Ready,
-                DateTimeOffset.UtcNow,
-                "FRP 核心上传成功。"));
-        }
-
-        public Task<RemoteFileTransferResult> UploadConfigurationAsync(
-            RemoteConfigurationUploadRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new RemoteFileTransferResult(
-                request.Node.Name,
-                request.RemotePath,
-                FrpNexusStatus.Ready,
-                DateTimeOffset.UtcNow,
-                "TOML 配置上传成功。"));
-        }
-
-        public Task<RemoteFileDeleteResult> DeleteRemoteFilesAsync(
-            RemoteFileDeleteRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new RemoteFileDeleteResult(
-                request.Node.Name,
-                request.RemotePaths,
-                [],
-                FrpNexusStatus.Ready,
-                DateTimeOffset.UtcNow,
-                "已清理远程 frps 核心和 frps.toml。"));
-        }
-    }
-
-    private sealed class LegacyFilePickerService : IFilePickerService
-    {
-        public Task<string?> PickFrpBinaryAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-
-        public Task<string?> PickLocalFrpcBinaryAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-
-        public Task<string?> PickLocalFrpcConfigPathAsync(
-            string suggestedFileName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-
-        public Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-    }
-
-    private sealed class LegacyRemoteDirectoryPickerService : IRemoteDirectoryPickerService
-    {
-        public Task<string?> PickRemoteDirectoryAsync(
-            NodeProfile node,
-            SshCredentialReference credential,
-            string initialDirectory,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-    }
-
-    private sealed class LegacyNodeCredentialSecretService : INodeCredentialSecretService
-    {
-        public Task<bool> HasSessionPasswordAsync(
-            string nodeName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(false);
-        }
-
-        public Task<string?> GetSessionPasswordAsync(
-            string nodeName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<string?>(null);
-        }
-
-        public Task SaveSessionPasswordAsync(
-            string nodeName,
-            string sessionPassword,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteSessionPasswordAsync(
-            string nodeName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class LegacyDeploymentRecordService : IDeploymentRecordService
-    {
-        public Task<IReadOnlyList<DeploymentRecord>> ListDeploymentRecordsAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<DeploymentRecord>>([]);
-        }
-
-        public Task<DeploymentRecord?> GetDeploymentRecordAsync(
-            string stepName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<DeploymentRecord?>(null);
-        }
-
-        public Task SaveDeploymentRecordAsync(
-            DeploymentRecord record,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteDeploymentRecordAsync(
-            string stepName,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
 }
 
 public sealed partial class NodeListItemViewModel : ObservableObject

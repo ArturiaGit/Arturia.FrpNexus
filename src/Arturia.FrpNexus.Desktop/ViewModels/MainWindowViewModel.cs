@@ -17,8 +17,9 @@ using PageViewModelBase = Arturia.FrpNexus.Desktop.ViewModels.Pages.PageViewMode
 
 namespace Arturia.FrpNexus.Desktop.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
+    private readonly INavigationRequestService _navigationRequestService;
     private readonly INodeConnectionSessionService _nodeConnectionSessionService;
     private readonly INodeManagementService _nodeManagementService;
     private readonly IRemoteRuntimeService _remoteRuntimeService;
@@ -29,6 +30,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IModalOverlayService _modalOverlayService;
     private readonly IModalDialogHostService _modalDialogHostService;
     private bool _isCloseConfirmed;
+    private bool _isDisposed;
 
     [ObservableProperty]
     private NavigationItem _selectedNavigationItem;
@@ -52,6 +54,7 @@ public partial class MainWindowViewModel : ViewModelBase
         IModalOverlayService modalOverlayService,
         IModalDialogHostService modalDialogHostService)
     {
+        _navigationRequestService = navigationRequestService;
         _nodeConnectionSessionService = nodeConnectionSessionService;
         _nodeManagementService = nodeManagementService;
         _remoteRuntimeService = remoteRuntimeService;
@@ -78,7 +81,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _selectedNavigationItem = NavigationItems[0];
         _selectedNavigationItem.IsSelected = true;
-        navigationRequestService.NavigationRequested += (_, pageKey) => NavigateToPageKey(pageKey);
+        _navigationRequestService.NavigationRequested += OnNavigationRequested;
     }
 
     public ObservableCollection<NavigationItem> NavigationItems { get; }
@@ -107,8 +110,34 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public object? CurrentModalDialog => _modalDialogHostService.CurrentDialog;
 
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        _navigationRequestService.NavigationRequested -= OnNavigationRequested;
+        _modalOverlayService.PropertyChanged -= OnModalOverlayServicePropertyChanged;
+        _modalDialogHostService.PropertyChanged -= OnModalDialogHostServicePropertyChanged;
+
+        foreach (var disposablePage in NavigationItems
+            .Select(item => item.Page)
+            .Distinct()
+            .OfType<IDisposable>())
+        {
+            disposablePage.Dispose();
+        }
+    }
+
     partial void OnSelectedNavigationItemChanged(NavigationItem value)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         foreach (var item in NavigationItems)
         {
             item.IsSelected = ReferenceEquals(item, value);
@@ -121,7 +150,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void Navigate(NavigationItem? item)
     {
-        if (item is not null)
+        if (!_isDisposed && item is not null)
         {
             SelectedNavigationItem = item;
             _ = RefreshCurrentPageAsync(item.Page);
@@ -371,6 +400,14 @@ public partial class MainWindowViewModel : ViewModelBase
             .ListRemoteFrpsSnapshots()
             .Where(snapshot => snapshot.IsSshOnline && snapshot.FrpsStatus == FrpNexusStatus.Running)
             .ToArray();
+    }
+
+    private void OnNavigationRequested(object? sender, string pageKey)
+    {
+        if (!_isDisposed)
+        {
+            NavigateToPageKey(pageKey);
+        }
     }
 
     private void NavigateToPageKey(string pageKey)

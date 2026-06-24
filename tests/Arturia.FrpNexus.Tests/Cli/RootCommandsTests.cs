@@ -1,9 +1,13 @@
 using Arturia.FrpNexus.Cli.Commands;
+using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Configuration;
 using Arturia.FrpNexus.Core.ExcaliburTunnel;
 using Arturia.FrpNexus.Infrastructure.Configuration;
 using Arturia.FrpNexus.Infrastructure.ExcaliburTunnel;
-using Arturia.FrpNexus.Tests.Configuration;
+using Arturia.FrpNexus.Infrastructure.Persistence;
+using Arturia.FrpNexus.Infrastructure.Settings;
+using Arturia.FrpNexus.Infrastructure.Tunnels;
+using Microsoft.Data.Sqlite;
 
 namespace Arturia.FrpNexus.Tests.Cli;
 
@@ -99,6 +103,7 @@ public sealed class RootCommandsTests : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearAllPools();
         if (Directory.Exists(tempDirectory))
         {
             Directory.Delete(tempDirectory, recursive: true);
@@ -106,13 +111,18 @@ public sealed class RootCommandsTests : IDisposable
     }
 
     private RootCommands CreateCommands(
-        out LiteDbTunnelProfileRepository repository,
-        out LiteDbFrpNexusSettingsStore settingsStore,
+        out SqliteTunnelProfileRepository repository,
+        out SqliteFrpNexusSettingsStore settingsStore,
         out FakeAvalonDaemon daemon)
     {
-        var connectionFactory = new LiteDbConnectionFactory(new TemporaryDatabasePathProvider(databasePath));
-        repository = new LiteDbTunnelProfileRepository(connectionFactory);
-        settingsStore = new LiteDbFrpNexusSettingsStore(connectionFactory);
+        var pathProvider = new TestDatabasePathProvider(databasePath);
+        var connectionFactory = new SqliteConnectionFactory(pathProvider);
+        var initializer = new SqliteDatabaseInitializer(connectionFactory);
+        var pathSettings = new FakeLocalStoragePathSettingsService(databasePath);
+        repository = new SqliteTunnelProfileRepository(new SqliteTunnelManagementService(connectionFactory, initializer));
+        settingsStore = new SqliteFrpNexusSettingsStore(
+            new SqliteSettingsService(connectionFactory, initializer, pathProvider, pathSettings),
+            new SqliteLocalFrpcConfigurationService(connectionFactory, initializer));
         daemon = new FakeAvalonDaemon();
 
         return new RootCommands(daemon, repository, settingsStore);
@@ -138,6 +148,71 @@ public sealed class RootCommandsTests : IDisposable
         public void Dispose()
         {
             Environment.SetEnvironmentVariable(name, originalValue);
+        }
+    }
+
+    private sealed class TestDatabasePathProvider(string path) : Arturia.FrpNexus.Infrastructure.Persistence.IFrpNexusDatabasePathProvider
+    {
+        public string GetDatabasePath()
+        {
+            return path;
+        }
+    }
+
+    private sealed class FakeLocalStoragePathSettingsService(string databasePath) : ILocalStoragePathSettingsService
+    {
+        public LocalStoragePathSettings GetSettings()
+        {
+            return new LocalStoragePathSettings(
+                Path.Combine(Path.GetDirectoryName(databasePath)!, "logs"),
+                Path.GetDirectoryName(databasePath)!);
+        }
+
+        public string GetLogDirectory()
+        {
+            return GetSettings().LogDirectory;
+        }
+
+        public string GetSqliteDatabaseDirectory()
+        {
+            return GetSettings().SqliteDatabaseDirectory;
+        }
+
+        public string GetSqliteDatabasePath()
+        {
+            return databasePath;
+        }
+
+        public Task SaveSettingsAsync(
+            LocalStoragePathSettings pathSettings,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
+            string currentDatabasePath,
+            string targetDatabaseDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SqliteDatabaseRelocationResult(
+                currentDatabasePath,
+                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
+                false,
+                false,
+                null));
+        }
+
+        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
+            string currentLogDirectory,
+            string targetLogDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LogDirectoryRelocationResult(
+                currentLogDirectory,
+                targetLogDirectory,
+                0,
+                0));
         }
     }
 }

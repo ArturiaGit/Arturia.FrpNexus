@@ -1,7 +1,6 @@
 ﻿using Cocona;
 using Microsoft.Extensions.DependencyInjection;
 using Arturia.FrpNexus.Cli.Commands;
-using Arturia.FrpNexus.Application.Configuration;
 using Arturia.FrpNexus.Application.ExcaliburTunnel;
 using Arturia.FrpNexus.Core.AvalonDaemon;
 using Arturia.FrpNexus.Core.Configuration;
@@ -9,6 +8,7 @@ using Arturia.FrpNexus.Core.ExcaliburTunnel;
 using Arturia.FrpNexus.Core.InvisibleAirService;
 using Arturia.FrpNexus.Infrastructure.AvalonDaemon;
 using Arturia.FrpNexus.Infrastructure.Configuration;
+using Arturia.FrpNexus.Infrastructure.DependencyInjection;
 using Arturia.FrpNexus.Infrastructure.ExcaliburTunnel;
 using Arturia.FrpNexus.Infrastructure.InvisibleAirService;
 
@@ -20,13 +20,11 @@ internal static class Program
     {
         var builder = CoconaApp.CreateBuilder(args);
 
+        builder.Services.AddFrpNexusInfrastructure();
         builder.Services.AddSingleton<IAvalonDaemon, FrpAvalonDaemon>();
         builder.Services.AddSingleton<IExcaliburTunnel, FrpExcaliburTunnel>();
-        builder.Services.AddSingleton<IFrpNexusDatabasePathProvider, FrpNexusDatabasePathProvider>();
-        builder.Services.AddSingleton<LiteDbConnectionFactory>();
-        builder.Services.AddSingleton<IFrpNexusSettingsStore, LiteDbFrpNexusSettingsStore>();
-        builder.Services.AddSingleton<ITunnelProfileRepository, LiteDbTunnelProfileRepository>();
-        builder.Services.AddSingleton<SettingsService>();
+        builder.Services.AddSingleton<IFrpNexusSettingsStore, SqliteFrpNexusSettingsStore>();
+        builder.Services.AddSingleton<ITunnelProfileRepository, SqliteTunnelProfileRepository>();
         builder.Services.AddSingleton<TunnelProfileService>();
         builder.Services.AddSingleton<SystemdServiceUnitBuilder>();
         builder.Services.AddSingleton<IInvisibleAirService, LinuxInvisibleAirService>();

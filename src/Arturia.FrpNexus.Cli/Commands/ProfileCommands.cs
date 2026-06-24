@@ -5,7 +5,7 @@ namespace Arturia.FrpNexus.Cli.Commands;
 
 internal sealed class ProfileCommands(ITunnelProfileRepository repository, IExcaliburTunnel tunnel)
 {
-    [Command("list", Description = "列出 LiteDB 持久化 tunnel profiles。")]
+    [Command("list", Description = "列出 SQLite 持久化 tunnel profiles。")]
     public async Task List()
     {
         CliOutput.WriteConfigNotice();
@@ -39,7 +39,7 @@ internal sealed class ProfileCommands(ITunnelProfileRepository repository, IExca
         return 0;
     }
 
-    [Command("add", Description = "新增或更新 LiteDB tunnel profile。")]
+    [Command("add", Description = "新增或更新 SQLite tunnel profile。")]
     public async Task<int> Add(
         [Argument(Description = "Tunnel profile id.")] string id,
         [Option(Description = "Profile 显示名称。")]
@@ -97,7 +97,7 @@ internal sealed class ProfileCommands(ITunnelProfileRepository repository, IExca
         return 0;
     }
 
-    [Command("remove", Description = "删除 LiteDB tunnel profile。")]
+    [Command("remove", Description = "删除 SQLite tunnel profile。")]
     public async Task<int> Remove([Argument(Description = "Tunnel profile id.")] string id)
     {
         CliOutput.WriteConfigNotice();

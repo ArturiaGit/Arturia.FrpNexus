@@ -160,6 +160,9 @@ public sealed class RemoteDirectoryService(
     {
         return exception switch
         {
+            TimeoutException when title.Contains("读取", StringComparison.Ordinal) => "远程目录读取超时：远程节点响应过慢，请检查网络和服务器状态。",
+            TimeoutException when title.Contains("准备", StringComparison.Ordinal) => "远程目录准备超时：远程节点响应过慢，请检查网络和服务器状态。",
+            TimeoutException when title.Contains("创建", StringComparison.Ordinal) => "远程目录创建超时：远程节点响应过慢，请检查网络和服务器状态。",
             SftpPermissionDeniedException => $"{title}：权限不足，请选择用户可写目录，例如 /home/<user>/frp。",
             SftpPathNotFoundException => $"{title}：目录不存在，或上级目录不可访问。",
             SshConnectionException => $"{title}：SFTP 连接失败，请检查节点连接状态。",

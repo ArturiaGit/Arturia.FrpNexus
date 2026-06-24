@@ -11,7 +11,10 @@ public sealed class SshNetClientAdapter : ISshClientAdapter
         SshCredentialReference credential,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
+        return SshNetOperationPolicy.RunAsync(
+            "SSH 连接测试",
+            SshNetOperationPolicy.ConnectTimeout,
+            () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -34,7 +37,10 @@ public sealed class SshNetClientAdapter : ISshClientAdapter
         SshCredentialReference credential,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run<ISshClientSession>(() =>
+        return SshNetOperationPolicy.RunAsync<ISshClientSession>(
+            "SSH 节点连接",
+            SshNetOperationPolicy.ConnectTimeout,
+            () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 

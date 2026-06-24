@@ -19,7 +19,8 @@
         <Border Classes="panel"
                 ClipToBounds="True">
             <Grid RowDefinitions="Auto,*,Auto">
-                <Border Padding="12"
+                <Border Classes="page-toolbar"
+                        Padding="12"
                         Background="{StaticResource FrpSurfaceWhiteBrush}"
                         BorderBrush="{StaticResource FrpBorderDefaultBrush}"
                         BorderThickness="0,0,0,1">
@@ -33,7 +34,8 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6"
                                             HorizontalAlignment="Center">
-                                    <PathIcon Width="18"
+                                    <PathIcon Classes="command-icon"
+                                              Width="18"
                                               Height="18"
                                               Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
                                     <TextBlock Text="添加节点" />
@@ -45,7 +47,8 @@
                                 <StackPanel Orientation="Horizontal"
                                             Spacing="6"
                                             HorizontalAlignment="Center">
-                                    <PathIcon Width="18"
+                                    <PathIcon Classes="command-icon"
+                                              Width="18"
                                               Height="18"
                                               Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
                                     <TextBlock Text="刷新列表" />
@@ -54,6 +57,7 @@
                         </StackPanel>
 
                         <Grid Grid.Column="1"
+                              Classes="search-box"
                               Width="256"
                               Height="34"
                               HorizontalAlignment="Right">
@@ -61,7 +65,8 @@
                                      Padding="36,0,12,0"
                                      VerticalContentAlignment="Center"
                                      PlaceholderText="搜索节点 IP 或名称..." />
-                            <PathIcon Width="18"
+                            <PathIcon Classes="command-icon"
+                                      Width="18"
                                       Height="18"
                                       Margin="12,0,0,0"
                                       HorizontalAlignment="Left"
@@ -159,7 +164,8 @@
                                                                 Orientation="Horizontal"
                                                                 Spacing="8"
                                                                 VerticalAlignment="Center">
-                                                        <PathIcon Width="18"
+                                    <PathIcon Classes="command-icon"
+                                              Width="18"
                                                                   Height="18"
                                                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
                                                                   Data="{Binding Source=dns, Converter={StaticResource MetricIconConverter}}" />
@@ -281,7 +287,8 @@
                                     <StackPanel Orientation="Horizontal"
                                                 Spacing="6"
                                                 HorizontalAlignment="Center">
-                                        <PathIcon Width="18"
+                            <PathIcon Classes="command-icon"
+                                      Width="18"
                                                   Height="18"
                                                   Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
                                         <TextBlock Text="添加节点" />
@@ -312,7 +319,8 @@
                                     Height="28"
                                     MinHeight="28"
                                     IsEnabled="False">
-                                <PathIcon Width="16"
+                        <PathIcon Classes="small-command-icon"
+                                  Width="16"
                                           Height="16"
                                           Data="{Binding Source=chevron_left, Converter={StaticResource MetricIconConverter}}" />
                             </Button>
@@ -324,7 +332,8 @@
                                     Height="28"
                                     MinHeight="28"
                                     IsEnabled="False">
-                                <PathIcon Width="16"
+                        <PathIcon Classes="small-command-icon"
+                                  Width="16"
                                           Height="16"
                                           Data="{Binding Source=chevron_right, Converter={StaticResource MetricIconConverter}}" />
                             </Button>
@@ -338,7 +347,7 @@
                 Grid.Column="1"
                 Width="320"
                 Margin="20,0,0,0"
-                Classes="panel"
+                Classes="panel side-panel"
                 ClipToBounds="True"
                 IsVisible="{Binding IsSidePanelOpen}">
             <Grid>
@@ -435,7 +444,8 @@
 
                     <ScrollViewer Grid.Row="1"
                                   IsVisible="{Binding IsDetailsPanelOpen}">
-                        <StackPanel Margin="16"
+                        <StackPanel Classes="form-section"
+                                    Margin="16"
                                     Spacing="14">
                             <StackPanel Spacing="8"
                                         IsVisible="{Binding IsDeploymentStatusVisible}">
@@ -495,12 +505,12 @@
                                                 Classes.error="{Binding IsCoreUploadError}">
                                             <Grid ColumnDefinitions="Auto,*"
                                                   ColumnSpacing="10">
-                                                <PathIcon Width="18"
-                                                          Height="18"
-                                                          Margin="0,2,0,0"
-                                                          Data="{Binding Source=cloud_upload, Converter={StaticResource MetricIconConverter}}"
-                                                          Classes="status-callout-icon"
-                                                          Classes.info="{Binding IsCoreUploadInfo}"
+                                    <PathIcon Classes="status-callout-icon command-icon"
+                                              Width="18"
+                                                           Height="18"
+                                                           Margin="0,2,0,0"
+                                                           Data="{Binding Source=cloud_upload, Converter={StaticResource MetricIconConverter}}"
+                                                           Classes.info="{Binding IsCoreUploadInfo}"
                                                           Classes.success="{Binding IsCoreUploadSuccess}"
                                                           Classes.warning="{Binding IsCoreUploadWarning}"
                                                           Classes.error="{Binding IsCoreUploadError}" />
@@ -548,11 +558,11 @@
                                                 Classes.error="{Binding IsRemoteFrpsError}">
                                             <Grid ColumnDefinitions="Auto,*"
                                                   ColumnSpacing="10">
-                                                <PathIcon Width="18"
+                                    <PathIcon Classes="status-callout-icon command-icon"
+                                              Width="18"
                                                           Height="18"
                                                           Margin="0,2,0,0"
                                                           Data="{Binding Source=terminal, Converter={StaticResource MetricIconConverter}}"
-                                                          Classes="status-callout-icon"
                                                           Classes.info="{Binding IsRemoteFrpsInfo}"
                                                           Classes.success="{Binding IsRemoteFrpsSuccess}"
                                                           Classes.warning="{Binding IsRemoteFrpsWarning}"
@@ -577,7 +587,8 @@
                 <Grid RowDefinitions="*,Auto"
                       IsVisible="{Binding IsEditorOpen}">
                 <ScrollViewer Grid.Row="0">
-                    <StackPanel Margin="16"
+                    <StackPanel Classes="form-section"
+                                Margin="16"
                                 Spacing="12">
                         <TextBlock Classes="section-title"
                                    Text="{Binding EditorTitle}" />

@@ -125,6 +125,25 @@ public sealed class RemoteRuntimeServiceTests
     }
 
     [Fact]
+    public async Task StopAsync_ShouldMapTimeoutFailureAndHideSecret()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(
+                new RemoteCommandResult(0, string.Empty, string.Empty),
+                new TimeoutException("SESSION_PASSWORD_PLACEHOLDER timed out")),
+            runtimeRecordService,
+            Logger.None);
+
+        var result = await service.StopAsync(CreateCommandRequest("pkill -f frpc"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("远程命令执行超时：远程节点响应过慢，请检查网络和服务器状态。", result.Message);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
+        Assert.Equal(FrpNexusStatus.Error, runtimeRecordService.SavedProcesses.Single().Status);
+    }
+
+    [Fact]
     public async Task StartAsync_ShouldUseStdoutDiagnosticWhenStderrIsEmpty()
     {
         var runtimeRecordService = new FakeRuntimeRecordService();
@@ -195,13 +214,20 @@ public sealed class RemoteRuntimeServiceTests
             SessionPassword: "SESSION_PASSWORD_PLACEHOLDER");
     }
 
-    private sealed class FakeRemoteCommandAdapter(RemoteCommandResult result) : IRemoteCommandAdapter
+    private sealed class FakeRemoteCommandAdapter(
+        RemoteCommandResult result,
+        Exception? exception = null) : IRemoteCommandAdapter
     {
         public string? LastCommand { get; private set; }
 
         public Task<RemoteCommandResult> ExecuteAsync(NodeProfile node, SshCredentialReference credential, string command, CancellationToken cancellationToken = default)
         {
             LastCommand = command;
+            if (exception is not null)
+            {
+                throw exception;
+            }
+
             return Task.FromResult(result);
         }
     }

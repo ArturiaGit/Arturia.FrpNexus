@@ -1,6 +1,7 @@
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Services;
+using Arturia.FrpNexus.Desktop.ViewModels.Nodes;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -661,6 +662,36 @@ public sealed class NodesPageInlineConnectionTests
     }
 
     [Fact]
+    public async Task Dispose_ShouldStopRemoteFrpsUptimeTicker()
+    {
+        var node = CreateNode();
+        var sessionService = new FakeNodeConnectionSessionService();
+        await sessionService.ConnectAsync(
+            node,
+            new SshCredentialReference(SshAuthenticationMode.SessionPassword, SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"));
+        var runtimeService = new FakeRemoteRuntimeService
+        {
+            Processes =
+            [
+                new RuntimeProcess("frps-1812494", node.Name, "frps", FrpNexusStatus.Running, "1812494", "00:13", "-")
+            ]
+        };
+        var viewModel = CreateViewModel(
+            new FakeNodeManagementService([node]),
+            sessionService,
+            remoteRuntimeService: runtimeService);
+        await viewModel.LoadNodesAsync();
+        viewModel.SelectNodeCommand.Execute(viewModel.NodeRows.Single());
+        await viewModel.RefreshRemoteFrpsStatusCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsRemoteFrpsUptimeTickerActiveForTest);
+
+        viewModel.Dispose();
+
+        Assert.False(viewModel.IsRemoteFrpsUptimeTickerActiveForTest);
+    }
+
+    [Fact]
     public async Task ToggleRemoteFrpsCommand_ShouldStartWhenStoppedAndStopWhenRunning()
     {
         var node = CreateNode();
@@ -742,10 +773,13 @@ public sealed class NodesPageInlineConnectionTests
             new Arturia.FrpNexus.Application.Configuration.TomlConfigurationService(),
             new FakeFilePickerService(),
             new FakeRemoteDirectoryPickerService(),
-            new FakeNodeCredentialSecretService(),
+            new NodeCredentialWorkflow(new FakeNodeCredentialSecretService()),
+            new NodeRemoteFrpsWorkflow(remoteRuntimeService ?? new FakeRemoteRuntimeService()),
             new FakeDeploymentRecordService(),
-            dialogService,
-            confirmationDialogService);
+            dialogService ?? new FakeNodeConnectionWorkflowDialogService(),
+            confirmationDialogService ?? new FakeConfirmationDialogService(),
+            new FakeFrpLifecycleStateService(),
+            new FakeRemoteFrpsRetentionService());
     }
 
     private static NodeProfile CreateNode()
@@ -1170,6 +1204,49 @@ public sealed class NodesPageInlineConnectionTests
         }
 
         public Task DeleteDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeFrpLifecycleStateService : IFrpLifecycleStateService
+    {
+        public IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots()
+        {
+            return [];
+        }
+
+        public void UpdateRemoteFrpsState(
+            string nodeName,
+            bool isSshOnline,
+            FrpNexusStatus frpsStatus,
+            string configPath = "")
+        {
+        }
+
+        public void RemoveRemoteFrpsState(string nodeName)
+        {
+        }
+    }
+
+    private sealed class FakeRemoteFrpsRetentionService : IRemoteFrpsRetentionService
+    {
+        public Task<IReadOnlyList<RemoteFrpsRetentionRecord>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RemoteFrpsRetentionRecord>>([]);
+        }
+
+        public Task<RemoteFrpsRetentionRecord?> GetAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<RemoteFrpsRetentionRecord?>(null);
+        }
+
+        public Task SaveAsync(RemoteFrpsRetentionRecord record, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(string nodeName, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
