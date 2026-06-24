@@ -5,6 +5,7 @@ using Arturia.FrpNexus.Desktop.Placeholders;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.Theming;
 using Arturia.FrpNexus.Desktop.ViewModels;
+using Arturia.FrpNexus.Desktop.ViewModels.Nodes;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
 using Arturia.FrpNexus.Infrastructure.DependencyInjection;
@@ -36,6 +37,8 @@ public static class DesktopCompositionRoot
         services.AddSingleton<IFrpCoreDownloadOptionsDialogService, FrpCoreDownloadOptionsDialogService>();
         services.AddSingleton<IFrpLifecycleStateService, FrpLifecycleStateService>();
         services.AddSingleton<IRemoteFrpsRetentionService, RemoteFrpsRetentionService>();
+        services.AddTransient<INodeCredentialWorkflow, NodeCredentialWorkflow>();
+        services.AddTransient<INodeRemoteFrpsWorkflow, NodeRemoteFrpsWorkflow>();
 
         services.AddSingleton<MainWindow>();
         services.AddSingleton(sp => new MainWindowViewModel(
@@ -78,7 +81,8 @@ public static class DesktopCompositionRoot
             sp.GetRequiredService<ITomlConfigurationService>(),
             sp.GetRequiredService<IFilePickerService>(),
             sp.GetRequiredService<IRemoteDirectoryPickerService>(),
-            sp.GetRequiredService<INodeCredentialSecretService>(),
+            sp.GetRequiredService<INodeCredentialWorkflow>(),
+            sp.GetRequiredService<INodeRemoteFrpsWorkflow>(),
             sp.GetRequiredService<IDeploymentRecordService>(),
             sp.GetRequiredService<INodeConnectionWorkflowDialogService>(),
             sp.GetRequiredService<IConfirmationDialogService>(),

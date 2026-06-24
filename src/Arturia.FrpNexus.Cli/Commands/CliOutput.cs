@@ -23,8 +23,8 @@ internal static class CliOutput
 
     public static void WriteConfigNotice()
     {
-        Console.WriteLine("FrpNexus CLI - Phase 8B LiteDB config/profile persistence");
-        Console.WriteLine("CLI 使用本地 LiteDB 配置；不修改 Desktop GUI，不启动 frpc，不执行 systemctl。");
+        Console.WriteLine("FrpNexus CLI - SQLite config/profile persistence");
+        Console.WriteLine("CLI 使用本地 SQLite 配置；不修改 Desktop GUI，不启动 frpc，不执行 systemctl。");
         Console.WriteLine();
     }
 }

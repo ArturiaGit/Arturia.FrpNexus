@@ -447,6 +447,34 @@ public sealed class MainWindowViewModelTests
         Assert.EndsWith("frpnexus-.log", logPath);
     }
 
+    [Fact]
+    public async Task Dispose_ShouldDisposePollingPageViewModels()
+    {
+        var viewModel = CreateMainWindowViewModel();
+        var tunnelsPage = Assert.IsType<TunnelsPageViewModel>(
+            viewModel.NavigationItems.Single(item => item.Icon == "tunnels").Page);
+
+        Assert.True(tunnelsPage.IsLocalFrpcStatusPollingActiveForTest);
+
+        viewModel.Dispose();
+        await WaitUntilAsync(() => !tunnelsPage.IsLocalFrpcStatusPollingActiveForTest);
+
+        Assert.False(tunnelsPage.IsLocalFrpcStatusPollingActiveForTest);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (condition())
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+    }
+
     private static MainWindowViewModel CreateMainWindowViewModel(
         IModalOverlayService? modalOverlayService = null,
         IModalDialogHostService? modalDialogHostService = null,
@@ -506,9 +534,13 @@ public sealed class MainWindowViewModelTests
             new Arturia.FrpNexus.Application.Configuration.TomlConfigurationService(),
             new FakeFilePickerService(),
             new FakeRemoteDirectoryPickerService(),
-            new FakeNodeCredentialSecretService(),
+            new Arturia.FrpNexus.Desktop.ViewModels.Nodes.NodeCredentialWorkflow(new FakeNodeCredentialSecretService()),
+            new Arturia.FrpNexus.Desktop.ViewModels.Nodes.NodeRemoteFrpsWorkflow(new FakeRemoteRuntimeService()),
             new FakeDeploymentRecordService(),
-            new FakeNodeConnectionWorkflowDialogService());
+            new FakeNodeConnectionWorkflowDialogService(),
+            new FakeConfirmationDialogService(),
+            new FakeFrpLifecycleStateService(),
+            new FakeRemoteFrpsRetentionService());
     }
 
     private static TunnelsPageViewModel CreateTunnelsPageViewModel()
@@ -558,7 +590,11 @@ public sealed class MainWindowViewModelTests
             new FakeFilePickerService(),
             new FakeFrpCoreDownloadOptionsDialogService(),
             new FakeNodeManagementService(),
-            new FakeNodeCredentialSecretService());
+            new FakeNodeCredentialSecretService(),
+            new FakeLocalFolderLauncherService(),
+            new FakeLocalCacheMaintenanceService(),
+            new FakeConfirmationDialogService(),
+            new FakeLocalStoragePathSettingsService());
     }
 
     private static NodeProfile CreateNode(string name, string configPath)
@@ -949,6 +985,78 @@ public sealed class MainWindowViewModelTests
             CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeLocalFolderLauncherService : ILocalFolderLauncherService
+    {
+        public Task OpenFolderAsync(string folderPath, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeLocalCacheMaintenanceService : ILocalCacheMaintenanceService
+    {
+        public Task<LocalCacheCleanupResult> ClearDefaultFrpReleaseCacheAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LocalCacheCleanupResult(0, 0, string.Empty));
+        }
+    }
+
+    private sealed class FakeLocalStoragePathSettingsService : ILocalStoragePathSettingsService
+    {
+        public LocalStoragePathSettings GetSettings()
+        {
+            return new LocalStoragePathSettings(string.Empty, string.Empty);
+        }
+
+        public string GetLogDirectory()
+        {
+            return string.Empty;
+        }
+
+        public string GetSqliteDatabaseDirectory()
+        {
+            return string.Empty;
+        }
+
+        public string GetSqliteDatabasePath()
+        {
+            return string.Empty;
+        }
+
+        public Task SaveSettingsAsync(
+            LocalStoragePathSettings pathSettings,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
+            string currentDatabasePath,
+            string targetDatabaseDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SqliteDatabaseRelocationResult(
+                currentDatabasePath,
+                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
+                false,
+                false,
+                null));
+        }
+
+        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
+            string currentLogDirectory,
+            string targetLogDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new LogDirectoryRelocationResult(
+                currentLogDirectory,
+                targetLogDirectory,
+                0,
+                0));
         }
     }
 

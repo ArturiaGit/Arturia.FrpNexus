@@ -8,13 +8,16 @@ internal static class SshConnectionInfoFactory
 {
     public static ConnectionInfo Create(NodeProfile node, SshCredentialReference credential, string operationName)
     {
-        return credential.AuthenticationMode switch
+        var connectionInfo = credential.AuthenticationMode switch
         {
             SshAuthenticationMode.SessionPassword => CreatePasswordConnectionInfo(node, credential),
             SshAuthenticationMode.PrivateKey => CreatePrivateKeyConnectionInfo(node, credential),
             SshAuthenticationMode.SshAgent => throw new NotSupportedException($"SSH Agent 认证暂未接入 {operationName}，请先使用会话密码或私钥文件路径。"),
             _ => throw new NotSupportedException($"当前认证方式暂不支持 {operationName}。")
         };
+
+        connectionInfo.Timeout = SshNetOperationPolicy.ConnectTimeout;
+        return connectionInfo;
     }
 
     private static ConnectionInfo CreatePasswordConnectionInfo(NodeProfile node, SshCredentialReference credential)

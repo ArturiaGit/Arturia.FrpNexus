@@ -1,5 +1,7 @@
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.Services;
+using Arturia.FrpNexus.Desktop.ViewModels.Nodes;
 using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -13,7 +15,7 @@ public sealed class NodesPageViewModelTests
         [
             new("本地测试节点", "127.0.0.1", 22, "deploy", "密钥 (LOCAL_TEST)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
 
         await viewModel.LoadNodesAsync();
 
@@ -28,7 +30,7 @@ public sealed class NodesPageViewModelTests
     public async Task LoadNodesAsync_ShouldKeepNodeListEmptyWhenDatabaseIsEmpty()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
 
         await viewModel.LoadNodesAsync();
 
@@ -48,7 +50,7 @@ public sealed class NodesPageViewModelTests
             new("节点-A", "203.0.113.10", 22, "deploy", "密钥 (A)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "1h", "/etc/frp/frpc.toml"),
             new("节点-B", "203.0.113.11", 22, "deploy", "密钥 (B)", "Debian 12", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "-", "-", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.SelectNodeCommand.Execute(viewModel.NodeRows[1]);
@@ -63,7 +65,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldCreateNodeAndRefreshList()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -87,7 +89,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldApplyDefaultsWhenOptionalFieldsAreEmpty()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -109,7 +111,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldUseCustomOperatingSystemWhenOtherIsSelected()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -128,7 +130,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldFallbackCustomOperatingSystemToLinuxWhenEmpty()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -149,7 +151,7 @@ public sealed class NodesPageViewModelTests
         [
             new("上海-生产节点", "203.0.113.21", 22, "deploy", "密钥 (ID_RSA_SH)", "Ubuntu 22.04 LTS", FrpNexusStatus.Online, FrpNexusStatus.Running, "v0.61.1", "2h", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.SelectedNode = viewModel.Nodes.Single();
@@ -171,7 +173,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldSaveCustomConfigPathWhenCreatingNode()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -190,7 +192,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldRejectConfigPathWithoutFileName()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
 
         viewModel.StartCreateNodeCommand.Execute(null);
@@ -211,7 +213,7 @@ public sealed class NodesPageViewModelTests
         [
             new("待删除节点", "203.0.113.30", 22, "deploy", "密钥 (LOCAL_KEY)", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         await viewModel.LoadNodesAsync();
         viewModel.SelectedNode = viewModel.Nodes.Single();
 
@@ -233,7 +235,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldRejectInvalidForm(string name, string host, string userName, string port, string expectedError)
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         viewModel.StartCreateNodeCommand.Execute(null);
         viewModel.FormName = name;
         viewModel.FormHost = host;
@@ -250,7 +252,7 @@ public sealed class NodesPageViewModelTests
     public async Task SaveNodeCommand_ShouldNotIntroduceSensitiveCredentialFields()
     {
         var service = new FakeNodeManagementService([]);
-        var viewModel = new NodesPageViewModel(service, new FakeSshConnectionService());
+        var viewModel = CreateViewModel(service);
         viewModel.StartCreateNodeCommand.Execute(null);
         viewModel.FormName = "安全边界节点";
         viewModel.FormHost = "203.0.113.50";
@@ -275,7 +277,7 @@ public sealed class NodesPageViewModelTests
             new("连接测试节点", "203.0.113.60", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
         ]);
         var sshService = new FakeSshConnectionService();
-        var viewModel = new NodesPageViewModel(service, sshService);
+        var viewModel = CreateViewModel(service, sshService);
         await viewModel.LoadNodesAsync();
         viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
@@ -298,7 +300,7 @@ public sealed class NodesPageViewModelTests
             new("连接测试节点", "203.0.113.60", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
         ]);
         var sshService = new FakeSshConnectionService();
-        var viewModel = new NodesPageViewModel(service, sshService);
+        var viewModel = CreateViewModel(service, sshService);
         await viewModel.LoadNodesAsync();
         viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
@@ -312,9 +314,7 @@ public sealed class NodesPageViewModelTests
     [Fact]
     public async Task LoadNodesAsync_ShouldReportRecoverableFailure()
     {
-        var viewModel = new NodesPageViewModel(
-            new FailingNodeManagementService("节点数据库不可用"),
-            new FakeSshConnectionService());
+        var viewModel = CreateViewModel(new FailingNodeManagementService("节点数据库不可用"));
 
         await viewModel.LoadNodesAsync();
 
@@ -330,7 +330,7 @@ public sealed class NodesPageViewModelTests
         [
             new("连接失败节点", "203.0.113.61", 22, "deploy", "会话密码", "Ubuntu 22.04 LTS", FrpNexusStatus.Offline, FrpNexusStatus.Stopped, "v0.61.1", "-", "/etc/frp/frpc.toml")
         ]);
-        var viewModel = new NodesPageViewModel(service, new FailingSshConnectionService());
+        var viewModel = CreateViewModel(service, new FailingSshConnectionService());
         await viewModel.LoadNodesAsync();
         viewModel.SelectedNode = viewModel.Nodes.Single();
         viewModel.SelectedSshAuthenticationMode = "SessionPassword";
@@ -343,6 +343,146 @@ public sealed class NodesPageViewModelTests
         Assert.False(viewModel.IsTestingConnection);
     }
 
+    private static NodesPageViewModel CreateViewModel(
+        INodeManagementService nodeManagementService,
+        ISshConnectionService? sshConnectionService = null)
+    {
+        return new NodesPageViewModel(
+            nodeManagementService,
+            new TestNodeConnectionSessionService(sshConnectionService ?? new FakeSshConnectionService()),
+            new FakeRemoteRuntimeService(),
+            new FakeRemoteFileTransferService(),
+            new Arturia.FrpNexus.Application.Configuration.TomlConfigurationService(),
+            new FakeFilePickerService(),
+            new FakeRemoteDirectoryPickerService(),
+            new NodeCredentialWorkflow(new FakeNodeCredentialSecretService()),
+            new NodeRemoteFrpsWorkflow(new FakeRemoteRuntimeService()),
+            new FakeDeploymentRecordService(),
+            new FakeNodeConnectionWorkflowDialogService(),
+            new FakeConfirmationDialogService(),
+            new FakeFrpLifecycleStateService(),
+            new FakeRemoteFrpsRetentionService());
+    }
+
+    private sealed class TestNodeConnectionSessionService(
+        ISshConnectionService sshConnectionService) : INodeConnectionSessionService
+    {
+        private readonly Dictionary<string, SshCredentialReference> _credentials = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, NodeConnectionSessionSnapshot> _snapshots = new(StringComparer.OrdinalIgnoreCase);
+
+        public async Task<NodeConnectionSessionResult> ConnectAsync(NodeProfile node, SshCredentialReference credential, CancellationToken cancellationToken = default)
+        {
+            var result = await sshConnectionService.TestConnectionAsync(new SshConnectionTestRequest(node, credential), cancellationToken);
+            var state = result.Status == FrpNexusStatus.Online ? NodeConnectionSessionState.Online : NodeConnectionSessionState.Error;
+            if (state == NodeConnectionSessionState.Online)
+            {
+                _credentials[node.Name] = credential;
+            }
+
+            _snapshots[node.Name] = new NodeConnectionSessionSnapshot(node.Name, state, result.TestedAt, result.Message);
+            return new NodeConnectionSessionResult(node.Name, state, result.TestedAt, result.Message);
+        }
+
+        public Task<NodeConnectionSessionResult> DisconnectAsync(string nodeName, CancellationToken cancellationToken = default)
+        {
+            _credentials.Remove(nodeName);
+            _snapshots[nodeName] = new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Disconnected, null, "SSH disconnected.");
+            return Task.FromResult(new NodeConnectionSessionResult(nodeName, NodeConnectionSessionState.Disconnected, null, "SSH disconnected."));
+        }
+
+        public NodeConnectionSessionSnapshot GetSessionStatus(string nodeName)
+        {
+            return _snapshots.TryGetValue(nodeName, out var snapshot)
+                ? snapshot
+                : new NodeConnectionSessionSnapshot(nodeName, NodeConnectionSessionState.Offline, null, "Offline.");
+        }
+
+        public SshCredentialReference? GetConnectedCredential(string nodeName)
+        {
+            return _credentials.TryGetValue(nodeName, out var credential) ? credential : null;
+        }
+
+        public IReadOnlyList<NodeConnectionSessionSnapshot> ListActiveSessions()
+        {
+            return _snapshots.Values.Where(snapshot => snapshot.State == NodeConnectionSessionState.Online).ToArray();
+        }
+    }
+
+    private sealed class FakeRemoteRuntimeService : IRemoteRuntimeService
+    {
+        public Task<IReadOnlyList<RuntimeProcess>> GetProcessesAsync(RemoteRuntimeQueryRequest request, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<RuntimeProcess>>([]);
+        public Task<RemoteRuntimeCommandResult> StartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default) => Task.FromResult(CreateResult(request));
+        public Task<RemoteRuntimeCommandResult> StopAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default) => Task.FromResult(CreateResult(request));
+        public Task<RemoteRuntimeCommandResult> RestartAsync(RemoteRuntimeCommandRequest request, CancellationToken cancellationToken = default) => Task.FromResult(CreateResult(request));
+        private static RemoteRuntimeCommandResult CreateResult(RemoteRuntimeCommandRequest request) => new(request.Node.Name, request.ProcessName, FrpNexusStatus.Ready, DateTimeOffset.UtcNow, "ok");
+    }
+
+    private sealed class FakeRemoteFileTransferService : IRemoteFileTransferService
+    {
+        public Task<RemoteFilePresenceResult> CheckRemoteFilesAsync(RemoteFilePresenceRequest request, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RemoteFilePresenceResult(request.Node.Name, request.RemotePaths.Select(path => new RemoteFilePresenceEntry(path, true)).ToArray(), FrpNexusStatus.Ready, DateTimeOffset.UtcNow, "ok"));
+        }
+
+        public Task<RemoteFileTransferResult> UploadFrpBinaryAsync(RemoteFileUploadRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new RemoteFileTransferResult(request.Node.Name, request.RemotePath, FrpNexusStatus.Ready, DateTimeOffset.UtcNow, "ok"));
+        public Task<RemoteFileTransferResult> UploadConfigurationAsync(RemoteConfigurationUploadRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new RemoteFileTransferResult(request.Node.Name, request.RemotePath, FrpNexusStatus.Ready, DateTimeOffset.UtcNow, "ok"));
+        public Task<RemoteFileDeleteResult> DeleteRemoteFilesAsync(RemoteFileDeleteRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new RemoteFileDeleteResult(request.Node.Name, request.RemotePaths, [], FrpNexusStatus.Ready, DateTimeOffset.UtcNow, "ok"));
+    }
+
+    private sealed class FakeFilePickerService : IFilePickerService
+    {
+        public Task<string?> PickFrpBinaryAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task<string?> PickLocalFrpcBinaryAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task<string?> PickLocalFrpcConfigPathAsync(string suggestedFileName, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task<string?> PickFrpDownloadDirectoryAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+    }
+
+    private sealed class FakeRemoteDirectoryPickerService : IRemoteDirectoryPickerService
+    {
+        public Task<string?> PickRemoteDirectoryAsync(NodeProfile node, SshCredentialReference credential, string initialDirectory, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+    }
+
+    private sealed class FakeNodeCredentialSecretService : INodeCredentialSecretService
+    {
+        public Task<bool> HasSessionPasswordAsync(string nodeName, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<string?> GetSessionPasswordAsync(string nodeName, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task SaveSessionPasswordAsync(string nodeName, string sessionPassword, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteSessionPasswordAsync(string nodeName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class FakeDeploymentRecordService : IDeploymentRecordService
+    {
+        public Task<IReadOnlyList<DeploymentRecord>> ListDeploymentRecordsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DeploymentRecord>>([]);
+        public Task<DeploymentRecord?> GetDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default) => Task.FromResult<DeploymentRecord?>(null);
+        public Task SaveDeploymentRecordAsync(DeploymentRecord record, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteDeploymentRecordAsync(string stepName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class FakeNodeConnectionWorkflowDialogService : INodeConnectionWorkflowDialogService
+    {
+        public Task<NodeConnectionWorkflowResult> ShowAsync(NodeProfile node, NodeConnectionWorkflowOptions? options = null, CancellationToken cancellationToken = default) => Task.FromResult(new NodeConnectionWorkflowResult(node.Name, false, false, false));
+    }
+
+    private sealed class FakeConfirmationDialogService : IConfirmationDialogService
+    {
+        public Task<bool> ShowAsync(ConfirmationDialogRequest request, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<ConfirmationDialogResult> ShowChoiceAsync(ConfirmationDialogChoiceRequest request, CancellationToken cancellationToken = default) => Task.FromResult(ConfirmationDialogResult.Confirm);
+    }
+
+    private sealed class FakeFrpLifecycleStateService : IFrpLifecycleStateService
+    {
+        public IReadOnlyList<RemoteFrpsLifecycleSnapshot> ListRemoteFrpsSnapshots() => [];
+        public void UpdateRemoteFrpsState(string nodeName, bool isSshOnline, FrpNexusStatus frpsStatus, string configPath = "") { }
+        public void RemoveRemoteFrpsState(string nodeName) { }
+    }
+
+    private sealed class FakeRemoteFrpsRetentionService : IRemoteFrpsRetentionService
+    {
+        public Task<IReadOnlyList<RemoteFrpsRetentionRecord>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<RemoteFrpsRetentionRecord>>([]);
+        public Task<RemoteFrpsRetentionRecord?> GetAsync(string nodeName, CancellationToken cancellationToken = default) => Task.FromResult<RemoteFrpsRetentionRecord?>(null);
+        public Task SaveAsync(RemoteFrpsRetentionRecord record, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task ClearAsync(string nodeName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
     private sealed class FakeNodeManagementService(IReadOnlyList<NodeProfile> nodes) : INodeManagementService
     {
         private readonly List<NodeProfile> _nodes = [.. nodes];

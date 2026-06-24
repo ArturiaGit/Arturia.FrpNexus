@@ -94,10 +94,10 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         IFrpCoreDownloadOptionsDialogService downloadOptionsDialogService,
         INodeManagementService nodeManagementService,
         INodeCredentialSecretService nodeCredentialSecretService,
-        ILocalFolderLauncherService? localFolderLauncherService = null,
-        ILocalCacheMaintenanceService? localCacheMaintenanceService = null,
-        IConfirmationDialogService? confirmationDialogService = null,
-        ILocalStoragePathSettingsService? localStoragePathSettingsService = null)
+        ILocalFolderLauncherService localFolderLauncherService,
+        ILocalCacheMaintenanceService localCacheMaintenanceService,
+        IConfirmationDialogService confirmationDialogService,
+        ILocalStoragePathSettingsService localStoragePathSettingsService)
         : base("设置", "FRP 下载源、本地路径、密钥、日志和本地数据")
     {
         _settingsService = settingsService;
@@ -106,10 +106,10 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         _downloadOptionsDialogService = downloadOptionsDialogService;
         _nodeManagementService = nodeManagementService;
         _nodeCredentialSecretService = nodeCredentialSecretService;
-        _localFolderLauncherService = localFolderLauncherService ?? new NoopLocalFolderLauncherService();
-        _localCacheMaintenanceService = localCacheMaintenanceService ?? new NoopLocalCacheMaintenanceService();
-        _confirmationDialogService = confirmationDialogService ?? new NoopConfirmationDialogService();
-        _localStoragePathSettingsService = localStoragePathSettingsService ?? new NoopLocalStoragePathSettingsService();
+        _localFolderLauncherService = localFolderLauncherService;
+        _localCacheMaintenanceService = localCacheMaintenanceService;
+        _confirmationDialogService = confirmationDialogService;
+        _localStoragePathSettingsService = localStoragePathSettingsService;
 
         CredentialSecurityNodes = [];
 
@@ -749,92 +749,4 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         return $"{mib:0.#} MB";
     }
 
-    private sealed class NoopLocalFolderLauncherService : ILocalFolderLauncherService
-    {
-        public Task OpenFolderAsync(string folderPath, CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class NoopLocalCacheMaintenanceService : ILocalCacheMaintenanceService
-    {
-        public Task<LocalCacheCleanupResult> ClearDefaultFrpReleaseCacheAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new LocalCacheCleanupResult(0, 0, string.Empty));
-        }
-    }
-
-    private sealed class NoopConfirmationDialogService : IConfirmationDialogService
-    {
-        public Task<bool> ShowAsync(
-            ConfirmationDialogRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(false);
-        }
-
-        public Task<ConfirmationDialogResult> ShowChoiceAsync(
-            ConfirmationDialogChoiceRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(ConfirmationDialogResult.Cancel);
-        }
-    }
-
-    private sealed class NoopLocalStoragePathSettingsService : ILocalStoragePathSettingsService
-    {
-        public LocalStoragePathSettings GetSettings()
-        {
-            return new LocalStoragePathSettings(string.Empty, string.Empty);
-        }
-
-        public string GetLogDirectory()
-        {
-            return string.Empty;
-        }
-
-        public string GetSqliteDatabaseDirectory()
-        {
-            return string.Empty;
-        }
-
-        public string GetSqliteDatabasePath()
-        {
-            return string.Empty;
-        }
-
-        public Task SaveSettingsAsync(
-            LocalStoragePathSettings pathSettings,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task<SqliteDatabaseRelocationResult> PrepareSqliteDatabaseDirectoryAsync(
-            string currentDatabasePath,
-            string targetDatabaseDirectory,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new SqliteDatabaseRelocationResult(
-                currentDatabasePath,
-                Path.Combine(targetDatabaseDirectory, "frpnexus.db"),
-                false,
-                false,
-                null));
-        }
-
-        public Task<LogDirectoryRelocationResult> PrepareLogDirectoryAsync(
-            string currentLogDirectory,
-            string targetLogDirectory,
-            CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new LogDirectoryRelocationResult(
-                currentLogDirectory,
-                targetLogDirectory,
-                0,
-                0));
-        }
-    }
 }

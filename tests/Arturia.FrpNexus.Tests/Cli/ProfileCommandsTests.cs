@@ -1,8 +1,9 @@
 using Arturia.FrpNexus.Cli.Commands;
 using Arturia.FrpNexus.Core.ExcaliburTunnel;
-using Arturia.FrpNexus.Infrastructure.Configuration;
 using Arturia.FrpNexus.Infrastructure.ExcaliburTunnel;
-using Arturia.FrpNexus.Tests.Configuration;
+using Arturia.FrpNexus.Infrastructure.Persistence;
+using Arturia.FrpNexus.Infrastructure.Tunnels;
+using Microsoft.Data.Sqlite;
 
 namespace Arturia.FrpNexus.Tests.Cli;
 
@@ -109,20 +110,31 @@ public sealed class ProfileCommandsTests : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearAllPools();
         if (Directory.Exists(tempDirectory))
         {
             Directory.Delete(tempDirectory, recursive: true);
         }
     }
 
-    private ProfileCommands CreateCommands(out LiteDbTunnelProfileRepository repository)
+    private ProfileCommands CreateCommands(out SqliteTunnelProfileRepository repository)
     {
-        repository = new LiteDbTunnelProfileRepository(new LiteDbConnectionFactory(new TemporaryDatabasePathProvider(databasePath)));
+        var connectionFactory = new SqliteConnectionFactory(new TestDatabasePathProvider(databasePath));
+        var initializer = new SqliteDatabaseInitializer(connectionFactory);
+        repository = new SqliteTunnelProfileRepository(new SqliteTunnelManagementService(connectionFactory, initializer));
         return new ProfileCommands(repository, new FrpExcaliburTunnel());
     }
 
     private static TunnelProfile CreateProfile(string id)
     {
         return new TunnelProfile(id, id, TunnelProtocol.Tcp, "127.0.0.1", 8080, 18080, "frp.example.internal", 7000, true);
+    }
+
+    private sealed class TestDatabasePathProvider(string path) : IFrpNexusDatabasePathProvider
+    {
+        public string GetDatabasePath()
+        {
+            return path;
+        }
     }
 }

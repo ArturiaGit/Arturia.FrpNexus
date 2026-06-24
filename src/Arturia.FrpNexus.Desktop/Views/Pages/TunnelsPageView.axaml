@@ -16,19 +16,22 @@
           attached:DismissOnOutsidePointerPressed.DismissCommand="{Binding CancelEditCommand}">
         <Grid RowDefinitions="Auto,Auto,*"
               RowSpacing="12">
-            <Grid ColumnDefinitions="Auto,*"
+            <Grid Classes="page-toolbar"
+                  ColumnDefinitions="Auto,*"
                   ColumnSpacing="12">
                 <StackPanel Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <Grid Width="240"
+                    <Grid Classes="search-box"
+                          Width="240"
                           Height="34">
                         <TextBox Classes="stitch-input"
                                  Padding="36,0,12,0"
                                  VerticalContentAlignment="Center"
                                  PlaceholderText="搜索隧道..."
                                  Text="{Binding SearchText}" />
-                        <PathIcon Width="18"
+                        <PathIcon Classes="command-icon"
+                                  Width="18"
                                   Height="18"
                                   Margin="12,0,0,0"
                                   HorizontalAlignment="Left"
@@ -51,7 +54,8 @@
                     <StackPanel Orientation="Horizontal"
                                 Spacing="6"
                                 HorizontalAlignment="Center">
-                        <PathIcon Width="18"
+                        <PathIcon Classes="command-icon"
+                                  Width="18"
                                   Height="18"
                                   Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
                         <TextBlock Text="新建隧道" />
@@ -251,7 +255,8 @@
                                                             Orientation="Horizontal"
                                                             Spacing="8"
                                                             VerticalAlignment="Center">
-                                                    <PathIcon Width="18"
+                                                    <PathIcon Classes="command-icon"
+                                                              Width="18"
                                                               Height="18"
                                                               Foreground="{StaticResource FrpTextSecondaryBrush}"
                                                               Data="{Binding Source=dns, Converter={StaticResource MetricIconConverter}}" />
@@ -324,7 +329,8 @@
                                                                      VerticalOffset="-6"
                                                                      Content="编辑" />
                                                         </ToolTip.Tip>
-                                                        <PathIcon Width="16"
+                                                        <PathIcon Classes="small-command-icon"
+                                                                  Width="16"
                                                                   Height="16"
                                                                   Data="{Binding Source=edit, Converter={StaticResource MetricIconConverter}}" />
                                                     </Button>
@@ -341,7 +347,8 @@
                                                                      VerticalOffset="-6"
                                                                      Content="{Binding RuntimeActionLabel}" />
                                                         </ToolTip.Tip>
-                                                        <PathIcon Width="16"
+                                                        <PathIcon Classes="small-command-icon"
+                                                                  Width="16"
                                                                   Height="16"
                                                                   Data="{Binding RuntimeActionIcon, Converter={StaticResource MetricIconConverter}}" />
                                                     </Button>
@@ -383,7 +390,8 @@
                                         Height="28"
                                         MinHeight="28"
                                         IsEnabled="False">
-                                    <PathIcon Width="16"
+                                    <PathIcon Classes="small-command-icon"
+                                              Width="16"
                                               Height="16"
                                               Data="{Binding Source=chevron_left, Converter={StaticResource MetricIconConverter}}" />
                                 </Button>
@@ -395,7 +403,8 @@
                                         Height="28"
                                         MinHeight="28"
                                         IsEnabled="False">
-                                    <PathIcon Width="16"
+                                    <PathIcon Classes="small-command-icon"
+                                              Width="16"
                                               Height="16"
                                               Data="{Binding Source=chevron_right, Converter={StaticResource MetricIconConverter}}" />
                                 </Button>
@@ -409,7 +418,7 @@
         <Border x:Name="EditorPanel"
                 Width="320"
                 HorizontalAlignment="Right"
-                Classes="panel"
+                Classes="panel side-panel"
                 ClipToBounds="True"
                 IsVisible="{Binding IsEditorOpen}">
             <Grid RowDefinitions="Auto,*,Auto">
@@ -427,7 +436,8 @@
                 </Border>
 
                 <ScrollViewer Grid.Row="1">
-                    <StackPanel Margin="16"
+                    <StackPanel Classes="form-section"
+                                Margin="16"
                                 Spacing="12">
                         <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal"

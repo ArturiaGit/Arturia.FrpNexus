@@ -99,7 +99,7 @@ public sealed class RemoteRuntimeService(
                 request,
                 FrpNexusStatus.Error,
                 completedAt,
-                BuildCommandFailureMessage(exception.Message),
+                BuildCommandFailureMessage(exception),
                 cancellationToken);
         }
     }
@@ -313,6 +313,13 @@ public sealed class RemoteRuntimeService(
         }
 
         return $"远程命令执行失败：{SanitizeMessage(detail)}";
+    }
+
+    private static string BuildCommandFailureMessage(Exception exception)
+    {
+        return exception is TimeoutException
+            ? "远程命令执行超时：远程节点响应过慢，请检查网络和服务器状态。"
+            : BuildCommandFailureMessage(exception.Message);
     }
 
     private static string BuildReadableDiagnostic(RemoteCommandResult result)

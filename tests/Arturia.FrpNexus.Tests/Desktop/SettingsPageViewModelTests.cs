@@ -1,4 +1,4 @@
-﻿using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels.Dialogs;
@@ -16,7 +16,7 @@ public sealed class SettingsPageViewModelTests
             @"D:\FrpNexus\logs",
             @"D:\FrpNexus\data\frpnexus.db",
             "https://mirror.example.com/repos/fatedier/frp/releases"));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -43,7 +43,7 @@ public sealed class SettingsPageViewModelTests
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
             @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data\frpnexus.db",
             string.Empty));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -70,7 +70,7 @@ public sealed class SettingsPageViewModelTests
     public async Task SaveCustomFrpDownloadSourceUrlCommand_ShouldPersistUrlAndShowSafetyNotice()
     {
         var settingsService = CreateDefaultSettingsService();
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -93,7 +93,7 @@ public sealed class SettingsPageViewModelTests
     public async Task SaveCustomFrpDownloadSourceUrlCommand_ShouldRejectInvalidUrl()
     {
         var settingsService = CreateDefaultSettingsService();
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             settingsService,
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -113,7 +113,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task SaveSettingsCommand_ShouldReportRecoverableFailure()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             new FailingSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -133,7 +133,7 @@ public sealed class SettingsPageViewModelTests
     public async Task OpenLogDirectoryCommand_ShouldOpenCurrentLogDirectory()
     {
         var folderLauncher = new FakeLocalFolderLauncherService();
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -154,7 +154,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task OpenLogDirectoryCommand_ShouldRejectEmptyLogDirectory()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             new FakeSettingsService(new FrpNexusSettingsSnapshot(
                 "GitHub Releases",
                 string.Empty,
@@ -178,7 +178,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task SelectLogDirectoryCommand_ShouldUpdateLogDirectoryWhenDirectoryIsPicked()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(localDirectory: @"D:\FrpNexus\logs"),
@@ -195,7 +195,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task SelectSqliteDatabaseDirectoryCommand_ShouldUpdateDirectoryAndDerivedDatabasePath()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(localDirectory: @"D:\FrpNexus\data"),
@@ -217,7 +217,7 @@ public sealed class SettingsPageViewModelTests
             new LocalStoragePathSettings(
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -247,7 +247,7 @@ public sealed class SettingsPageViewModelTests
             new LocalStoragePathSettings(
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -274,7 +274,7 @@ public sealed class SettingsPageViewModelTests
             new LocalStoragePathSettings(
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
                 @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data"));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -300,7 +300,7 @@ public sealed class SettingsPageViewModelTests
         var cacheMaintenanceService = new FakeLocalCacheMaintenanceService(
             new LocalCacheCleanupResult(3, 2048, @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\core\releases"));
         var confirmationDialog = new FakeConfirmationDialogService(confirm: true);
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -324,7 +324,7 @@ public sealed class SettingsPageViewModelTests
     {
         var cacheMaintenanceService = new FakeLocalCacheMaintenanceService();
         var confirmationDialog = new FakeConfirmationDialogService(confirm: false);
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -348,7 +348,7 @@ public sealed class SettingsPageViewModelTests
         var releaseService = new FakeFrpReleaseService(
             new FrpReleaseVersion("v0.60.0", new DateTimeOffset(2025, 1, 2, 0, 0, 0, TimeSpan.Zero)),
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
@@ -376,7 +376,7 @@ public sealed class SettingsPageViewModelTests
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
         var filePicker = new FakeFilePickerService(@"D:\FrpNexus\downloads");
         var downloadOptionsDialog = new FakeFrpCoreDownloadOptionsDialogService();
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService("Custom", customFrpDownloadSourceUrl: string.Empty),
             releaseService,
             filePicker,
@@ -399,7 +399,7 @@ public sealed class SettingsPageViewModelTests
     {
         var releaseService = new FakeFrpReleaseService(
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(
                 "Custom",
                 "https://mirror.example.com/repos/fatedier/frp/releases"),
@@ -426,7 +426,7 @@ public sealed class SettingsPageViewModelTests
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
         var downloadOptionsDialog = new FakeFrpCoreDownloadOptionsDialogService(
             new FrpCoreDownloadOptions("frps", "linux_arm64"));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
@@ -450,7 +450,7 @@ public sealed class SettingsPageViewModelTests
         var releaseService = new FakeFrpReleaseService(
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
         var filePicker = new FakeFilePickerService(@"D:\FrpNexus\downloads");
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             releaseService,
             filePicker,
@@ -469,7 +469,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task DownloadLatestFrpReleaseCommand_ShouldReportEmptyReleaseList()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
@@ -488,7 +488,7 @@ public sealed class SettingsPageViewModelTests
         var releaseService = new FakeFrpReleaseService(
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
         var filePicker = new FakeFilePickerService();
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             releaseService,
             filePicker,
@@ -509,7 +509,7 @@ public sealed class SettingsPageViewModelTests
     {
         var releaseService = new BlockingFrpReleaseService(
             new FrpReleaseVersion("v0.61.1", new DateTimeOffset(2025, 2, 3, 0, 0, 0, TimeSpan.Zero)));
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             releaseService,
             new FakeFilePickerService(@"D:\FrpNexus\downloads"),
@@ -538,7 +538,7 @@ public sealed class SettingsPageViewModelTests
             CreateNode("private-key-node", @"PrivateKey:C:\Users\Arturia\.ssh\id_ed25519"),
             CreateNode("agent-node", "SshAgent"));
         var secretService = new FakeNodeCredentialSecretService("session-node");
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -564,7 +564,7 @@ public sealed class SettingsPageViewModelTests
         var nodeManagementService = new FakeNodeManagementService(
             CreateNode("session-node", "SessionPassword"));
         var secretService = new FakeNodeCredentialSecretService("session-node");
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -590,7 +590,7 @@ public sealed class SettingsPageViewModelTests
             CreateNode("unsaved", "SessionPassword"),
             CreateNode("saved-b", "PrivateKey"));
         var secretService = new FakeNodeCredentialSecretService("saved-a", "saved-b");
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -609,7 +609,7 @@ public sealed class SettingsPageViewModelTests
     [Fact]
     public async Task LoadSettingsAsync_ShouldReportCredentialSecurityFailure()
     {
-        var viewModel = new SettingsPageViewModel(
+        var viewModel = CreateViewModel(
             CreateDefaultSettingsService(),
             new FakeFrpReleaseService(),
             new FakeFilePickerService(),
@@ -622,6 +622,32 @@ public sealed class SettingsPageViewModelTests
         Assert.Equal("凭据安全状态失败，请检查输入、网络或本地数据状态后重试。", viewModel.CredentialSecurityStatusText);
     }
 
+    private static SettingsPageViewModel CreateViewModel(
+        ISettingsService settingsService,
+        IFrpReleaseService frpReleaseService,
+        IFilePickerService filePickerService,
+        IFrpCoreDownloadOptionsDialogService downloadOptionsDialogService,
+        INodeManagementService nodeManagementService,
+        INodeCredentialSecretService nodeCredentialSecretService,
+        ILocalFolderLauncherService? localFolderLauncherService = null,
+        ILocalCacheMaintenanceService? localCacheMaintenanceService = null,
+        IConfirmationDialogService? confirmationDialogService = null,
+        ILocalStoragePathSettingsService? localStoragePathSettingsService = null)
+    {
+        return new SettingsPageViewModel(
+            settingsService,
+            frpReleaseService,
+            filePickerService,
+            downloadOptionsDialogService,
+            nodeManagementService,
+            nodeCredentialSecretService,
+            localFolderLauncherService ?? new FakeLocalFolderLauncherService(),
+            localCacheMaintenanceService ?? new FakeLocalCacheMaintenanceService(),
+            confirmationDialogService ?? new FakeConfirmationDialogService(),
+            localStoragePathSettingsService ?? new FakeLocalStoragePathSettingsService(new LocalStoragePathSettings(
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs",
+                @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\data")));
+    }
     private static FakeSettingsService CreateDefaultSettingsService(
         string frpDownloadSource = "GitHub Releases",
         string customFrpDownloadSourceUrl = "")

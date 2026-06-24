@@ -1163,6 +1163,19 @@ public sealed class TunnelsPageViewModelTests
         ];
     }
 
+    [Fact]
+    public async Task Dispose_ShouldStopLocalFrpcStatusPolling()
+    {
+        var viewModel = CreateViewModel(new FakeTunnelManagementService([]));
+
+        Assert.True(viewModel.IsLocalFrpcStatusPollingActiveForTest);
+
+        viewModel.Dispose();
+        await WaitUntilAsync(() => !viewModel.IsLocalFrpcStatusPollingActiveForTest);
+
+        Assert.False(viewModel.IsLocalFrpcStatusPollingActiveForTest);
+    }
+
     private static TunnelsPageViewModel CreateViewModel(
         ITunnelManagementService tunnelService,
         IReadOnlyList<NodeProfile>? nodes = null,
@@ -1200,6 +1213,19 @@ public sealed class TunnelsPageViewModelTests
         }
 
         return count;
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (condition())
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
     }
 
     private static string CreateExistingTempFile(string fileName)

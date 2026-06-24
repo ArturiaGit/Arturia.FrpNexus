@@ -5,7 +5,7 @@ namespace Arturia.FrpNexus.Cli.Commands;
 
 internal sealed class ConfigCommands(IFrpNexusSettingsStore settingsStore)
 {
-    [Command("show", Description = "显示 LiteDB 持久化配置。")]
+    [Command("show", Description = "显示 SQLite 持久化配置。")]
     public async Task Show()
     {
         CliOutput.WriteConfigNotice();

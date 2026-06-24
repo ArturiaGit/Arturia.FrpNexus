@@ -106,6 +106,26 @@ public sealed class RemoteFileTransferServiceTests
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task CheckRemoteFilesAsync_ShouldMapTimeoutFailureAndHideSecret()
+    {
+        var adapter = new FakeSftpClientAdapter { FileExistsException = new TimeoutException("SESSION_PASSWORD_PLACEHOLDER timed out") };
+        var service = new RemoteFileTransferService(
+            adapter,
+            new FakeRemoteDirectoryService(),
+            new FakeDeploymentRecordService(),
+            Logger.None);
+
+        var result = await service.CheckRemoteFilesAsync(new RemoteFilePresenceRequest(
+            CreateNode(),
+            CreateCredential(),
+            ["/opt/frp/frps"]));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("SFTP 检查超时：远程节点响应过慢，请检查网络和服务器状态。", result.Message);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("relative/frps")]
@@ -151,6 +171,30 @@ public sealed class RemoteFileTransferServiceTests
         Assert.Equal("/opt/frpnexus", directoryService.LastEnsuredPath);
         Assert.Equal("上传 FRP 核心", deploymentService.LastRecord?.StepName);
         Assert.Equal(FrpNexusStatus.Ready, deploymentService.LastRecord?.Status);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", deploymentService.LastRecord?.Description ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UploadFrpBinaryAsync_ShouldMapTimeoutFailureAndHideSecret()
+    {
+        var localPath = Path.GetTempFileName();
+        await File.WriteAllTextAsync(localPath, "frpc-binary-placeholder");
+        var deploymentService = new FakeDeploymentRecordService();
+        var service = new RemoteFileTransferService(
+            new FakeSftpClientAdapter { UploadException = new TimeoutException("SESSION_PASSWORD_PLACEHOLDER timed out") },
+            new FakeRemoteDirectoryService(),
+            deploymentService,
+            Logger.None);
+
+        var result = await service.UploadFrpBinaryAsync(new RemoteFileUploadRequest(
+            CreateNode(),
+            CreateCredential(),
+            localPath,
+            "/opt/frp/frps"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("SFTP 上传超时：远程节点响应过慢，请检查网络和服务器状态。", result.Message);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", deploymentService.LastRecord?.Description ?? string.Empty, StringComparison.Ordinal);
     }
 
@@ -525,6 +569,25 @@ public sealed class RemoteFileTransferServiceTests
         Assert.Contains("root SSH", result.Message);
         Assert.DoesNotContain("Renci.SshNet", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("Failure", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", deploymentService.LastRecord?.Description ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeleteRemoteFilesAsync_ShouldMapTimeoutFailureAndHideSecret()
+    {
+        var deploymentService = new FakeDeploymentRecordService();
+        var adapter = new FakeSftpClientAdapter { DeleteException = new TimeoutException("SESSION_PASSWORD_PLACEHOLDER timed out") };
+        adapter.ExistingFiles.Add("/opt/frp/frps");
+        var service = new RemoteFileTransferService(adapter, new FakeRemoteDirectoryService(), deploymentService, Logger.None);
+
+        var result = await service.DeleteRemoteFilesAsync(new RemoteFileDeleteRequest(
+            CreateNode(),
+            CreateCredential(),
+            ["/opt/frp/frps"]));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.Equal("SFTP 删除超时：远程节点响应过慢，请检查网络和服务器状态。", result.Message);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", deploymentService.LastRecord?.Description ?? string.Empty, StringComparison.Ordinal);
     }

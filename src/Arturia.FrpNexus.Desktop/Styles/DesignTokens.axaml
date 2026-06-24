@@ -268,29 +268,6 @@
     <CornerRadius x:Key="FrpRadiusPanel">8</CornerRadius>
     <Thickness x:Key="FrpBorderThicknessDefault">1</Thickness>
 
-    <!-- Compatibility aliases while pages migrate to Frp* semantic resources. -->
-    <Color x:Key="Color.AppBackground">#F8F9FB</Color>
-    <Color x:Key="Color.SidebarBackground">#F8F9FB</Color>
-    <Color x:Key="Color.Surface">#FFFFFF</Color>
-    <Color x:Key="Color.SurfaceSubtle">#F2F4F6</Color>
-    <Color x:Key="Color.SurfaceContainer">#ECEEF0</Color>
-    <Color x:Key="Color.BorderDefault">#D8DEE6</Color>
-    <Color x:Key="Color.BorderStrong">#C3C6D7</Color>
-    <Color x:Key="Color.TextPrimary">#17202A</Color>
-    <Color x:Key="Color.TextSecondary">#52606D</Color>
-    <Color x:Key="Color.TextMuted">#434655</Color>
-    <Color x:Key="Color.Primary">#004AC6</Color>
-    <Color x:Key="Color.PrimaryHover">#0053DB</Color>
-    <Color x:Key="Color.FocusRing">#93C5FD</Color>
-    <Color x:Key="Color.Success">#16A34A</Color>
-    <Color x:Key="Color.Warning">#D97706</Color>
-    <Color x:Key="Color.Error">#DC2626</Color>
-    <Color x:Key="Color.Info">#2563EB</Color>
-    <Color x:Key="Color.Neutral">#64748B</Color>
-    <Color x:Key="Color.Terminal">#0B1117</Color>
-    <Color x:Key="Color.TerminalHeader">#141B2B</Color>
-    <Color x:Key="Color.TerminalText">#C9D1D9</Color>
-
     <StaticResource x:Key="Brush.AppBackground" ResourceKey="FrpBackgroundBrush" />
     <StaticResource x:Key="Brush.SidebarBackground" ResourceKey="FrpSidebarBackgroundBrush" />
     <StaticResource x:Key="Brush.Surface" ResourceKey="FrpSurfaceWhiteBrush" />

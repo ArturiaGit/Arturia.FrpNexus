@@ -8,6 +8,7 @@ using Arturia.FrpNexus.Desktop.ViewModels.Pages;
 using Arturia.FrpNexus.Desktop.Views;
 using Arturia.FrpNexus.Desktop.Views.Dialogs;
 using Arturia.FrpNexus.Desktop.Views.Pages;
+using System.Runtime.CompilerServices;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
 
@@ -50,6 +51,103 @@ public sealed class DesktopStructureTests
         Assert.Contains("FrpStatusSuccessBrush", tokens);
         Assert.Contains("FrpCodePanelBackgroundBrush", tokens);
         Assert.Contains("Brush.AppBackground", tokens);
+        Assert.DoesNotContain("Color.AppBackground", tokens);
+        Assert.DoesNotContain("Color.TerminalText", tokens);
+    }
+
+    [Fact]
+    public void StyleResources_ShouldNotKeepLegacyUnloadedDictionaries()
+    {
+        var stylesPath = Path.Combine(GetDesktopProjectPath(), "Styles");
+
+        Assert.False(File.Exists(Path.Combine(stylesPath, "Colors.axaml")));
+        Assert.False(File.Exists(Path.Combine(stylesPath, "Layout.axaml")));
+        Assert.False(File.Exists(Path.Combine(stylesPath, "Typography.axaml")));
+    }
+
+    [Fact]
+    public void StyleResources_ShouldNotUseLegacyFrpNexusTokenNames()
+    {
+        var stylesPath = Path.Combine(GetDesktopProjectPath(), "Styles");
+        var styles = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(stylesPath, "*.axaml").Select(File.ReadAllText));
+
+        Assert.DoesNotMatch(@"FrpNexus[A-Za-z0-9]*(Brush|Color)", styles);
+    }
+
+    [Fact]
+    public void NodesAndTunnelsPages_ShouldUseSharedStructuralStyles()
+    {
+        var desktopProject = GetDesktopProjectPath();
+        var controls = File.ReadAllText(Path.Combine(desktopProject, "Styles", "Controls.axaml"));
+        var nodesPage = File.ReadAllText(Path.Combine(desktopProject, "Views", "Pages", "NodesPageView.axaml"));
+        var tunnelsPage = File.ReadAllText(Path.Combine(desktopProject, "Views", "Pages", "TunnelsPageView.axaml"));
+
+        Assert.Contains("Border.page-toolbar", controls);
+        Assert.Contains("Border.search-box", controls);
+        Assert.Contains("Border.side-panel", controls);
+        Assert.Contains("StackPanel.form-section", controls);
+        Assert.Contains("PathIcon.command-icon", controls);
+        Assert.Contains("PathIcon.small-command-icon", controls);
+
+        Assert.Contains("Classes=\"page-toolbar\"", nodesPage);
+        Assert.Contains("Classes=\"page-toolbar\"", tunnelsPage);
+        Assert.Contains("Classes=\"search-box\"", nodesPage);
+        Assert.Contains("Classes=\"search-box\"", tunnelsPage);
+        Assert.Contains("side-panel", nodesPage);
+        Assert.Contains("side-panel", tunnelsPage);
+        Assert.Contains("Classes=\"form-section\"", nodesPage);
+        Assert.Contains("Classes=\"form-section\"", tunnelsPage);
+        Assert.Contains("Classes=\"command-icon\"", nodesPage);
+        Assert.Contains("Classes=\"command-icon\"", tunnelsPage);
+        Assert.Contains("Classes=\"small-command-icon\"", nodesPage);
+        Assert.Contains("Classes=\"small-command-icon\"", tunnelsPage);
+    }
+
+    [Fact]
+    public void DirectoryBuildProps_ShouldExcludeGeneratedCodeFromSdkCompileItems()
+    {
+        var props = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "Directory.Build.props"));
+
+        Assert.Contains("<Compile Remove=", props);
+        Assert.Contains(".artifacts\\**\\*.cs", props);
+        Assert.Contains("artifacts\\**\\*.cs", props);
+        Assert.Contains("bin\\**\\*.cs", props);
+        Assert.Contains("obj\\**\\*.cs", props);
+        Assert.Contains("**\\.artifacts\\**\\*.cs", props);
+        Assert.Contains("**\\artifacts\\**\\*.cs", props);
+        Assert.Contains("**\\bin\\**\\*.cs", props);
+        Assert.Contains("**\\obj\\**\\*.cs", props);
+        Assert.DoesNotContain("Remove=\"**\\*.cs\"", props);
+        Assert.DoesNotContain("Remove=\"**/*.cs\"", props);
+    }
+
+    [Fact]
+    public void DirectoryBuildProps_ShouldEnableLowNoiseAnalyzers()
+    {
+        var props = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "Directory.Build.props"));
+
+        Assert.Contains("<EnableNETAnalyzers>true</EnableNETAnalyzers>", props);
+        Assert.DoesNotContain("TreatWarningsAsErrors", props);
+        Assert.DoesNotContain("<AnalysisMode>Recommended</AnalysisMode>", props);
+        Assert.DoesNotContain("<AnalysisMode>All</AnalysisMode>", props);
+        Assert.DoesNotContain("<AnalysisMode>Minimum</AnalysisMode>", props);
+    }
+
+    [Fact]
+    public void QualityChecksDocumentation_ShouldListVerificationCommandsAndKnownFormatDebt()
+    {
+        var documentation = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "docs", "QUALITY_CHECKS.md"));
+
+        Assert.Contains("dotnet restore Arturia.FrpNexus.sln", documentation);
+        Assert.Contains("dotnet build Arturia.FrpNexus.sln", documentation);
+        Assert.Contains("dotnet test Arturia.FrpNexus.sln", documentation);
+        Assert.Contains("dotnet format Arturia.FrpNexus.sln --verify-no-changes --verbosity minimal", documentation);
+        Assert.Contains("--artifacts-path", documentation);
+        Assert.Contains("format", documentation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("line ending", documentation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("whitespace", documentation, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -417,9 +515,66 @@ public sealed class DesktopStructureTests
         Assert.DoesNotContain("LocalFrpcConfigPath", nodesXaml);
     }
 
-    private static string GetDesktopProjectPath()
+    [Fact]
+    public void ProductionPageViewModels_ShouldNotContainLegacyOrNoopServiceImplementations()
     {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        var viewModelTypes = new[]
+        {
+            typeof(NodesPageViewModel),
+            typeof(SettingsPageViewModel),
+        };
+
+        foreach (var viewModelType in viewModelTypes)
+        {
+            var nestedServiceTypes = viewModelType
+                .GetNestedTypes(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+                .Select(type => type.Name)
+                .Where(name =>
+                    name.Contains("Legacy", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("Noop", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("NoOp", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            Assert.Empty(nestedServiceTypes);
+        }
+    }
+
+    [Fact]
+    public void ProductionPageViewModels_ShouldRequireServiceDependencies()
+    {
+        var viewModelTypes = new[]
+        {
+            typeof(NodesPageViewModel),
+            typeof(SettingsPageViewModel),
+        };
+
+        foreach (var viewModelType in viewModelTypes)
+        {
+            var optionalServiceParameters = viewModelType
+                .GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Where(parameter =>
+                    parameter.ParameterType.IsInterface
+                    && parameter.ParameterType.Name.EndsWith("Service", StringComparison.Ordinal)
+                    && parameter.HasDefaultValue)
+                .Select(parameter => $"{viewModelType.Name}.{parameter.Name}")
+                .ToArray();
+
+            Assert.Empty(optionalServiceParameters);
+        }
+    }
+
+    [Fact]
+    public void ViewModelsWithBackgroundPolling_ShouldBeDisposable()
+    {
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(NodesPageViewModel)));
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(TunnelsPageViewModel)));
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(MainWindowViewModel)));
+    }
+
+    private static string GetDesktopProjectPath([CallerFilePath] string sourceFilePath = "")
+    {
+        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
 
         while (current is not null)
         {
@@ -433,5 +588,23 @@ public sealed class DesktopStructureTests
         }
 
         throw new DirectoryNotFoundException("Could not locate src/Arturia.FrpNexus.Desktop from test output.");
+    }
+
+    private static string GetRepositoryRoot([CallerFilePath] string sourceFilePath = "")
+    {
+        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
+
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "Directory.Build.props"))
+                && File.Exists(Path.Combine(current.FullName, "Arturia.FrpNexus.sln")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root from test output.");
     }
 }

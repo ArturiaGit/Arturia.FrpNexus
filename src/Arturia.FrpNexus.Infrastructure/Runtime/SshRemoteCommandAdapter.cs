@@ -13,7 +13,10 @@ public sealed class SshRemoteCommandAdapter : IRemoteCommandAdapter
         string command,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
+        return SshNetOperationPolicy.RunAsync(
+            "远程命令执行",
+            SshNetOperationPolicy.RemoteCommandTimeout,
+            () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -22,6 +25,7 @@ public sealed class SshRemoteCommandAdapter : IRemoteCommandAdapter
 
             cancellationToken.ThrowIfCancellationRequested();
             using var sshCommand = client.CreateCommand(command);
+            sshCommand.CommandTimeout = SshNetOperationPolicy.RemoteCommandTimeout;
             var output = sshCommand.Execute();
             var error = sshCommand.Error;
             var exitCode = sshCommand.ExitStatus ?? -1;

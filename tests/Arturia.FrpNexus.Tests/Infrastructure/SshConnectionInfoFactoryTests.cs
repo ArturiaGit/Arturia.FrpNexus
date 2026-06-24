@@ -3,6 +3,7 @@ using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Ssh;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using System.Security.Cryptography;
 
 namespace Arturia.FrpNexus.Tests.Infrastructure;
 
@@ -23,6 +24,33 @@ public sealed class SshConnectionInfoFactoryTests
         Assert.Equal(node.UserName, connectionInfo.Username);
         Assert.Contains(connectionInfo.AuthenticationMethods, method => method is PasswordAuthenticationMethod);
         Assert.Contains(connectionInfo.AuthenticationMethods, method => method is KeyboardInteractiveAuthenticationMethod);
+    }
+
+    [Fact]
+    public void Create_ShouldApplyDefaultConnectionTimeoutForSessionPassword()
+    {
+        var connectionInfo = SshConnectionInfoFactory.Create(
+            CreateNode(),
+            new SshCredentialReference(
+                SshAuthenticationMode.SessionPassword,
+                SessionPassword: "SESSION_PASSWORD_PLACEHOLDER"),
+            "SSH 连接测试");
+
+        Assert.Equal(SshNetOperationPolicy.ConnectTimeout, connectionInfo.Timeout);
+    }
+
+    [Fact]
+    public void Create_ShouldApplyDefaultConnectionTimeoutForPrivateKey()
+    {
+        var privateKeyPath = CreateTemporaryPrivateKeyFile();
+        var connectionInfo = SshConnectionInfoFactory.Create(
+            CreateNode(),
+            new SshCredentialReference(
+                SshAuthenticationMode.PrivateKey,
+                PrivateKeyPath: privateKeyPath),
+            "SSH 连接测试");
+
+        Assert.Equal(SshNetOperationPolicy.ConnectTimeout, connectionInfo.Timeout);
     }
 
     [Fact]
@@ -86,6 +114,15 @@ public sealed class SshConnectionInfoFactoryTests
             "v0.61.1",
             "-",
             "/etc/frp/frpc.toml");
+    }
+
+    private static string CreateTemporaryPrivateKeyFile()
+    {
+        using var rsa = RSA.Create(2048);
+        var path = Path.Combine(Path.GetTempPath(), "FrpNexusTests", $"ssh-key-{Guid.NewGuid():N}.pem");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, rsa.ExportRSAPrivateKeyPem());
+        return path;
     }
 }
 
