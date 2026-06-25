@@ -4,6 +4,12 @@
     <sys:TimeSpan x:Key="FrpMotionFastDuration">0:0:0.12</sys:TimeSpan>
     <sys:TimeSpan x:Key="FrpMotionNormalDuration">0:0:0.18</sys:TimeSpan>
     <sys:TimeSpan x:Key="FrpMotionSlowDuration">0:0:0.24</sys:TimeSpan>
+    <sys:TimeSpan x:Key="FrpMotionPageEnterDuration">0:0:0.18</sys:TimeSpan>
+    <sys:TimeSpan x:Key="FrpMotionDialogEnterDuration">0:0:0.14</sys:TimeSpan>
 
     <CubicEaseOut x:Key="FrpMotionEaseOut" />
+    <SineEaseOut x:Key="FrpMotionEaseGentleOut" />
+
+    <x:Double x:Key="FrpMotionPageEnterOffset">8</x:Double>
+    <x:Double x:Key="FrpMotionDialogEnterScale">0.98</x:Double>
 </ResourceDictionary>

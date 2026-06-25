@@ -7,6 +7,8 @@
             <SolidColorBrush x:Key="FrpSidebarBackgroundBrush" Color="#F8F9FB" />
             <SolidColorBrush x:Key="FrpSurfaceBrush" Color="#F8F9FB" />
             <SolidColorBrush x:Key="FrpSurfaceWhiteBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="FrpSurfaceAcrylicBrush" Color="#EFFFFFFF" />
+            <SolidColorBrush x:Key="FrpSurfaceAcrylicLowBrush" Color="#DDF8F9FB" />
             <SolidColorBrush x:Key="FrpSurfaceLowBrush" Color="#F2F4F6" />
             <SolidColorBrush x:Key="FrpSurfaceContainerBrush" Color="#ECEEF0" />
             <SolidColorBrush x:Key="FrpSurfaceHighBrush" Color="#E6E8EA" />
@@ -58,6 +60,8 @@
             <SolidColorBrush x:Key="Brush.AppBackground" Color="#F8F9FB" />
             <SolidColorBrush x:Key="Brush.SidebarBackground" Color="#F8F9FB" />
             <SolidColorBrush x:Key="Brush.Surface" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Brush.SurfaceAcrylic" Color="#EFFFFFFF" />
+            <SolidColorBrush x:Key="Brush.SurfaceAcrylicLow" Color="#DDF8F9FB" />
             <SolidColorBrush x:Key="Brush.SurfaceSubtle" Color="#F2F4F6" />
             <SolidColorBrush x:Key="Brush.SurfaceContainer" Color="#ECEEF0" />
             <SolidColorBrush x:Key="Brush.BorderDefault" Color="#D8DEE6" />
@@ -85,6 +89,8 @@
             <SolidColorBrush x:Key="FrpSidebarBackgroundBrush" Color="#111418" />
             <SolidColorBrush x:Key="FrpSurfaceBrush" Color="#14181E" />
             <SolidColorBrush x:Key="FrpSurfaceWhiteBrush" Color="#1B2027" />
+            <SolidColorBrush x:Key="FrpSurfaceAcrylicBrush" Color="#E61B2027" />
+            <SolidColorBrush x:Key="FrpSurfaceAcrylicLowBrush" Color="#D914181E" />
             <SolidColorBrush x:Key="FrpSurfaceLowBrush" Color="#202630" />
             <SolidColorBrush x:Key="FrpSurfaceContainerBrush" Color="#29313C" />
             <SolidColorBrush x:Key="FrpSurfaceHighBrush" Color="#313A46" />
@@ -136,6 +142,8 @@
             <SolidColorBrush x:Key="Brush.AppBackground" Color="#101317" />
             <SolidColorBrush x:Key="Brush.SidebarBackground" Color="#111418" />
             <SolidColorBrush x:Key="Brush.Surface" Color="#1B2027" />
+            <SolidColorBrush x:Key="Brush.SurfaceAcrylic" Color="#E61B2027" />
+            <SolidColorBrush x:Key="Brush.SurfaceAcrylicLow" Color="#D914181E" />
             <SolidColorBrush x:Key="Brush.SurfaceSubtle" Color="#202630" />
             <SolidColorBrush x:Key="Brush.SurfaceContainer" Color="#29313C" />
             <SolidColorBrush x:Key="Brush.BorderDefault" Color="#3A4350" />
@@ -163,6 +171,8 @@
     <Color x:Key="FrpSidebarBackgroundColor">#F8F9FB</Color>
     <Color x:Key="FrpSurfaceColor">#F8F9FB</Color>
     <Color x:Key="FrpSurfaceWhiteColor">#FFFFFF</Color>
+    <Color x:Key="FrpSurfaceAcrylicColor">#EFFFFFFF</Color>
+    <Color x:Key="FrpSurfaceAcrylicLowColor">#DDF8F9FB</Color>
     <Color x:Key="FrpSurfaceLowColor">#F2F4F6</Color>
     <Color x:Key="FrpSurfaceContainerColor">#ECEEF0</Color>
     <Color x:Key="FrpSurfaceHighColor">#E6E8EA</Color>
@@ -197,6 +207,8 @@
     <SolidColorBrush x:Key="FrpSidebarBackgroundBrush" Color="{StaticResource FrpSidebarBackgroundColor}" />
     <SolidColorBrush x:Key="FrpSurfaceBrush" Color="{StaticResource FrpSurfaceColor}" />
     <SolidColorBrush x:Key="FrpSurfaceWhiteBrush" Color="{StaticResource FrpSurfaceWhiteColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceAcrylicBrush" Color="{StaticResource FrpSurfaceAcrylicColor}" />
+    <SolidColorBrush x:Key="FrpSurfaceAcrylicLowBrush" Color="{StaticResource FrpSurfaceAcrylicLowColor}" />
     <SolidColorBrush x:Key="FrpSurfaceLowBrush" Color="{StaticResource FrpSurfaceLowColor}" />
     <SolidColorBrush x:Key="FrpSurfaceContainerBrush" Color="{StaticResource FrpSurfaceContainerColor}" />
     <SolidColorBrush x:Key="FrpSurfaceHighBrush" Color="{StaticResource FrpSurfaceHighColor}" />
@@ -250,8 +262,10 @@
     <SolidColorBrush x:Key="FrpCodeTextBrush" Color="#C9D1D9" />
     <SolidColorBrush x:Key="FrpCodeMutedBrush" Color="#94A3B8" />
     <SolidColorBrush x:Key="FrpModalOverlayBrush" Color="#000000" Opacity="0.42" />
-    <x:String x:Key="FrpShadowPanel">0 1 2 0 #1419231F</x:String>
-    <x:String x:Key="FrpShadowOverlay">0 4 12 0 #14192324</x:String>
+    <media:BoxShadows x:Key="FrpShadowPanel">0 1 2 0 #1419231F</media:BoxShadows>
+    <media:BoxShadows x:Key="FrpShadowPanelHover">0 4 14 0 #1419231A</media:BoxShadows>
+    <media:BoxShadows x:Key="FrpShadowOverlay">0 4 12 0 #14192324</media:BoxShadows>
+    <media:BoxShadows x:Key="FrpShadowDialog">0 16 36 0 #14192333</media:BoxShadows>
 
     <FontFamily x:Key="Font.Ui">Segoe UI, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC, sans-serif</FontFamily>
     <FontFamily x:Key="Font.Code">JetBrains Mono, Cascadia Code, Consolas, monospace</FontFamily>
@@ -271,6 +285,8 @@
     <StaticResource x:Key="Brush.AppBackground" ResourceKey="FrpBackgroundBrush" />
     <StaticResource x:Key="Brush.SidebarBackground" ResourceKey="FrpSidebarBackgroundBrush" />
     <StaticResource x:Key="Brush.Surface" ResourceKey="FrpSurfaceWhiteBrush" />
+    <StaticResource x:Key="Brush.SurfaceAcrylic" ResourceKey="FrpSurfaceAcrylicBrush" />
+    <StaticResource x:Key="Brush.SurfaceAcrylicLow" ResourceKey="FrpSurfaceAcrylicLowBrush" />
     <StaticResource x:Key="Brush.SurfaceSubtle" ResourceKey="FrpSurfaceLowBrush" />
     <StaticResource x:Key="Brush.SurfaceContainer" ResourceKey="FrpSurfaceContainerBrush" />
     <StaticResource x:Key="Brush.BorderDefault" ResourceKey="FrpBorderDefaultBrush" />

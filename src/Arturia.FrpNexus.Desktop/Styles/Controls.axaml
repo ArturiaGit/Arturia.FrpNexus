@@ -45,11 +45,29 @@
     </Style>
 
     <Style Selector="Border.panel">
-        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
-        <Setter Property="BoxShadow" Value="0 1 2 0 #1419231F" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BoxShadowsTransition Property="BoxShadow"
+                                      Duration="{DynamicResource FrpMotionNormalDuration}"
+                                      Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.interactive-panel:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineVariantBrush}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanelHover}" />
     </Style>
 
     <Style Selector="Border.metric-tile">
@@ -58,23 +76,80 @@
     </Style>
 
     <Style Selector="Border.subtle-panel">
-        <Setter Property="Background" Value="{DynamicResource FrpSurfaceLowBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicLowBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
     </Style>
 
-    <Style Selector="Border.command-bar">
+    <Style Selector="Border.section-surface">
         <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+    </Style>
+
+    <Style Selector="Border.inspector-panel">
+        <Setter Property="Width" Value="336" />
+        <Setter Property="Margin" Value="14,0,0,0" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+    </Style>
+
+    <Style Selector="Border.inspector-header">
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+
+    <Style Selector="Border.inspector-footer">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+
+    <Style Selector="Border.command-bar">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
         <Setter Property="Padding" Value="8" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+    </Style>
+
+    <Style Selector="Border.dense-command-bar">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+    </Style>
+
+    <Style Selector="Border.editor-shell">
+        <Setter Property="Background" Value="{DynamicResource FrpCodePanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+    </Style>
+
+    <Style Selector="TextBlock.inspector-kicker">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="LineHeight" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
     </Style>
 
     <Style Selector="Border.page-toolbar">
         <Setter Property="Padding" Value="12" />
-        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
     </Style>
@@ -174,7 +249,7 @@
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
-                        BoxShadow="0 4 12 0 #14192324">
+                        BoxShadow="{DynamicResource FrpShadowOverlay}">
                     <ContentPresenter Content="{TemplateBinding Content}"
                                       ContentTemplate="{TemplateBinding ContentTemplate}"
                                       Padding="{TemplateBinding Padding}"
@@ -301,11 +376,21 @@
     </Style>
 
     <Style Selector="Border.settings-card">
-        <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
-        <Setter Property="BoxShadow" Value="0 1 2 0 #14192314" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FrpShadowPanel}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BoxShadowsTransition Property="BoxShadow"
+                                      Duration="{DynamicResource FrpMotionNormalDuration}"
+                                      Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Border.settings-divider">
@@ -337,6 +422,16 @@
         <Setter Property="Foreground" Value="{DynamicResource FrpOnPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.primary:pointerover">
@@ -361,6 +456,16 @@
         <Setter Property="Foreground" Value="{DynamicResource FrpTextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.secondary:pointerover">
@@ -382,6 +487,16 @@
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"
@@ -422,10 +537,102 @@
         <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
     </Style>
 
+    <Style Selector="ToggleButton.log-auto-refresh">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceVariantBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpSurfaceVariantBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Ellipse x:Name="PART_Knob"
+                             Width="16"
+                             Height="16"
+                             Margin="2"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"
+                             Fill="{DynamicResource FrpSurfaceWhiteBrush}">
+                        <Ellipse.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform"
+                                                               Duration="{DynamicResource FrpMotionFastDuration}"
+                                                               Easing="{DynamicResource FrpMotionEaseOut}" />
+                            </Transitions>
+                        </Ellipse.Transitions>
+                    </Ellipse>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:checked">
+        <Setter Property="Background" Value="{DynamicResource FrpPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:checked /template/ Ellipse#PART_Knob">
+        <Setter Property="RenderTransform" Value="translate(12px, 0)" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceDimBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineVariantBrush}" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:pressed">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceHighBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineVariantBrush}" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:checked:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FrpPrimaryHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryHoverBrush}" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:focus-visible">
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpFocusRingBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="ToggleButton.log-auto-refresh:disabled">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
     <Style Selector="Button.stitch-command">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"
@@ -563,6 +770,13 @@
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}">
@@ -599,6 +813,16 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <StackPanel Orientation="Horizontal"
@@ -691,6 +915,16 @@
         <Setter Property="Cursor" Value="IBeam" />
         <Setter Property="SelectionBrush" Value="{DynamicResource FrpInputSelectionBrush}" />
         <Setter Property="SelectionForegroundBrush" Value="{DynamicResource FrpTextPrimaryBrush}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border x:Name="PART_InputChrome"
@@ -770,6 +1004,16 @@
         <Setter Property="PlaceholderForeground" Value="{DynamicResource FrpTextSecondaryBrush}" />
         <Setter Property="MaxDropDownHeight" Value="240" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid>
@@ -813,7 +1057,7 @@
                                 BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{DynamicResource FrpRadiusPanel}"
-                                BoxShadow="0 4 12 0 #14192324">
+                                BoxShadow="{DynamicResource FrpShadowOverlay}">
                             <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                           HorizontalScrollBarVisibility="Disabled"
                                           VerticalScrollBarVisibility="Auto">
@@ -912,5 +1156,33 @@
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Background" Value="{DynamicResource FrpSurfaceWhiteBrush}" />
+    </Style>
+
+    <Style Selector="DataGridRow">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="DataGridRow:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceLowBrush}" />
+    </Style>
+
+    <Style Selector="DataGridRow:selected">
+        <Setter Property="Background" Value="{DynamicResource FrpSelectionSubtleBrush}" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+        <Setter Property="Height" Value="3" />
+        <Setter Property="MinHeight" Value="3" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceVariantBrush}" />
+        <Setter Property="CornerRadius" Value="2" />
     </Style>
 </Styles>

@@ -8,15 +8,30 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
     </Style>
 
     <Style Selector="Border.nav-item">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.nav-button:pointerover Border.nav-item">
         <Setter Property="Background" Value="{DynamicResource FrpSidebarHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.nav-button:pressed Border.nav-item">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceHighBrush}" />
     </Style>
 
     <Style Selector="Button.nav-button:focus-visible Border.nav-item">
@@ -26,6 +41,10 @@
     </Style>
 
     <Style Selector="Border.nav-item.selected">
+        <Setter Property="Background" Value="{DynamicResource FrpSidebarSelectedBrush}" />
+    </Style>
+
+    <Style Selector="Button.nav-button:pointerover Border.nav-item.selected">
         <Setter Property="Background" Value="{DynamicResource FrpSidebarSelectedBrush}" />
     </Style>
 
@@ -41,8 +60,15 @@
         <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
     </Style>
 
+    <Style Selector="Button.nav-button:pointerover PathIcon.nav-icon">
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
+    </Style>
+
     <Style Selector="Border.nav-item.selected TextBlock.nav-title">
         <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
     </Style>
-</Styles>
 
+    <Style Selector="Button.nav-button:pointerover TextBlock.nav-title">
+        <Setter Property="Foreground" Value="{DynamicResource FrpPrimaryBrush}" />
+    </Style>
+</Styles>

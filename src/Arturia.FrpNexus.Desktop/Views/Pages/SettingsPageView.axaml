@@ -12,7 +12,7 @@
             <Border Classes="settings-card">
                 <StackPanel>
                     <controls:SettingsRowControl Title="FRP 下载源"
-                                                 Description="配置 FRP 客户端和服务端核心组件的更新服务源">
+                                                 Description="选择核心下载来源">
                         <controls:SettingsRowControl.ValueContent>
                             <ComboBox Classes="stitch-input"
                                       Width="320"
@@ -29,8 +29,8 @@
 
                     <Border Classes="settings-divider" />
 
-                    <controls:SettingsRowControl Title="自定义镜像源地址"
-                                                 Description="填写 GitHub API 兼容的 FRP Releases 地址"
+                    <controls:SettingsRowControl Title="自定义镜像源"
+                                                 Description="填写 GitHub API 兼容 Releases 地址"
                                                  IsVisible="{Binding IsCustomFrpDownloadSourceSelected}">
                         <controls:SettingsRowControl.ValueContent>
                             <StackPanel Spacing="6"
@@ -46,7 +46,7 @@
                                 </Grid>
                                 <TextBlock Classes="helper"
                                            TextWrapping="Wrap"
-                                           Text="请仅使用可信赖的下载源；第三方下载源可能带来安全风险，使用后果需自行承担。" />
+                                           Text="仅使用可信源，避免下载被篡改的 FRP 核心。" />
                             </StackPanel>
                         </controls:SettingsRowControl.ValueContent>
                     </controls:SettingsRowControl>
@@ -55,7 +55,7 @@
                             IsVisible="{Binding IsCustomFrpDownloadSourceSelected}" />
 
                     <controls:SettingsRowControl Title="FRP 核心下载"
-                                                 Description="下载最新版 FRP 核心；自定义源需使用 GitHub API 兼容 Releases 地址">
+                                                 Description="下载最新版 frpc / frps">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid MinWidth="180"
                                   HorizontalAlignment="Right">
@@ -74,7 +74,7 @@
             <Border Classes="settings-card">
                 <StackPanel>
                     <controls:SettingsRowControl Title="凭据安全中心"
-                                                 Description="查看节点认证方式和 DPAPI 已保存会话密码状态，不显示或回填任何密码明文">
+                                                 Description="查看认证状态，不显示密码明文">
                         <controls:SettingsRowControl.ValueContent>
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right"
@@ -92,7 +92,7 @@
 
                     <Border Classes="settings-divider" />
 
-                    <Border Classes="subtle-panel"
+                    <Border Classes="section-surface"
                             Margin="16"
                             Padding="12">
                         <Grid ColumnDefinitions="*,*,*,*,*"
@@ -132,7 +132,7 @@
 
                     <Border Classes="settings-divider" />
 
-                    <Border Classes="subtle-panel"
+                    <Border Classes="section-surface"
                             Margin="16,0,16,16"
                             Padding="0">
                         <StackPanel>
@@ -223,7 +223,7 @@
                                Text="{Binding CredentialSecurityStatusText}" />
 
                     <controls:SettingsRowControl Title="安全边界"
-                                                 Description="保存密码仅受当前 Windows 用户 DPAPI 保护，不会进入 SQLite、导出或备份">
+                                                 Description="密码仅由当前 Windows 用户 DPAPI 保护，不写入 SQLite 或导出文件">
                     </controls:SettingsRowControl>
                 </StackPanel>
             </Border>
@@ -232,7 +232,7 @@
             <Border Classes="settings-card">
                 <StackPanel>
                     <controls:SettingsRowControl Title="日志目录"
-                                                 Description="Serilog 本地文件日志默认记录 Warning 及以上级别">
+                                                 Description="本地文件仅记录 Warning 及以上">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid Width="480" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <TextBox Classes="stitch-input code"
@@ -272,7 +272,7 @@
                     <Border Classes="settings-divider" />
 
                     <controls:SettingsRowControl Title="日志级别"
-                                                 Description="控制台输出 Information 及以上，本地文件记录 Warning 及以上">
+                                                 Description="控制台 Information+，文件 Warning+">
                         <controls:SettingsRowControl.ValueContent>
                             <TextBlock Classes="helper"
                                        HorizontalAlignment="Right"
@@ -283,7 +283,7 @@
                     <Border Classes="settings-divider" />
 
                     <controls:SettingsRowControl Title="本地缓存"
-                                                 Description="清理默认 FRP 核心下载缓存，不会删除 SQLite、日志、凭据、配置或用户选择的下载目录">
+                                                 Description="清理默认 FRP 核心下载缓存，不影响数据库、日志和凭据">
                         <controls:SettingsRowControl.ValueContent>
                             <Grid MinWidth="180"
                                   HorizontalAlignment="Right">

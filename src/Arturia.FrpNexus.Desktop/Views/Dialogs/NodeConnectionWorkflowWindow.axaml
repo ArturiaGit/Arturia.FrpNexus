@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:attached="using:Arturia.FrpNexus.Desktop.AttachedProperties"
         xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
         xmlns:dialogViews="using:Arturia.FrpNexus.Desktop.Views.Dialogs"
         x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.NodeConnectionWorkflowWindow"
@@ -12,7 +13,14 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource Brush.AppBackground}">
-    <Border Margin="16">
+    <Border Margin="16"
+            attached:DialogEntranceMotion.IsEnabled="True"
+            Background="{DynamicResource FrpSurfaceAcrylicBrush}"
+            BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
+            BorderThickness="1"
+            BoxShadow="{DynamicResource FrpShadowDialog}"
+            CornerRadius="{DynamicResource FrpRadiusPanel}"
+            ClipToBounds="True">
         <dialogViews:NodeConnectionWorkflowDialogView />
     </Border>
 </Window>

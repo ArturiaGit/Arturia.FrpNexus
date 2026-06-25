@@ -7,6 +7,8 @@
         xmlns:desktopModels="using:Arturia.FrpNexus.Desktop.Models"
         xmlns:dialogViews="using:Arturia.FrpNexus.Desktop.Views.Dialogs"
         xmlns:pageViews="using:Arturia.FrpNexus.Desktop.Views.Pages"
+        xmlns:transitions="using:Arturia.FrpNexus.Desktop.Transitions"
+        xmlns:attached="using:Arturia.FrpNexus.Desktop.AttachedProperties"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -26,11 +28,10 @@
 
     <Window.Styles>
         <Style Selector="Grid.dialog-host">
-            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity"
-                                      Duration="{DynamicResource FrpMotionNormalDuration}"
+                                      Duration="{DynamicResource FrpMotionDialogEnterDuration}"
                                       Easing="{DynamicResource FrpMotionEaseOut}" />
                 </Transitions>
             </Setter>
@@ -141,7 +142,11 @@
 
                 <Border Grid.Row="2"
                         Margin="16,16,16,0"
-                        Padding="10,8">
+                        Padding="10,8"
+                        Background="{DynamicResource Brush.SurfaceAcrylicLow}"
+                        BorderBrush="{DynamicResource Brush.BorderDefault}"
+                        BorderThickness="1"
+                        CornerRadius="8">
                     <Grid ColumnDefinitions="32,*"
                           ColumnSpacing="8">
                         <Border Width="28"
@@ -173,7 +178,7 @@
               RowDefinitions="52,*"
               Background="{DynamicResource Brush.AppBackground}">
             <Border Grid.Row="0"
-                    Background="{DynamicResource Brush.Surface}"
+                    Background="{DynamicResource Brush.SurfaceAcrylic}"
                     BorderBrush="{DynamicResource Brush.BorderDefault}"
                     BorderThickness="0,0,0,1">
                 <DockPanel Margin="24,0">
@@ -228,7 +233,12 @@
                                          Margin="{DynamicResource FrpPageMargin}"
                                          Content="{Binding CurrentPage}">
                 <TransitioningContentControl.PageTransition>
-                    <CrossFade Duration="0:0:0.18" />
+                    <transitions:FadeTranslatePageTransition Duration="0:0:0.18"
+                                                             Offset="8">
+                        <transitions:FadeTranslatePageTransition.Easing>
+                            <SineEaseOut />
+                        </transitions:FadeTranslatePageTransition.Easing>
+                    </transitions:FadeTranslatePageTransition>
                 </TransitioningContentControl.PageTransition>
             </TransitioningContentControl>
         </Grid>
@@ -253,6 +263,7 @@
               VerticalAlignment="Center"
               Opacity="{Binding IsFrpCoreDownloadOptionsDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
               IsVisible="{Binding IsFrpCoreDownloadOptionsDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
               ZIndex="1001">
             <Border Width="480"
                     MaxHeight="420"
@@ -261,7 +272,8 @@
                     Background="{DynamicResource FrpSurfaceWhiteBrush}"
                     BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
                     ClipToBounds="True">
                 <ContentControl Content="{Binding CurrentModalDialog}" />
             </Border>
@@ -273,6 +285,7 @@
               VerticalAlignment="Center"
               Opacity="{Binding IsConfirmationDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
               IsVisible="{Binding IsConfirmationDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
               ZIndex="1001">
             <Border Width="460"
                     MaxHeight="360"
@@ -281,7 +294,8 @@
                     Background="{DynamicResource FrpSurfaceWhiteBrush}"
                     BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
                     ClipToBounds="True">
                 <ContentControl Content="{Binding CurrentModalDialog}" />
             </Border>
@@ -294,6 +308,7 @@
               VerticalAlignment="Stretch"
               Opacity="{Binding IsWorkflowDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
               IsVisible="{Binding IsWorkflowDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
               ZIndex="1001">
             <Border Width="640"
                     MaxHeight="680"
@@ -302,7 +317,8 @@
                     Background="{DynamicResource FrpSurfaceWhiteBrush}"
                     BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
                     ClipToBounds="True">
                 <ContentControl HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"
@@ -311,4 +327,3 @@
         </Grid>
     </Grid>
 </Window>
-
