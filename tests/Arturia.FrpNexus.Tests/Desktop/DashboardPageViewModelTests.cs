@@ -163,6 +163,42 @@ public sealed class DashboardPageViewModelTests
     }
 
     [Fact]
+    public async Task LocalWarningAndErrorLogs_ShouldSortIncidentsByNewestTimestamp()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+        [
+            new("2026-06-15 21:50:00.000", "ERROR", "客户端", "FrpNexus", "older failure", FrpNexusStatus.Error),
+            new("2026-06-15 21:51:00.000 +08:00", "ERROR", "客户端", "FrpNexus", "newer failure", FrpNexusStatus.Error),
+            new("2026-06-15 21:49:00.000", "WARN", "客户端", "FrpNexus", "oldest warning", FrpNexusStatus.Warning)
+        ]);
+        var viewModel = CreateViewModel(localLogService: localLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Equal(
+            ["newer failure", "older failure", "oldest warning"],
+            viewModel.Incidents.Select(incident => incident.Message.Split(": ", 2)[1]).ToArray());
+    }
+
+    [Fact]
+    public async Task LocalWarningAndErrorLogs_WhenTimestampUnknown_ShouldKeepSourceOrder()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+        [
+            new("未知时间", "ERROR", "客户端", "FrpNexus", "first unknown failure", FrpNexusStatus.Error),
+            new("未知时间", "ERROR", "客户端", "FrpNexus", "second unknown failure", FrpNexusStatus.Error),
+            new("未知时间", "ERROR", "客户端", "FrpNexus", "third unknown failure", FrpNexusStatus.Error)
+        ]);
+        var viewModel = CreateViewModel(localLogService: localLogs);
+
+        await viewModel.LoadDashboardAsync();
+
+        Assert.Equal(
+            ["first unknown failure", "second unknown failure", "third unknown failure"],
+            viewModel.Incidents.Select(incident => incident.Message.Split(": ", 2)[1]).ToArray());
+    }
+
+    [Fact]
     public async Task OnlineSessionWithRunningFrpProcess_ShouldReadRemoteLogs()
     {
         var nodes = new FakeNodeManagementService([CreateNode("node-a")]);

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -253,63 +253,82 @@ public sealed partial class DashboardPageViewModel : PageViewModel
         IReadOnlyList<DeploymentRecord> deployments,
         IReadOnlyList<LogEntry> dashboardLogs)
     {
-        var incidents = new List<(DateTimeOffset UpdatedAt, IncidentViewModel Incident)>();
+        var incidents = new List<(bool HasTimestamp, DateTimeOffset UpdatedAt, int SourceOrder, IncidentViewModel Incident)>();
+        var sourceOrder = 0;
 
-        incidents.AddRange(deployments
-            .Where(record => IsIncidentStatus(record.Status))
-            .Select(record => (
+        void AddIncident(
+            bool hasTimestamp,
+            DateTimeOffset updatedAt,
+            IncidentViewModel incident)
+        {
+            incidents.Add((hasTimestamp, updatedAt, sourceOrder++, incident));
+        }
+
+        foreach (var record in deployments.Where(record => IsIncidentStatus(record.Status)))
+        {
+            AddIncident(
+                hasTimestamp: true,
                 record.UpdatedAt,
                 new IncidentViewModel(
                     ToStatusTitle(record.Status),
                     FormatRelativeTime(record.UpdatedAt),
                     $"{record.NodeName}：{record.StepName}，{record.Description}",
-                    record.Status))));
+                    record.Status));
+        }
 
-        incidents.AddRange(processes
-            .Where(process => IsIncidentStatus(process.Status))
-            .Select(process => (
+        foreach (var process in processes.Where(process => IsIncidentStatus(process.Status)))
+        {
+            AddIncident(
+                hasTimestamp: false,
                 DateTimeOffset.MinValue,
                 new IncidentViewModel(
                     ToStatusTitle(process.Status),
                     "本地记录",
                     $"{process.NodeName}：{process.Name} {ProcessStatusText(process)}",
-                    process.Status))));
+                    process.Status));
+        }
 
-        incidents.AddRange(tunnels
-            .Where(tunnel => IsIncidentStatus(tunnel.Status))
-            .Select(tunnel => (
+        foreach (var tunnel in tunnels.Where(tunnel => IsIncidentStatus(tunnel.Status)))
+        {
+            AddIncident(
+                hasTimestamp: false,
                 DateTimeOffset.MinValue,
                 new IncidentViewModel(
                     ToStatusTitle(tunnel.Status),
                     "本地记录",
                     $"{tunnel.NodeName}：隧道 {tunnel.Name} {ToTunnelStatusText(tunnel.Status)}",
-                    tunnel.Status))));
+                    tunnel.Status));
+        }
 
-        incidents.AddRange(nodes
-            .Where(node => IsIncidentStatus(node.FrpStatus))
-            .Select(node => (
+        foreach (var node in nodes.Where(node => IsIncidentStatus(node.FrpStatus)))
+        {
+            AddIncident(
+                node.LastConnectionTestedAt.HasValue,
                 node.LastConnectionTestedAt ?? DateTimeOffset.MinValue,
                 new IncidentViewModel(
                     ToStatusTitle(node.FrpStatus),
                     node.LastConnectionTestedAt.HasValue ? FormatRelativeTime(node.LastConnectionTestedAt.Value) : "本地记录",
                     $"{node.Name}：FRP 状态 {ToFrpStatusText(node.FrpStatus)}",
-                    node.FrpStatus))));
+                    node.FrpStatus));
+        }
 
-        incidents.AddRange(dashboardLogs
-            .Where(IsIncidentLog)
-            .Select((log, index) => (
-                TryParseLogTimestamp(log.Timestamp, out var parsedAt)
-                    ? parsedAt
-                    : DateTimeOffset.MinValue.AddTicks(index),
+        foreach (var log in dashboardLogs.Where(IsIncidentLog))
+        {
+            var hasTimestamp = LogTimestampParser.TryParseTimestamp(log.Timestamp, out var parsedAt);
+            AddIncident(
+                hasTimestamp,
+                hasTimestamp ? parsedAt : DateTimeOffset.MinValue,
                 new IncidentViewModel(
                     ToStatusTitle(log.Status),
                     FormatLogIncidentTime(log.Timestamp),
                     $"{log.NodeName} - {log.ProcessName}: {log.Message}",
-                    log.Status))));
+                    log.Status));
+        }
 
         var topIncidents = incidents
-            .OrderByDescending(item => item.UpdatedAt)
-            .ThenBy(item => item.Incident.Message, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(item => item.HasTimestamp)
+            .ThenByDescending(item => item.UpdatedAt)
+            .ThenBy(item => item.SourceOrder)
             .Take(DashboardIncidentDisplayLimit)
             .Select(item => item.Incident)
             .ToArray();
@@ -512,46 +531,18 @@ public sealed partial class DashboardPageViewModel : PageViewModel
             {
                 Log = log,
                 Index = index,
-                HasTimestamp = TryParseLogTimestamp(log.Timestamp, out var parsedAt),
+                HasTimestamp = LogTimestampParser.TryParseTimestamp(log.Timestamp, out var parsedAt),
                 ParsedAt = parsedAt
             })
             .OrderByDescending(item => item.HasTimestamp)
             .ThenByDescending(item => item.ParsedAt)
-            .ThenByDescending(item => item.Index)
+            .ThenBy(item => item.Index)
             .Select(item => item.Log);
-    }
-
-    private static bool TryParseLogTimestamp(string value, out DateTimeOffset timestamp)
-    {
-        var formats = new[]
-        {
-            "yyyy-MM-dd HH:mm:ss.fff",
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy/MM/dd HH:mm:ss.fff",
-            "yyyy/MM/dd HH:mm:ss",
-            "HH:mm:ss"
-        };
-
-        if (DateTimeOffset.TryParseExact(
-            value,
-            formats,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.AssumeLocal,
-            out timestamp))
-        {
-            return true;
-        }
-
-        return DateTimeOffset.TryParse(
-            value,
-            CultureInfo.CurrentCulture,
-            DateTimeStyles.AssumeLocal,
-            out timestamp);
     }
 
     private static string FormatLogIncidentTime(string timestamp)
     {
-        return TryParseLogTimestamp(timestamp, out var parsedAt)
+        return LogTimestampParser.TryParseTimestamp(timestamp, out var parsedAt)
             ? FormatRelativeTime(parsedAt)
             : timestamp;
     }

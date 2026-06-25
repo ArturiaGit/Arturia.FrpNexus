@@ -121,6 +121,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _navigationRequestService.NavigationRequested -= OnNavigationRequested;
         _modalOverlayService.PropertyChanged -= OnModalOverlayServicePropertyChanged;
         _modalDialogHostService.PropertyChanged -= OnModalDialogHostServicePropertyChanged;
+        DeactivatePage(CurrentPage);
 
         foreach (var disposablePage in NavigationItems
             .Select(item => item.Page)
@@ -152,8 +153,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         if (!_isDisposed && item is not null)
         {
+            if (!ReferenceEquals(SelectedNavigationItem, item))
+            {
+                DeactivatePage(SelectedNavigationItem.Page);
+            }
+
             SelectedNavigationItem = item;
-            _ = RefreshCurrentPageAsync(item.Page);
+            _ = ActivateOrRefreshPageAsync(item.Page);
         }
     }
 
@@ -421,13 +427,30 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private static void DeactivatePage(PageViewModelBase page)
+    {
+        if (page is IActivatablePageViewModel activatablePage)
+        {
+            activatablePage.OnDeactivated();
+        }
+    }
+
+    private static Task ActivateOrRefreshPageAsync(PageViewModelBase page)
+    {
+        if (page is IActivatablePageViewModel activatablePage)
+        {
+            return activatablePage.OnActivatedAsync();
+        }
+
+        return RefreshCurrentPageAsync(page);
+    }
+
     private static Task RefreshCurrentPageAsync(PageViewModelBase page)
     {
         return page switch
         {
             DashboardPageViewModel dashboard => dashboard.LoadDashboardAsync(),
             ConfigurationsPageViewModel configurations => configurations.LoadTargetNodesAsync(),
-            LogsPageViewModel logs => logs.RefreshForNavigationAsync(),
             _ => Task.CompletedTask
         };
     }

@@ -150,6 +150,26 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task NavigateCommand_AwayFromLogs_ShouldDeactivateLogAutoRefresh()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "ERROR", "客户端", "FrpNexus", "本地错误", FrpNexusStatus.Error));
+        var logsPage = CreateLogsPageViewModel(localLogs, TimeSpan.FromMilliseconds(20));
+        var viewModel = CreateMainWindowViewModel(logsPage: logsPage);
+        var logsItem = viewModel.NavigationItems.Single(item => item.Title == "日志");
+        var nodesItem = viewModel.NavigationItems.Single(item => item.Title == "节点");
+
+        logsItem.NavigateCommand.Execute(logsItem);
+        await WaitUntilAsync(() => localLogs.ReadCallCount >= 2);
+        nodesItem.NavigateCommand.Execute(nodesItem);
+        var readCountAfterLeavingLogs = localLogs.ReadCallCount;
+        await Task.Delay(70);
+
+        Assert.Equal(nodesItem, viewModel.SelectedNavigationItem);
+        Assert.Equal(readCountAfterLeavingLogs, localLogs.ReadCallCount);
+    }
+
+    [Fact]
     public void PageViewTypes_ShouldExistForEveryMainModuleViewModel()
     {
         Assert.NotNull(typeof(DashboardPageView));
@@ -572,14 +592,17 @@ public sealed class MainWindowViewModelTests
             new FakeRemoteRuntimeService());
     }
 
-    private static LogsPageViewModel CreateLogsPageViewModel(ILocalApplicationLogService? localLogs = null)
+    private static LogsPageViewModel CreateLogsPageViewModel(
+        ILocalApplicationLogService? localLogs = null,
+        TimeSpan? autoRefreshInterval = null)
     {
         return new LogsPageViewModel(
             new FakeNodeManagementService(),
             new FakeRemoteLogService(),
             localLogs ?? new FakeLocalApplicationLogService(),
             new FakeNodeConnectionSessionService(),
-            new FakeRemoteRuntimeService());
+            new FakeRemoteRuntimeService(),
+            autoRefreshInterval);
     }
 
     private static SettingsPageViewModel CreateSettingsPageViewModel()

@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.Logging;
 using Arturia.FrpNexus.Desktop.Services;
 
 namespace Arturia.FrpNexus.Tests.Desktop;
@@ -45,6 +46,40 @@ public sealed class LocalApplicationLogServiceTests : IDisposable
         });
         Assert.Contains(logs, log => log.Level == "WARN" && log.Status == FrpNexusStatus.Warning && log.Message == "节点连接超时");
         Assert.Contains(logs, log => log.Level == "ERROR" && log.Status == FrpNexusStatus.Error && log.Message == "本地 frpc 启动失败");
+    }
+
+    [Fact]
+    public async Task ReadRecentLogsAsync_ShouldParseSerilogDefaultFileSinkLines()
+    {
+        File.WriteAllLines(
+            Path.Combine(_logDirectory, "frpnexus-20260615.log"),
+            [
+                "2026-06-15 10:00:00.000 +08:00 [WRN] 节点连接超时"
+            ]);
+        var service = new LocalApplicationLogService(_logDirectory);
+
+        var logs = await service.ReadRecentLogsAsync();
+
+        var log = Assert.Single(logs);
+        Assert.Equal("2026-06-15 10:00:00.000 +08:00", log.Timestamp);
+        Assert.Equal("WARN", log.Level);
+        Assert.Equal("节点连接超时", log.Message);
+    }
+
+    [Fact]
+    public async Task ReadRecentLogsAsync_ShouldParseDesktopLoggingOutput()
+    {
+        var logger = DesktopLogging.CreateLogger(_logDirectory);
+        logger.Warning("节点连接超时");
+        (logger as IDisposable)?.Dispose();
+        var service = new LocalApplicationLogService(_logDirectory);
+
+        var logs = await service.ReadRecentLogsAsync();
+
+        var log = Assert.Single(logs);
+        Assert.NotEqual("未知时间", log.Timestamp);
+        Assert.Equal("WARN", log.Level);
+        Assert.Equal("节点连接超时", log.Message);
     }
 
     [Fact]

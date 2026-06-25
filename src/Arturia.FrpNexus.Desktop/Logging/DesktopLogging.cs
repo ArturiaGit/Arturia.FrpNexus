@@ -14,7 +14,8 @@ public static class DesktopLogging
                 DesktopLogPaths.GetWarningLogPath(logDirectory),
                 restrictedToMinimumLevel: LogEventLevel.Warning,
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14)
+                retainedFileCountLimit: 14,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
     }
 }

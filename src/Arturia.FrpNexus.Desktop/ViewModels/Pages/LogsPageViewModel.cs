@@ -13,7 +13,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
-public sealed partial class LogsPageViewModel : PageViewModel
+public sealed partial class LogsPageViewModel : PageViewModel, IActivatablePageViewModel, IDisposable
 {
     private const string AllNodesFilter = "全部节点";
     private const string AllProcessesFilter = "全部进程";
@@ -22,16 +22,23 @@ public sealed partial class LogsPageViewModel : PageViewModel
     private const string LocalProcessFilter = "FrpNexus";
     private const string FrpcLogPath = "/tmp/frpnexus-frpc.log";
     private const string FrpsLogPath = "/tmp/frpnexus-frps.log";
+    private static readonly TimeSpan DefaultAutoRefreshInterval = TimeSpan.FromSeconds(2);
 
     private readonly INodeManagementService _nodeManagementService;
     private readonly IRemoteLogService _remoteLogService;
     private readonly ILocalApplicationLogService _localApplicationLogService;
     private readonly INodeConnectionSessionService _nodeConnectionSessionService;
     private readonly IRemoteRuntimeService _remoteRuntimeService;
+    private readonly TimeSpan _autoRefreshInterval;
 
     private bool _isShowingLocalLogs = true;
     private bool _isUpdatingRemoteFilters;
     private bool _isAutoReadingRemoteLogs;
+    private bool _isPageActive;
+    private bool _isDisposed;
+    private int _isAutoRefreshTickRunning;
+    private CancellationTokenSource? _autoRefreshCancellation;
+    private Task? _autoRefreshTask;
     private RemoteProcessLogOption? _selectedRemoteProcessOption;
     private IReadOnlyList<RemoteProcessLogOption> _remoteProcessOptions = [];
 
@@ -89,6 +96,23 @@ public sealed partial class LogsPageViewModel : PageViewModel
         ILocalApplicationLogService localApplicationLogService,
         INodeConnectionSessionService nodeConnectionSessionService,
         IRemoteRuntimeService remoteRuntimeService)
+        : this(
+            nodeManagementService,
+            remoteLogService,
+            localApplicationLogService,
+            nodeConnectionSessionService,
+            remoteRuntimeService,
+            null)
+    {
+    }
+
+    public LogsPageViewModel(
+        INodeManagementService nodeManagementService,
+        IRemoteLogService remoteLogService,
+        ILocalApplicationLogService localApplicationLogService,
+        INodeConnectionSessionService nodeConnectionSessionService,
+        IRemoteRuntimeService remoteRuntimeService,
+        TimeSpan? autoRefreshInterval)
         : base("日志", "筛选、搜索并查看 FRP 与 FrpNexus 日志输出")
     {
         _nodeManagementService = nodeManagementService;
@@ -96,6 +120,7 @@ public sealed partial class LogsPageViewModel : PageViewModel
         _localApplicationLogService = localApplicationLogService;
         _nodeConnectionSessionService = nodeConnectionSessionService;
         _remoteRuntimeService = remoteRuntimeService;
+        _autoRefreshInterval = autoRefreshInterval.GetValueOrDefault(DefaultAutoRefreshInterval);
         NodeFilterOptions = [AllNodesFilter, LocalNodeFilter];
         ProcessFilterOptions = [AllProcessesFilter, LocalProcessFilter];
         LevelFilterOptions = [AllLevelsFilter, "INFO", "WARN", "ERROR", "DEBUG"];
@@ -141,6 +166,137 @@ public sealed partial class LogsPageViewModel : PageViewModel
         return IsRemoteLogMode
             ? ReadRemoteLogsCoreAsync(clearLogsOnFailure: false, cancellationToken)
             : LoadLocalLogsAsync(cancellationToken);
+    }
+
+    public async Task OnActivatedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isPageActive = true;
+        if (!IsAutoRefreshEnabled)
+        {
+            return;
+        }
+
+        await RefreshForNavigationIfIdleAsync(cancellationToken);
+        StartAutoRefreshLoop();
+    }
+
+    public void OnDeactivated()
+    {
+        _isPageActive = false;
+        StopAutoRefreshLoop();
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        OnDeactivated();
+    }
+
+    partial void OnIsAutoRefreshEnabledChanged(bool value)
+    {
+        if (_isDisposed || !_isPageActive)
+        {
+            return;
+        }
+
+        if (!value)
+        {
+            StopAutoRefreshLoop();
+            return;
+        }
+
+        _ = RefreshForNavigationAndStartLoopAsync();
+    }
+
+    private async Task RefreshForNavigationAndStartLoopAsync()
+    {
+        try
+        {
+            await RefreshForNavigationIfIdleAsync(CancellationToken.None);
+            StartAutoRefreshLoop();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StartAutoRefreshLoop()
+    {
+        if (_isDisposed
+            || !_isPageActive
+            || !IsAutoRefreshEnabled
+            || _autoRefreshTask is { IsCompleted: false })
+        {
+            return;
+        }
+
+        _autoRefreshCancellation?.Dispose();
+        _autoRefreshCancellation = new CancellationTokenSource();
+        _autoRefreshTask = RunAutoRefreshLoopAsync(_autoRefreshCancellation.Token);
+    }
+
+    private void StopAutoRefreshLoop()
+    {
+        var cancellation = _autoRefreshCancellation;
+        _autoRefreshCancellation = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+        cancellation.Dispose();
+        _autoRefreshTask = null;
+    }
+
+    private async Task RunAutoRefreshLoopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(_autoRefreshInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (_isDisposed || !_isPageActive || !IsAutoRefreshEnabled)
+                {
+                    continue;
+                }
+
+                await RefreshForNavigationIfIdleAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task RefreshForNavigationIfIdleAsync(CancellationToken cancellationToken)
+    {
+        if (Interlocked.Exchange(ref _isAutoRefreshTickRunning, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            await RefreshForNavigationAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isAutoRefreshTickRunning, 0);
+        }
     }
 
     [RelayCommand]
