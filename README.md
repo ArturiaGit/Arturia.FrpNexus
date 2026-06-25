@@ -96,3 +96,7 @@ FrpNexus 适合：
 - 偏好本地可控工具的自托管爱好者
 
 FrpNexus 当前不以团队权限、云端同步、计费系统、Kubernetes 集成或多租户平台能力为主要目标。
+
+## License
+
+FrpNexus is released under the MIT License. See [LICENSE](LICENSE) for details.
