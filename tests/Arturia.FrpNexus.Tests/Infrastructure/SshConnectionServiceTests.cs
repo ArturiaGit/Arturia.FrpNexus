@@ -44,6 +44,24 @@ public sealed class SshConnectionServiceTests
     }
 
     [Fact]
+    public async Task TestConnectionAsync_ShouldRedactSecretBearingGenericFailure()
+    {
+        var nodeService = new FakeNodeManagementService();
+        var service = new SshConnectionService(
+            new FakeSshClientAdapter(new InvalidOperationException("ssh failed with --password SECRET_PASSWORD --token=SECRET_TOKEN")),
+            nodeService,
+            Logger.None);
+
+        var result = await service.TestConnectionAsync(CreateRequest("SESSION_PASSWORD_PLACEHOLDER"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.DoesNotContain("SECRET_PASSWORD", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_TOKEN", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--password [REDACTED]", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--token=[REDACTED]", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task TestConnectionAsync_ShouldMapAuthenticationFailureToRecoverableChineseMessage()
     {
         var nodeService = new FakeNodeManagementService();
