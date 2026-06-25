@@ -36,6 +36,7 @@ public sealed class RemoteLogServiceTests
         var logs = await service.ReadRecentLogsAsync(CreateRequest());
 
         var log = Assert.Single(logs);
+        Assert.Equal("2026-06-15 21:49:33.209", log.Timestamp);
         Assert.DoesNotContain("\u001b", log.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("[0m", log.Message, StringComparison.Ordinal);
         Assert.Contains("frps uses config file: /opt/frp/frps.toml", log.Message, StringComparison.Ordinal);
@@ -55,6 +56,20 @@ public sealed class RemoteLogServiceTests
 
         var log = Assert.Single(logs);
         Assert.Equal("2026-06-15 21:49:33.209", log.Timestamp);
+    }
+
+    [Fact]
+    public async Task ReadRecentLogsAsync_ShouldKeepUnknownTimestampForLinesWithoutTimestamp()
+    {
+        var service = new RemoteLogService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(0, "connected successfully", string.Empty)),
+            Logger.None);
+
+        var logs = await service.ReadRecentLogsAsync(CreateRequest());
+
+        var log = Assert.Single(logs);
+        Assert.Equal("未知时间", log.Timestamp);
+        Assert.Equal("connected successfully", log.Message);
     }
 
     [Fact]

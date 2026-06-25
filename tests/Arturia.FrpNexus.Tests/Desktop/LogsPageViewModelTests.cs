@@ -447,6 +447,106 @@ public sealed class LogsPageViewModelTests
     }
 
     [Fact]
+    public async Task OnActivatedAsync_WhenAutoRefreshEnabled_ShouldPeriodicallyRefreshLocalLogs()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "WARN", "客户端", "FrpNexus", "本地警告", FrpNexusStatus.Warning));
+        var viewModel = CreateViewModel(
+            localLogs: localLogs,
+            autoRefreshInterval: TimeSpan.FromMilliseconds(20));
+
+        await viewModel.OnActivatedAsync();
+        await Task.Delay(70);
+        viewModel.OnDeactivated();
+
+        Assert.True(localLogs.ReadCallCount >= 2);
+        Assert.Single(viewModel.Logs);
+        Assert.Equal("客户端", viewModel.Logs.Single().NodeName);
+    }
+
+    [Fact]
+    public async Task OnActivatedAsync_WhenAutoRefreshDisabled_ShouldNotStartPeriodicRefresh()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "WARN", "客户端", "FrpNexus", "本地警告", FrpNexusStatus.Warning));
+        var viewModel = CreateViewModel(
+            localLogs: localLogs,
+            autoRefreshInterval: TimeSpan.FromMilliseconds(20));
+        viewModel.IsAutoRefreshEnabled = false;
+
+        await viewModel.OnActivatedAsync();
+        await Task.Delay(70);
+        viewModel.OnDeactivated();
+
+        Assert.Equal(0, localLogs.ReadCallCount);
+        Assert.Empty(viewModel.Logs);
+    }
+
+    [Fact]
+    public async Task OnDeactivated_ShouldStopPeriodicRefresh()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "WARN", "客户端", "FrpNexus", "本地警告", FrpNexusStatus.Warning));
+        var viewModel = CreateViewModel(
+            localLogs: localLogs,
+            autoRefreshInterval: TimeSpan.FromMilliseconds(20));
+
+        await viewModel.OnActivatedAsync();
+        viewModel.OnDeactivated();
+        var readCountAfterDeactivate = localLogs.ReadCallCount;
+        await Task.Delay(70);
+
+        Assert.Equal(readCountAfterDeactivate, localLogs.ReadCallCount);
+    }
+
+    [Fact]
+    public async Task OnActivatedAsync_WhenRefreshIsStillRunning_ShouldNotReenterRefresh()
+    {
+        var localLogs = new SlowLocalApplicationLogService(
+            TimeSpan.FromMilliseconds(80),
+            new LogEntry("2026-06-15 10:00:00.000", "WARN", "客户端", "FrpNexus", "本地警告", FrpNexusStatus.Warning));
+        var viewModel = CreateViewModel(
+            localLogs: localLogs,
+            autoRefreshInterval: TimeSpan.FromMilliseconds(10));
+
+        await viewModel.OnActivatedAsync();
+        await Task.Delay(120);
+        viewModel.OnDeactivated();
+
+        Assert.Equal(1, localLogs.MaxConcurrentReadCount);
+        Assert.True(localLogs.ReadCallCount >= 2);
+    }
+
+    [Fact]
+    public async Task OnActivatedAsync_WhenRemoteMode_ShouldPeriodicallyRefreshRemoteLogs()
+    {
+        var localLogs = new FakeLocalApplicationLogService(
+            new LogEntry("2026-06-15 10:00:00.000", "WARN", "客户端", "FrpNexus", "本地警告", FrpNexusStatus.Warning));
+        var remoteLogService = new FakeRemoteLogService();
+        var viewModel = CreateViewModel(
+            remoteLogService: remoteLogService,
+            localLogs: localLogs,
+            remoteRuntimeService: new FakeRemoteRuntimeService([
+                new("frpc-2048", "Web-Server-HK", "frpc", FrpNexusStatus.Running, "2048", "1h", "-")
+            ]),
+            nodeConnectionSessionService: new FakeNodeConnectionSessionService(
+            [
+                new("Web-Server-HK", NodeConnectionSessionState.Online, DateTimeOffset.UtcNow, "online")
+            ]),
+            autoRefreshInterval: TimeSpan.FromMilliseconds(20));
+        await viewModel.ToggleRemoteCredentialsCommand.ExecuteAsync(null);
+        var remoteReadsBeforeActivation = remoteLogService.ReadCallCount;
+
+        await viewModel.OnActivatedAsync();
+        await Task.Delay(70);
+        viewModel.OnDeactivated();
+
+        Assert.True(remoteLogService.ReadCallCount > remoteReadsBeforeActivation);
+        Assert.Equal(0, localLogs.ReadCallCount);
+        Assert.Equal("Web-Server-HK", viewModel.Logs.Single().NodeName);
+    }
+
+    [Fact]
     public async Task AutoReadFailureForNewRemoteTarget_ShouldClearOldTargetLogs()
     {
         var remoteLogService = new FailingAfterFirstRemoteLogService();
@@ -476,14 +576,16 @@ public sealed class LogsPageViewModelTests
         IRemoteLogService? remoteLogService = null,
         ILocalApplicationLogService? localLogs = null,
         INodeConnectionSessionService? nodeConnectionSessionService = null,
-        IRemoteRuntimeService? remoteRuntimeService = null)
+        IRemoteRuntimeService? remoteRuntimeService = null,
+        TimeSpan? autoRefreshInterval = null)
     {
         return new LogsPageViewModel(
             nodeManagementService ?? new FakeNodeManagementService(),
             remoteLogService ?? new FakeRemoteLogService(),
             localLogs ?? new FakeLocalApplicationLogService(),
             nodeConnectionSessionService ?? new FakeNodeConnectionSessionService([]),
-            remoteRuntimeService ?? new FakeRemoteRuntimeService([]));
+            remoteRuntimeService ?? new FakeRemoteRuntimeService([]),
+            autoRefreshInterval);
     }
 
     private sealed class FakeLocalApplicationLogService(params LogEntry[] logs) : ILocalApplicationLogService
@@ -498,6 +600,35 @@ public sealed class LogsPageViewModelTests
         {
             ReadCallCount++;
             return Task.FromResult<IReadOnlyList<LogEntry>>(logs.Take(lineCount).ToArray());
+        }
+    }
+
+    private sealed class SlowLocalApplicationLogService(TimeSpan readDelay, params LogEntry[] logs) : ILocalApplicationLogService
+    {
+        private int _activeReadCount;
+
+        public int ReadCallCount { get; private set; }
+
+        public int MaxConcurrentReadCount { get; private set; }
+
+        public string CurrentLogDirectory => @"C:\Users\Arturia\AppData\Local\Arturia\FrpNexus\logs";
+
+        public async Task<IReadOnlyList<LogEntry>> ReadRecentLogsAsync(
+            int lineCount = 200,
+            CancellationToken cancellationToken = default)
+        {
+            ReadCallCount++;
+            var activeReadCount = Interlocked.Increment(ref _activeReadCount);
+            MaxConcurrentReadCount = Math.Max(MaxConcurrentReadCount, activeReadCount);
+            try
+            {
+                await Task.Delay(readDelay, cancellationToken);
+                return logs.Take(lineCount).ToArray();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _activeReadCount);
+            }
         }
     }
 
