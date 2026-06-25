@@ -14,15 +14,17 @@
         mc:Ignorable="d"
         x:Class="Arturia.FrpNexus.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="FrpNexus"
+        Icon="/Assets/frpnexus-logo.ico"
+        Title="Arturia.FrpNexus"
         Width="1280"
         Height="800"
         MinWidth="1100"
         MinHeight="720"
+        WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Brush.AppBackground}">
 
     <Window.Resources>
+        <StreamGeometry x:Key="Logo">M9 1.5L1.5 16.5H4.875L9 8.25L13.125 16.5H16.5L9 1.5V1.5</StreamGeometry>
         <converters:MetricIconConverter x:Key="MetricIconConverter" />
     </Window.Resources>
 
@@ -81,17 +83,17 @@
                             Margin="16,0,16,24"
                             Spacing="2">
                     <Grid ColumnDefinitions="34,*"
-                          ColumnSpacing="10">
+                            ColumnSpacing="10">
                         <Border Width="32"
                                 Height="32"
                                 CornerRadius="8"
-                                Background="{DynamicResource Brush.Primary}">
-                            <TextBlock Text="N"
-                                       Foreground="White"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                Background="#152238">
+                            <PathIcon Width="18"
+                                      Height="18"
+                                      Data="{StaticResource Logo}"
+                                      Foreground="White"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1">
                             <TextBlock Classes="section-title"
@@ -99,7 +101,7 @@
                                        Text="FrpNexus" />
                             <TextBlock Classes="helper"
                                        Foreground="{DynamicResource Brush.SidebarMuted}"
-                                       Text="V2.4.0 Stable" />
+                                       Text="v0.4.0-preview.1" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -139,38 +141,6 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-
-                <Border Grid.Row="2"
-                        Margin="16,16,16,0"
-                        Padding="10,8"
-                        Background="{DynamicResource Brush.SurfaceAcrylicLow}"
-                        BorderBrush="{DynamicResource Brush.BorderDefault}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                    <Grid ColumnDefinitions="32,*"
-                          ColumnSpacing="8">
-                        <Border Width="28"
-                                Height="28"
-                                CornerRadius="14"
-                                Background="{DynamicResource Brush.SurfaceContainer}">
-                            <TextBlock Text="person"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource Brush.SidebarMuted}"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Grid.Column="1"
-                                    Spacing="0"
-                                    VerticalAlignment="Center">
-                            <TextBlock Classes="group-label"
-                                       Foreground="{DynamicResource Brush.SidebarText}"
-                                       Text="账户" />
-                            <TextBlock Classes="helper"
-                                       Foreground="{DynamicResource Brush.SidebarMuted}"
-                                       Text="本地控制台" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
             </Grid>
         </Border>
 
