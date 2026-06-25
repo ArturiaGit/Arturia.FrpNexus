@@ -13,10 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arturia.FrpNexus.Infrastruc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arturia.FrpNexus.Desktop", "src\Arturia.FrpNexus.Desktop\Arturia.FrpNexus.Desktop.csproj", "{7C947EA6-2DB2-4ECA-B64B-F0B964409E57}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arturia.FrpNexus.Tests", "tests\Arturia.FrpNexus.Tests\Arturia.FrpNexus.Tests.csproj", "{96264847-0E65-484A-A990-07DB38286B76}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,18 +71,6 @@ Global
 		{7C947EA6-2DB2-4ECA-B64B-F0B964409E57}.Release|x64.Build.0 = Release|Any CPU
 		{7C947EA6-2DB2-4ECA-B64B-F0B964409E57}.Release|x86.ActiveCfg = Release|Any CPU
 		{7C947EA6-2DB2-4ECA-B64B-F0B964409E57}.Release|x86.Build.0 = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|x64.Build.0 = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Debug|x86.Build.0 = Debug|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|Any CPU.Build.0 = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|x64.ActiveCfg = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|x64.Build.0 = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|x86.ActiveCfg = Release|Any CPU
-		{96264847-0E65-484A-A990-07DB38286B76}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -96,6 +80,5 @@ Global
 		{62358BC5-E13A-4FD8-80C3-E3FD0F16C045} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A7332E91-C515-42EF-A4F1-EC125B8CB592} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7C947EA6-2DB2-4ECA-B64B-F0B964409E57} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{96264847-0E65-484A-A990-07DB38286B76} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
