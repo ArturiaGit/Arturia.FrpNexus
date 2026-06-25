@@ -4,6 +4,16 @@
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
         <Setter Property="Padding" Value="8,2" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Border.topbar-status-badge">
@@ -12,6 +22,24 @@
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="BoxShadow" Value="0 1 2 0 #14192314" />
+    </Style>
+
+    <Style Selector="Border.status-callout">
+        <Setter Property="Background" Value="{DynamicResource FrpSurfaceAcrylicLowBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="3,1,1,1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusControl}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Border.topbar-status-badge.success">
@@ -139,4 +167,3 @@
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 </Styles>
-

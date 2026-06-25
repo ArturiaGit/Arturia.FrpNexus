@@ -48,8 +48,8 @@
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="14">
-                    <Border Padding="14"
-                            Classes="panel">
+                    <Border Padding="12"
+                            Classes="subtle-panel">
                         <StackPanel Spacing="12">
                             <TextBlock Classes="group-label"
                                        Text="SSH 凭据" />
@@ -86,11 +86,12 @@
                                            Text="会话密码" />
                                 <TextBox Classes="stitch-input"
                                          PasswordChar="*"
-                                         PlaceholderText="输入本次 SSH 密码，或留空使用已保存密码"
+                                         PlaceholderText="本次 SSH 密码；留空使用已保存密码"
                                          Text="{Binding SshSessionPassword}" />
                                 <Grid ColumnDefinitions="*,Auto"
                                       ColumnSpacing="8">
-                                    <CheckBox Content="记住密码"
+                                    <CheckBox Classes="stitch-check"
+                                              Content="记住密码"
                                               IsChecked="{Binding RememberSessionPassword}" />
                                     <Button Grid.Column="1"
                                             Classes="secondary stitch-command"
@@ -176,8 +177,8 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="14"
-                            Classes="panel"
+                    <Border Padding="12"
+                            Classes="subtle-panel"
                             IsVisible="{Binding IsDeploymentVisible}">
                         <StackPanel Spacing="12">
                             <TextBlock Classes="group-label"

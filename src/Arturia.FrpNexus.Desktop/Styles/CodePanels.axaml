@@ -5,6 +5,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="0 2 8 0 #00000024" />
     </Style>
 
     <Style Selector="DockPanel.terminal-header">
@@ -26,6 +27,16 @@
         <Setter Property="Padding" Value="4,2" />
         <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Border.log-line:pointerover">
@@ -56,5 +67,51 @@
         <Setter Property="Foreground" Value="{DynamicResource FrpStatusErrorBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
-</Styles>
 
+    <Style Selector="Button.code-command">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="#12000000" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpCodeTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.code-command:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineBrush}" />
+    </Style>
+
+    <Style Selector="Button.code-command:pressed">
+        <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpCodeMutedBrush}" />
+    </Style>
+
+    <Style Selector="Button.code-command:focus-visible">
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpFocusRingBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Button.code-command PathIcon">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.code-command TextBlock">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+</Styles>

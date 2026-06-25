@@ -86,7 +86,8 @@
                         <Grid ColumnDefinitions="48,1.35*,1.45*,0.8*,0.95*,0.65*,1.2*,88"
                               ColumnSpacing="8"
                               Margin="0,0,12,0">
-                            <CheckBox HorizontalAlignment="Center"
+                            <CheckBox Classes="stitch-check"
+                                      HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       IsHitTestVisible="False" />
                             <TextBlock Grid.Column="1"
@@ -156,7 +157,8 @@
                                                             HorizontalAlignment="Left"
                                                             Background="{StaticResource FrpPrimaryBrush}"
                                                             IsVisible="{Binding IsSelected}" />
-                                                    <CheckBox HorizontalAlignment="Center"
+                                                    <CheckBox Classes="stitch-check"
+                                                              HorizontalAlignment="Center"
                                                               VerticalAlignment="Center"
                                                               IsChecked="{Binding IsSelected}"
                                                               IsHitTestVisible="False" />
@@ -280,7 +282,7 @@
                                            Width="280"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
-                                           Text="添加一台 Linux VPS，用于 SSH 连接、FRP 部署和日志查看。" />
+                                           Text="添加 Linux 节点后即可连接、部署和查看日志。" />
                                 <Button Classes="primary stitch-command"
                                         HorizontalAlignment="Center"
                                         Command="{Binding StartCreateNodeCommand}">
@@ -345,23 +347,25 @@
 
         <Border x:Name="SidePanelHost"
                 Grid.Column="1"
-                Width="320"
-                Margin="20,0,0,0"
-                Classes="panel side-panel"
+                Width="336"
+                Margin="14,0,0,0"
+                Classes="inspector-panel side-panel"
                 ClipToBounds="True"
                 IsVisible="{Binding IsSidePanelOpen}">
             <Grid>
                 <Grid RowDefinitions="Auto,*"
                       IsVisible="{Binding IsDetailsPanelOpen}">
-                    <Border Padding="16"
-                            Background="{StaticResource FrpSurfaceLowBrush}"
-                            BorderBrush="{StaticResource FrpBorderDefaultBrush}"
-                            BorderThickness="0,0,0,1">
+                    <Border Classes="inspector-header">
                         <StackPanel Spacing="10">
-                            <TextBlock Classes="section-title"
-                                       Text="{Binding SelectedNode.Name}" />
-                            <TextBlock Classes="helper"
-                                       Text="{Binding SelectedNode.OperatingSystem}" />
+                            <StackPanel Spacing="3">
+                                <TextBlock Classes="inspector-kicker"
+                                           Text="节点 Inspector" />
+                                <TextBlock Classes="section-title"
+                                           Text="{Binding SelectedNode.Name}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Classes="helper"
+                                           Text="{Binding SelectedNode.OperatingSystem}" />
+                            </StackPanel>
                             <Border Classes="subtle-panel"
                                     Padding="10">
                                 <StackPanel Classes="info-section">
@@ -590,10 +594,14 @@
                     <StackPanel Classes="form-section"
                                 Margin="16"
                                 Spacing="12">
-                        <TextBlock Classes="section-title"
-                                   Text="{Binding EditorTitle}" />
-                        <TextBlock Classes="helper"
-                                   Text="这里只保存本地节点记录；SSH 连接和部署请使用节点列表中的连接按钮。" />
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="inspector-kicker"
+                                       Text="本地记录" />
+                            <TextBlock Classes="section-title"
+                                       Text="{Binding EditorTitle}" />
+                            <TextBlock Classes="helper"
+                                       Text="保存节点信息后再测试连接或部署。" />
+                        </StackPanel>
 
                         <StackPanel Spacing="6">
                             <TextBlock Classes="helper" Text="节点名称" />
@@ -664,10 +672,7 @@
                 </ScrollViewer>
 
                 <Border Grid.Row="1"
-                        Padding="16,12"
-                        Background="{StaticResource FrpSurfaceWhiteBrush}"
-                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
-                        BorderThickness="0,1,0,0">
+                        Classes="inspector-footer">
                     <StackPanel Spacing="12">
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Right"

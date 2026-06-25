@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:attached="using:Arturia.FrpNexus.Desktop.AttachedProperties"
         xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
         xmlns:dialogs="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
         x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.RemoteDirectoryPickerWindow"
@@ -19,6 +20,7 @@
 
     <Border Margin="16"
             Classes="panel"
+            attached:DialogEntranceMotion.IsEnabled="True"
             ClipToBounds="True">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
             <Border Padding="16"
@@ -30,7 +32,7 @@
                                Text="选择远程目录" />
                     <TextBlock Classes="helper"
                                TextWrapping="Wrap"
-                               Text="浏览当前节点的 SFTP 目录，选择或创建用于上传 frpc / frps 的远程目录。" />
+                               Text="选择 frpc / frps 的上传目录。" />
                 </StackPanel>
             </Border>
 
@@ -155,7 +157,7 @@
                                    Width="260"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
-                                   Text="可以直接选择当前目录，或在下方创建一个新目录。" />
+                                   Text="选择当前目录，或新建一个目录。" />
                     </StackPanel>
                 </Grid>
             </Border>
