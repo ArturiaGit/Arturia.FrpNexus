@@ -35,6 +35,30 @@ public sealed class RemoteRuntimeServiceTests
     }
 
     [Fact]
+    public async Task GetProcessesAsync_ShouldRedactSecretsFromPersistedCommandLine()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                0,
+                "2048|00:13|/opt/frp/frpc --token SECRET_TOKEN --password=SECRET_PASSWORD --private-key-passphrase SECRET_PASSPHRASE -c /etc/frp/frpc.toml",
+                string.Empty)),
+            runtimeRecordService,
+            Logger.None);
+
+        var processes = await service.GetProcessesAsync(CreateQueryRequest());
+
+        var process = Assert.Single(processes);
+        Assert.DoesNotContain("SECRET_TOKEN", process.CommandLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSWORD", process.CommandLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSPHRASE", process.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--token [REDACTED]", process.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--password=[REDACTED]", process.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--private-key-passphrase [REDACTED]", process.CommandLine, StringComparison.Ordinal);
+        Assert.Equal(process.CommandLine, runtimeRecordService.ReplacementProcesses.Single().CommandLine);
+    }
+
+    [Fact]
     public async Task GetProcessesAsync_ShouldParsePsEfFrpsProcessAndIgnoreGrep()
     {
         var runtimeRecordService = new FakeRuntimeRecordService();
@@ -122,6 +146,29 @@ public sealed class RemoteRuntimeServiceTests
         Assert.Equal("远程命令执行失败：permission denied", result.Message);
         Assert.DoesNotContain("SESSION_PASSWORD_PLACEHOLDER", result.Message, StringComparison.Ordinal);
         Assert.Equal(FrpNexusStatus.Error, runtimeRecordService.SavedProcesses.Single().Status);
+    }
+
+    [Fact]
+    public async Task StopAsync_ShouldRedactSecretBearingDiagnostics()
+    {
+        var runtimeRecordService = new FakeRuntimeRecordService();
+        var service = new RemoteRuntimeService(
+            new FakeRemoteCommandAdapter(new RemoteCommandResult(
+                1,
+                string.Empty,
+                "frpc failed with --token SECRET_TOKEN --password SECRET_PASSWORD --private-key-passphrase=SECRET_PASSPHRASE")),
+            runtimeRecordService,
+            Logger.None);
+
+        var result = await service.StopAsync(CreateCommandRequest("pkill -f frpc"));
+
+        Assert.Equal(FrpNexusStatus.Error, result.Status);
+        Assert.DoesNotContain("SECRET_TOKEN", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSWORD", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSPHRASE", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--token [REDACTED]", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--password [REDACTED]", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--private-key-passphrase=[REDACTED]", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

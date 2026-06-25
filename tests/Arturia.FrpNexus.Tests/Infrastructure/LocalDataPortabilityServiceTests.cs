@@ -43,6 +43,32 @@ public sealed class LocalDataPortabilityServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_ShouldRedactSecretBearingRuntimeCommandLines()
+    {
+        var services = CreateServices();
+        services.RuntimeProcesses.Clear();
+        services.RuntimeProcesses.Add(new RuntimeProcess(
+            "frpc-secret",
+            "瀵煎嚭鑺傜偣",
+            "frpc",
+            FrpNexusStatus.Running,
+            "2048",
+            "1h",
+            "127.0.0.1:8080",
+            "/opt/frp/frpc --token SECRET_TOKEN --password SECRET_PASSWORD --private-key-passphrase=SECRET_PASSPHRASE -c /etc/frp/frpc.toml"));
+        var service = services.CreatePortabilityService();
+        var exportPath = Path.Combine(Path.GetTempPath(), "FrpNexusTests", Guid.NewGuid().ToString("N"), "backup.json");
+
+        await service.ExportAsync(exportPath);
+
+        var json = await File.ReadAllTextAsync(exportPath);
+        Assert.DoesNotContain("SECRET_TOKEN", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSWORD", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSPHRASE", json, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED]", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ImportAsync_ShouldUpsertLocalRecords()
     {
         var sourceServices = CreateServices();

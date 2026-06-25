@@ -62,6 +62,33 @@ public sealed class SqliteRuntimeRecordServiceTests
     }
 
     [Fact]
+    public async Task SaveRuntimeProcessAsync_ShouldRedactSecretsFromCommandLine()
+    {
+        var service = CreateService();
+        var process = new RuntimeProcess(
+            "frpc-secret",
+            "Node-Alpha-HK",
+            "frpc",
+            FrpNexusStatus.Running,
+            "2048",
+            "2h",
+            "127.0.0.1:8080",
+            "/opt/frp/frpc --token SECRET_TOKEN --password=SECRET_PASSWORD --private-key-passphrase SECRET_PASSPHRASE -c /etc/frp/frpc.toml");
+
+        await service.SaveRuntimeProcessAsync(process);
+
+        var actual = await service.GetRuntimeProcessAsync(process.Name);
+
+        Assert.NotNull(actual);
+        Assert.DoesNotContain("SECRET_TOKEN", actual.CommandLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSWORD", actual.CommandLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET_PASSPHRASE", actual.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--token [REDACTED]", actual.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--password=[REDACTED]", actual.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("--private-key-passphrase [REDACTED]", actual.CommandLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task DeleteRuntimeProcessAsync_ShouldRemoveProcess()
     {
         var service = CreateService();

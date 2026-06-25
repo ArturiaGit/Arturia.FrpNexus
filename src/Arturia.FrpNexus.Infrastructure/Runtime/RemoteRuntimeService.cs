@@ -177,7 +177,7 @@ public sealed class RemoteRuntimeService(
             processId,
             string.IsNullOrWhiteSpace(uptime) ? "-" : uptime,
             "-",
-            command);
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static RuntimeProcess? ParseLegacyProcess(string nodeName, string line)
@@ -212,7 +212,7 @@ public sealed class RemoteRuntimeService(
             processId,
             "-",
             "-",
-            command);
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static RuntimeProcess? ParsePsEfProcess(string nodeName, string line)
@@ -241,7 +241,7 @@ public sealed class RemoteRuntimeService(
             processId,
             LooksLikeElapsedTime(startOrTime) ? startOrTime : "-",
             "-",
-            command);
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static string ResolveProcessKind(string command)
@@ -295,7 +295,7 @@ public sealed class RemoteRuntimeService(
         return string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
             : LogTextSanitizer
-                .StripControlSequences(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
+                .RedactSecrets(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
                 .Trim();
     }
 

@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 
@@ -159,7 +160,7 @@ public sealed class SqliteRuntimeRecordService(
         command.Parameters.AddWithValue("$process_id", process.ProcessId);
         command.Parameters.AddWithValue("$uptime", process.Uptime);
         command.Parameters.AddWithValue("$listen_address", process.ListenAddress);
-        command.Parameters.AddWithValue("$command_line", process.CommandLine);
+        command.Parameters.AddWithValue("$command_line", LogTextSanitizer.RedactSecrets(process.CommandLine));
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Renci.SshNet.Common;
 using Serilog;
@@ -84,7 +85,9 @@ public sealed class SshConnectionService(
     {
         var sanitized = string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
-            : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+            : LogTextSanitizer
+                .RedactSecrets(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
+                .Trim();
 
         return sanitized.Length > 160
             ? sanitized[..160]
