@@ -1,9 +1,11 @@
 param(
-    [string]$Version = "0.4.0-preview.1",
+    [string]$Version = "0.4.0-preview.2",
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$VelopackVersion = "1.2.0",
     [string]$RepositoryUrl = "https://github.com/ArturiaGit/Arturia.FrpNexus",
+    [string]$IconPath = "",
+    [string]$InstallLocation = "Either",
     [string]$SignTemplate = "",
     [string]$SignParams = "",
     [string]$AzureTrustedSignFile = "",
@@ -14,6 +16,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $repoRoot "src/Arturia.FrpNexus.Desktop/Arturia.FrpNexus.Desktop.csproj"
+$defaultIconPath = Join-Path $repoRoot "src/Arturia.FrpNexus.Desktop/Assets/frpnexus-logo.ico"
 $appId = "Arturia.FrpNexus"
 $appTitle = "FrpNexus"
 $packageName = "FrpNexus-$RuntimeIdentifier-$Version"
@@ -23,6 +26,19 @@ $outputRoot = Join-Path $repoRoot "artifacts/release"
 $outputPath = Join-Path $outputRoot $packageName
 $zipPath = Join-Path $outputRoot "$packageName.zip"
 $sha256Path = Join-Path $outputRoot "$packageName.sha256.txt"
+
+if ([string]::IsNullOrWhiteSpace($IconPath)) {
+    $IconPath = $defaultIconPath
+}
+
+$resolvedIconPath = (Resolve-Path -LiteralPath $IconPath -ErrorAction Stop).Path
+if (-not (Test-Path -LiteralPath $resolvedIconPath -PathType Leaf)) {
+    throw "Installer icon was not found: $IconPath"
+}
+
+if ([string]::IsNullOrWhiteSpace($InstallLocation)) {
+    throw "InstallLocation cannot be empty. Use a Velopack install location value such as Either."
+}
 
 function Get-Sha256Line {
     param(
@@ -73,6 +89,11 @@ New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 New-Item -ItemType Directory -Path $toolPath -Force | Out-Null
 
+$vpkPath = Join-Path $toolPath "vpk.exe"
+if (-not (Test-Path -LiteralPath $vpkPath)) {
+    $vpkPath = Join-Path $toolPath "vpk"
+}
+
 dotnet publish $projectPath `
     --configuration $Configuration `
     --runtime $RuntimeIdentifier `
@@ -80,14 +101,13 @@ dotnet publish $projectPath `
     --output $publishPath `
     -p:Version=$Version `
     -p:AssemblyVersion=0.4.0.0 `
-    -p:FileVersion=0.4.0.0 `
+    -p:FileVersion=0.4.0.2 `
     -p:PublishSingleFile=false
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."
 }
 
-dotnet tool update vpk --tool-path $toolPath --version $VelopackVersion | Out-Host
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-Path -LiteralPath $vpkPath)) {
     dotnet tool install vpk --tool-path $toolPath --version $VelopackVersion | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install Velopack CLI v$VelopackVersion."
@@ -111,7 +131,9 @@ $packArguments = @(
     "--packDir", $publishPath,
     "--mainExe", "Arturia.FrpNexus.Desktop.exe",
     "--outputDir", $outputPath,
-    "--runtime", $RuntimeIdentifier
+    "--runtime", $RuntimeIdentifier,
+    "--icon", $resolvedIconPath,
+    "--instLocation", $InstallLocation
 )
 
 if (-not [string]::IsNullOrWhiteSpace($SignTemplate)) {

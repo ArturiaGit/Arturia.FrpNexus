@@ -487,6 +487,8 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Generate a zip bundle and SHA256 checksum manifest for release artifacts.
 - [x] Keep MSIX packaging deferred until trusted code signing is available.
 - [x] Allow unsigned preview packages while clearly documenting SmartScreen and antivirus warning risk.
+- [x] Configure Velopack installer icon to use the FrpNexus logo.
+- [x] Configure Velopack installer location mode through the release script.
 - [x] Run `dotnet restore`.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
