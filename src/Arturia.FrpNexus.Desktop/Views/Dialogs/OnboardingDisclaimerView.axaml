@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels.Dialogs"
+             x:Class="Arturia.FrpNexus.Desktop.Views.Dialogs.OnboardingDisclaimerView"
+             x:DataType="vm:OnboardingDisclaimerViewModel">
+    <Border Padding="20"
+            Background="{StaticResource FrpSurfaceWhiteBrush}">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+              RowSpacing="16">
+            <Grid ColumnDefinitions="40,*"
+                  ColumnSpacing="12">
+                <Border Width="36"
+                        Height="36"
+                        CornerRadius="8"
+                        Background="{StaticResource FrpStatusInfoSoftBrush}"
+                        BorderBrush="{StaticResource FrpPrimaryBrush}"
+                        BorderThickness="1">
+                    <TextBlock Text="i"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FrpPrimaryBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1"
+                            Spacing="2">
+                    <TextBlock Classes="section-title"
+                               Text="{Binding Title}" />
+                    <TextBlock Classes="helper"
+                               Foreground="{StaticResource FrpTextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Text="{Binding Subtitle}" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Padding="12"
+                    Background="{StaticResource FrpSurfaceLowBrush}"
+                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource FrpRadiusControl}">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="group-label"
+                               Text="免责说明" />
+                    <TextBlock Classes="body"
+                               Foreground="{StaticResource FrpTextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Text="FrpNexus 是面向个人开发者和轻量运维场景的 FRP 桌面控制台。请仅在你有权限管理的节点、网络和服务上使用；远程命令、端口暴露、配置上传和进程控制产生的风险由使用者自行确认和承担。" />
+                    <TextBlock Classes="body"
+                               Foreground="{StaticResource FrpTextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Text="FrpNexus 不会把 SSH 密码、Token、私钥内容或私钥口令写入普通 SQLite、导出快照或日志。会话凭据只用于你主动发起的连接和部署操作。" />
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="*,*,*"
+                  ColumnSpacing="12">
+                <Border Padding="12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource FrpRadiusControl}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="group-label"
+                                   Text="1. 添加节点" />
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="在 节点 中保存 Linux 服务器信息，并测试 SSH 连接。" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1"
+                        Padding="12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource FrpRadiusControl}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="group-label"
+                                   Text="2. 创建隧道" />
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="在 隧道 中定义 TCP、UDP、HTTP 或 HTTPS 映射。" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2"
+                        Padding="12"
+                        Background="{StaticResource FrpSurfaceWhiteBrush}"
+                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource FrpRadiusControl}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="group-label"
+                                   Text="3. 生成并运行" />
+                        <TextBlock Classes="helper"
+                                   Foreground="{StaticResource FrpTextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="生成 TOML，上传配置，并在 日志 中检查运行状态。" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="3"
+                        Spacing="6">
+                <CheckBox Content="我已阅读并同意以上使用边界与免责声明"
+                          IsChecked="{Binding HasAcceptedDisclaimer}" />
+                <TextBlock Classes="helper"
+                           Foreground="{StaticResource FrpStatusErrorBrush}"
+                           IsVisible="{Binding HasError}"
+                           TextWrapping="Wrap"
+                           Text="{Binding ErrorText}" />
+                <TextBlock Classes="helper"
+                           Foreground="{StaticResource FrpTextSecondaryBrush}"
+                           Text="{Binding CurrentDisclaimerVersion, StringFormat='版本：{0}'}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button Classes="primary"
+                        AutomationProperties.Name="开始使用"
+                        Command="{Binding ConfirmCommand}"
+                        Content="开始使用" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

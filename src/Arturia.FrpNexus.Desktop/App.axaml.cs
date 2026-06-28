@@ -28,9 +28,11 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            mainWindow.DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+            var mainWindowViewModel = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+            mainWindow.DataContext = mainWindowViewModel;
             desktop.MainWindow = mainWindow;
             desktop.Exit += OnDesktopExit;
+            _ = InitializeMainWindowAsync(mainWindowViewModel);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -50,6 +52,18 @@ public partial class App : Avalonia.Application
         catch (Exception ex)
         {
             _serviceProvider.GetService<ILogger>()?.Warning(ex, "Failed to initialize application theme.");
+        }
+    }
+
+    private async System.Threading.Tasks.Task InitializeMainWindowAsync(MainWindowViewModel mainWindowViewModel)
+    {
+        try
+        {
+            await mainWindowViewModel.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            _serviceProvider?.GetService<ILogger>()?.Warning(ex, "Failed to initialize main window.");
         }
     }
 

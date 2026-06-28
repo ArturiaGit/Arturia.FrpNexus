@@ -71,6 +71,9 @@
         <DataTemplate DataType="dialogs:FrpCoreDownloadOptionsDialogViewModel">
             <dialogViews:FrpCoreDownloadOptionsDialogView />
         </DataTemplate>
+        <DataTemplate DataType="dialogs:OnboardingDisclaimerViewModel">
+            <dialogViews:OnboardingDisclaimerView />
+        </DataTemplate>
     </Window.DataTemplates>
 
     <Grid ColumnDefinitions="212,*">
@@ -226,6 +229,28 @@
                 </Transitions>
             </Border.Transitions>
         </Border>
+
+        <Grid Grid.ColumnSpan="2"
+              Classes="dialog-host"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Opacity="{Binding IsOnboardingDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
+              IsVisible="{Binding IsOnboardingDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
+              ZIndex="1001">
+            <Border Width="680"
+                    MaxHeight="620"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
+                    ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModalDialog}" />
+            </Border>
+        </Grid>
 
         <Grid Grid.ColumnSpan="2"
               Classes="dialog-host"
