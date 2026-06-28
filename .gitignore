@@ -46,10 +46,7 @@ desktop.ini
 ~$*
 
 # Local-only project material
-AGENTS.md
-docs/
 tests/
-scripts/
 stitch_frpnexus_design_system/
 DESIGN.md
 FrpNexus_Product_Plan_v1.0.md
