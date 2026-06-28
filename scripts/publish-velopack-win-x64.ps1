@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.4.0-preview.2",
+    [string]$Version = "0.4.0-preview.3",
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
     [string]$VelopackVersion = "1.2.0",
@@ -101,7 +101,7 @@ dotnet publish $projectPath `
     --output $publishPath `
     -p:Version=$Version `
     -p:AssemblyVersion=0.4.0.0 `
-    -p:FileVersion=0.4.0.2 `
+    -p:FileVersion=0.4.0.3 `
     -p:PublishSingleFile=false
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."

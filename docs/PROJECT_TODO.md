@@ -493,6 +493,12 @@ Phase 4 should refine packaging, reliability, and broader product polish.
 - [x] Run `dotnet build`.
 - [x] Run full `dotnet test`.
 - [x] Run `scripts/publish-velopack-win-x64.ps1`.
+- [x] Add Inno Setup outer installer for GUI directory selection.
+- [x] Create `installer/frpnexus-preview.iss` and `scripts/publish-inno-win-x64.ps1`.
+- [x] Update `docs/RELEASE_PACKAGING.md` with outer installer documentation.
+- [x] Prevent the outer Setup installer from leaving an empty custom directory when an existing Velopack install is detected.
+- [ ] Verify outer Setup installer directory selection and icon in manual install test.
+- [ ] Publish `v0.4.0-preview.3` GitHub Release with outer Setup installer as recommended download.
 
 ## v1.0 End-to-End Acceptance / RC Gate Todo
 
