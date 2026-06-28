@@ -27,6 +27,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IFrpLifecycleStateService _frpLifecycleStateService;
     private readonly IRemoteFrpsRetentionService _remoteFrpsRetentionService;
     private readonly IConfirmationDialogService _confirmationDialogService;
+    private readonly IOnboardingDialogService _onboardingDialogService;
     private readonly IModalOverlayService _modalOverlayService;
     private readonly IModalDialogHostService _modalDialogHostService;
     private bool _isCloseConfirmed;
@@ -51,6 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IFrpLifecycleStateService frpLifecycleStateService,
         IRemoteFrpsRetentionService remoteFrpsRetentionService,
         IConfirmationDialogService confirmationDialogService,
+        IOnboardingDialogService onboardingDialogService,
         IModalOverlayService modalOverlayService,
         IModalDialogHostService modalDialogHostService)
     {
@@ -62,6 +64,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _frpLifecycleStateService = frpLifecycleStateService;
         _remoteFrpsRetentionService = remoteFrpsRetentionService;
         _confirmationDialogService = confirmationDialogService;
+        _onboardingDialogService = onboardingDialogService;
         _modalOverlayService = modalOverlayService;
         _modalDialogHostService = modalDialogHostService;
         _modalOverlayService.PropertyChanged += OnModalOverlayServicePropertyChanged;
@@ -104,11 +107,24 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public bool IsFrpCoreDownloadOptionsDialogVisible => CurrentModalDialog is FrpCoreDownloadOptionsDialogViewModel;
 
+    public bool IsOnboardingDialogVisible => CurrentModalDialog is OnboardingDisclaimerViewModel;
+
     public bool IsWorkflowDialogVisible => IsModalDialogVisible
         && !IsConfirmationDialogVisible
-        && !IsFrpCoreDownloadOptionsDialogVisible;
+        && !IsFrpCoreDownloadOptionsDialogVisible
+        && !IsOnboardingDialogVisible;
 
     public object? CurrentModalDialog => _modalDialogHostService.CurrentDialog;
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        await _onboardingDialogService.ShowIfRequiredAsync(cancellationToken);
+    }
 
     public void Dispose()
     {
@@ -472,6 +488,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(IsModalDialogVisible));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
             OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
+            OnPropertyChanged(nameof(IsOnboardingDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
 
@@ -481,6 +498,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(CurrentModalDialog));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
             OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
+            OnPropertyChanged(nameof(IsOnboardingDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
     }
