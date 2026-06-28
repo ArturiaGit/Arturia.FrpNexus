@@ -1,4 +1,3 @@
-using Arturia.FrpNexus.Application.Abstractions;
 using Avalonia.Styling;
 using System;
 using System.Threading;
@@ -6,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Arturia.FrpNexus.Desktop.Theming;
 
-public sealed class AvaloniaThemeService(ISettingsService settingsService) : IThemeService
+public sealed class AvaloniaThemeService : IThemeService
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        var settings = await settingsService.GetSettingsAsync(cancellationToken);
-        ApplyTheme(settings.Theme);
+        await Task.CompletedTask;
+        ApplyTheme("Light");
     }
 
     public void ApplyTheme(string theme)

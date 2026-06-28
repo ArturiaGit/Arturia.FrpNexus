@@ -48,8 +48,8 @@
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="14">
-                    <Border Padding="14"
-                            Classes="panel">
+                    <Border Padding="12"
+                            Classes="subtle-panel">
                         <StackPanel Spacing="12">
                             <TextBlock Classes="group-label"
                                        Text="SSH 凭据" />
@@ -86,14 +86,16 @@
                                            Text="会话密码" />
                                 <TextBox Classes="stitch-input"
                                          PasswordChar="*"
-                                         PlaceholderText="输入本次 SSH 密码，或留空使用已保存密码"
+                                         PlaceholderText="本次 SSH 密码；留空使用已保存密码"
                                          Text="{Binding SshSessionPassword}" />
                                 <Grid ColumnDefinitions="*,Auto"
                                       ColumnSpacing="8">
-                                    <CheckBox Content="记住密码"
+                                    <CheckBox Classes="stitch-check"
+                                              Content="记住密码"
                                               IsChecked="{Binding RememberSessionPassword}" />
                                     <Button Grid.Column="1"
                                             Classes="secondary stitch-command"
+                                            AutomationProperties.Name="清除保存的 SSH 会话密码"
                                             Command="{Binding ClearSavedSessionPasswordCommand}"
                                             IsEnabled="{Binding HasSavedSessionPassword}">
                                         <StackPanel Orientation="Horizontal"
@@ -160,6 +162,7 @@
                             </Border>
 
                             <Button Classes="primary stitch-command"
+                                    AutomationProperties.Name="{Binding ConnectButtonText}"
                                     HorizontalAlignment="Right"
                                     Command="{Binding ConnectCommand}"
                                     IsEnabled="{Binding CanConnect}">
@@ -174,8 +177,8 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="14"
-                            Classes="panel"
+                    <Border Padding="12"
+                            Classes="subtle-panel"
                             IsVisible="{Binding IsDeploymentVisible}">
                         <StackPanel Spacing="12">
                             <TextBlock Classes="group-label"
@@ -193,6 +196,7 @@
                                              Text="{Binding SelectedLocalCoreFileName}" />
                                     <Button Grid.Column="1"
                                             Classes="secondary stitch-command"
+                                            AutomationProperties.Name="选择本地 frps 文件"
                                             Command="{Binding PickLocalCoreFileCommand}"
                                             IsEnabled="{Binding CanPickLocalCoreFile}">
                                         <StackPanel Orientation="Horizontal"
@@ -212,6 +216,7 @@
                                              Text="{Binding RemoteCoreDirectory}" />
                                     <Button Grid.Column="1"
                                             Classes="secondary stitch-command"
+                                            AutomationProperties.Name="选择远程目录"
                                             Command="{Binding PickRemoteCoreDirectoryCommand}"
                                             IsEnabled="{Binding CanPickRemoteCoreDirectory}">
                                         <StackPanel Orientation="Horizontal"
@@ -254,12 +259,14 @@
                                 <Grid ColumnDefinitions="*,*"
                                       ColumnSpacing="8">
                                     <Button Classes="primary stitch-command"
+                                            AutomationProperties.Name="{Binding UploadCoreButtonText}"
                                             Command="{Binding UploadCoreCommand}"
                                             IsEnabled="{Binding CanUploadCore}">
                                         <TextBlock Text="{Binding UploadCoreButtonText}" />
                                     </Button>
                                     <Button Grid.Column="1"
                                             Classes="secondary stitch-command"
+                                            AutomationProperties.Name="{Binding UploadServerTomlButtonText}"
                                             Command="{Binding UploadServerTomlCommand}"
                                             IsEnabled="{Binding CanUploadServerToml}">
                                         <TextBlock Text="{Binding UploadServerTomlButtonText}" />
@@ -268,6 +275,7 @@
                             </StackPanel>
 
                             <Button Classes="danger stitch-command"
+                                    AutomationProperties.Name="{Binding DeleteRemoteFrpFilesButtonText}"
                                     HorizontalAlignment="Left"
                                     Command="{Binding DeleteRemoteFrpFilesCommand}"
                                     IsVisible="{Binding IsRemoteFileDeleteVisible}"
@@ -328,6 +336,7 @@
                     BorderBrush="{StaticResource FrpBorderDefaultBrush}"
                     BorderThickness="0,1,0,0">
                 <Button Classes="secondary stitch-command"
+                        AutomationProperties.Name="关闭节点连接工作流"
                         HorizontalAlignment="Right"
                         Content="关闭"
                         Command="{Binding CloseCommand}" />

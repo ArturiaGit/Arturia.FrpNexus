@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Arturia.FrpNexus.Desktop.ViewModels"
         xmlns:converters="using:Arturia.FrpNexus.Desktop.Converters"
@@ -7,22 +7,38 @@
         xmlns:desktopModels="using:Arturia.FrpNexus.Desktop.Models"
         xmlns:dialogViews="using:Arturia.FrpNexus.Desktop.Views.Dialogs"
         xmlns:pageViews="using:Arturia.FrpNexus.Desktop.Views.Pages"
+        xmlns:transitions="using:Arturia.FrpNexus.Desktop.Transitions"
+        xmlns:attached="using:Arturia.FrpNexus.Desktop.AttachedProperties"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         x:Class="Arturia.FrpNexus.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="FrpNexus"
+        Icon="/Assets/frpnexus-logo.ico"
+        Title="Arturia.FrpNexus"
         Width="1280"
         Height="800"
         MinWidth="1100"
         MinHeight="720"
-        Background="{StaticResource Brush.AppBackground}">
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.AppBackground}">
 
     <Window.Resources>
+        <StreamGeometry x:Key="Logo">M9 1.5L1.5 16.5H4.875L9 8.25L13.125 16.5H16.5L9 1.5V1.5</StreamGeometry>
         <converters:MetricIconConverter x:Key="MetricIconConverter" />
     </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Grid.dialog-host">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity"
+                                      Duration="{DynamicResource FrpMotionDialogEnterDuration}"
+                                      Easing="{DynamicResource FrpMotionEaseOut}" />
+                </Transitions>
+            </Setter>
+        </Style>
+    </Window.Styles>
 
     <Window.DataTemplates>
         <DataTemplate DataType="pages:DashboardPageViewModel">
@@ -52,11 +68,17 @@
         <DataTemplate DataType="dialogs:ConfirmationDialogViewModel">
             <dialogViews:ConfirmationDialogView />
         </DataTemplate>
+        <DataTemplate DataType="dialogs:FrpCoreDownloadOptionsDialogViewModel">
+            <dialogViews:FrpCoreDownloadOptionsDialogView />
+        </DataTemplate>
+        <DataTemplate DataType="dialogs:OnboardingDisclaimerViewModel">
+            <dialogViews:OnboardingDisclaimerView />
+        </DataTemplate>
     </Window.DataTemplates>
 
     <Grid ColumnDefinitions="212,*">
-        <Border Background="{StaticResource Brush.SidebarBackground}"
-                BorderBrush="{StaticResource Brush.BorderDefault}"
+        <Border Background="{DynamicResource Brush.SidebarBackground}"
+                BorderBrush="{DynamicResource Brush.BorderDefault}"
                 BorderThickness="0,0,1,0">
             <Grid RowDefinitions="Auto,*,Auto"
                   Margin="0,24">
@@ -64,25 +86,25 @@
                             Margin="16,0,16,24"
                             Spacing="2">
                     <Grid ColumnDefinitions="34,*"
-                          ColumnSpacing="10">
+                            ColumnSpacing="10">
                         <Border Width="32"
                                 Height="32"
                                 CornerRadius="8"
-                                Background="{StaticResource Brush.Primary}">
-                            <TextBlock Text="⌁"
-                                       Foreground="White"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                Background="#152238">
+                            <PathIcon Width="18"
+                                      Height="18"
+                                      Data="{StaticResource Logo}"
+                                      Foreground="White"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1">
                             <TextBlock Classes="section-title"
-                                       Foreground="{StaticResource Brush.SidebarText}"
+                                       Foreground="{DynamicResource Brush.SidebarText}"
                                        Text="FrpNexus" />
                             <TextBlock Classes="helper"
-                                       Foreground="{StaticResource Brush.SidebarMuted}"
-                                       Text="V2.4.0 Stable" />
+                                       Foreground="{DynamicResource Brush.SidebarMuted}"
+                                       Text="v0.4.0-preview.1" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -94,6 +116,7 @@
                             <Button Command="{Binding NavigateCommand}"
                                     CommandParameter="{Binding}"
                                     Classes="nav-button"
+                                    AutomationProperties.Name="{Binding Title}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Stretch"
                                     Background="Transparent"
@@ -105,14 +128,14 @@
                                     <Grid Height="40"
                                           ColumnDefinitions="3,36,*">
                                         <Border Grid.Column="0"
-                                                Background="{StaticResource Brush.Primary}"
+                                                Background="{DynamicResource Brush.Primary}"
                                                 IsVisible="{Binding IsSelected}" />
                                         <PathIcon Grid.Column="1"
                                                   Data="{Binding Icon, Converter={StaticResource NavigationIconConverter}}"
                                                   Classes="nav-icon" />
                                         <TextBlock Grid.Column="2"
                                                    Classes="group-label nav-title"
-                                                   Foreground="{StaticResource Brush.SidebarText}"
+                                                   Foreground="{DynamicResource Brush.SidebarText}"
                                                    VerticalAlignment="Center"
                                                    Text="{Binding Title}" />
                                     </Grid>
@@ -121,43 +144,15 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-
-                <Border Grid.Row="2"
-                        Margin="16,16,16,0"
-                        Padding="10,8">
-                    <Grid ColumnDefinitions="32,*"
-                          ColumnSpacing="8">
-                        <Border Width="28"
-                                Height="28"
-                                CornerRadius="14"
-                                Background="{StaticResource Brush.SurfaceContainer}">
-                            <TextBlock Text="person"
-                                       FontSize="12"
-                                       Foreground="{StaticResource Brush.SidebarMuted}"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel Grid.Column="1"
-                                    Spacing="0"
-                                    VerticalAlignment="Center">
-                            <TextBlock Classes="group-label"
-                                       Foreground="{StaticResource Brush.SidebarText}"
-                                       Text="账户" />
-                            <TextBlock Classes="helper"
-                                       Foreground="{StaticResource Brush.SidebarMuted}"
-                                       Text="本地控制台" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
             </Grid>
         </Border>
 
         <Grid Grid.Column="1"
               RowDefinitions="52,*"
-              Background="{StaticResource Brush.AppBackground}">
+              Background="{DynamicResource Brush.AppBackground}">
             <Border Grid.Row="0"
-                    Background="{StaticResource Brush.Surface}"
-                    BorderBrush="{StaticResource Brush.BorderDefault}"
+                    Background="{DynamicResource Brush.SurfaceAcrylic}"
+                    BorderBrush="{DynamicResource Brush.BorderDefault}"
                     BorderThickness="0,0,0,1">
                 <DockPanel Margin="24,0">
                     <Grid ColumnDefinitions="*,Auto">
@@ -174,7 +169,7 @@
                                         VerticalAlignment="Center">
                                 <Ellipse Width="8"
                                          Height="8"
-                                         Fill="{StaticResource Brush.Success}"
+                                         Fill="{DynamicResource Brush.Success}"
                                          VerticalAlignment="Center" />
                                 <TextBlock Classes="status-text success"
                                            VerticalAlignment="Center"
@@ -182,18 +177,21 @@
                             </StackPanel>
                         </Border>
                         <Button Classes="icon-secondary"
+                                AutomationProperties.Name="通知"
                                 ToolTip.Tip="通知">
                             <PathIcon Width="16"
                                       Height="16"
                                       Data="{Binding Source=notifications, Converter={StaticResource MetricIconConverter}}" />
                         </Button>
                         <Button Classes="icon-secondary"
+                                AutomationProperties.Name="网络状态"
                                 ToolTip.Tip="网络">
                             <PathIcon Width="16"
                                       Height="16"
                                       Data="{Binding Source=lan, Converter={StaticResource MetricIconConverter}}" />
                         </Button>
                         <Button Classes="icon-secondary"
+                                AutomationProperties.Name="同步状态"
                                 ToolTip.Tip="同步">
                             <PathIcon Width="16"
                                       Height="16"
@@ -204,49 +202,118 @@
                 </DockPanel>
             </Border>
 
-            <ContentControl Grid.Row="1"
-                            Margin="{StaticResource FrpPageMargin}"
-                            Content="{Binding CurrentPage}" />
+            <TransitioningContentControl Grid.Row="1"
+                                         Margin="{DynamicResource FrpPageMargin}"
+                                         Content="{Binding CurrentPage}">
+                <TransitioningContentControl.PageTransition>
+                    <transitions:FadeTranslatePageTransition Duration="0:0:0.18"
+                                                             Offset="8">
+                        <transitions:FadeTranslatePageTransition.Easing>
+                            <SineEaseOut />
+                        </transitions:FadeTranslatePageTransition.Easing>
+                    </transitions:FadeTranslatePageTransition>
+                </TransitioningContentControl.PageTransition>
+            </TransitioningContentControl>
         </Grid>
 
         <Border Grid.ColumnSpan="2"
-                Background="{StaticResource Brush.ModalOverlay}"
+                Background="{DynamicResource Brush.ModalOverlay}"
                 IsHitTestVisible="True"
                 IsVisible="{Binding IsModalOverlayVisible}"
-                ZIndex="1000" />
+                ZIndex="1000">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity"
+                                      Duration="{DynamicResource FrpMotionFastDuration}"
+                                      Easing="{DynamicResource FrpMotionEaseOut}" />
+                </Transitions>
+            </Border.Transitions>
+        </Border>
 
         <Grid Grid.ColumnSpan="2"
+              Classes="dialog-host"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
-              IsVisible="{Binding IsConfirmationDialogVisible}"
+              Opacity="{Binding IsOnboardingDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
+              IsVisible="{Binding IsOnboardingDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
               ZIndex="1001">
-            <Border Width="460"
-                    MaxHeight="360"
+            <Border Width="680"
+                    MaxHeight="620"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="{StaticResource FrpSurfaceWhiteBrush}"
-                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
                     ClipToBounds="True">
                 <ContentControl Content="{Binding CurrentModalDialog}" />
             </Border>
         </Grid>
 
         <Grid Grid.ColumnSpan="2"
+              Classes="dialog-host"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Opacity="{Binding IsFrpCoreDownloadOptionsDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
+              IsVisible="{Binding IsFrpCoreDownloadOptionsDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
+              ZIndex="1001">
+            <Border Width="480"
+                    MaxHeight="420"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
+                    ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModalDialog}" />
+            </Border>
+        </Grid>
+
+        <Grid Grid.ColumnSpan="2"
+              Classes="dialog-host"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Opacity="{Binding IsConfirmationDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
+              IsVisible="{Binding IsConfirmationDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
+              ZIndex="1001">
+            <Border Width="460"
+                    MaxHeight="360"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
+                    BorderThickness="1"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
+                    ClipToBounds="True">
+                <ContentControl Content="{Binding CurrentModalDialog}" />
+            </Border>
+        </Grid>
+
+        <Grid Grid.ColumnSpan="2"
+              Classes="dialog-host"
               Margin="0,24"
               HorizontalAlignment="Center"
               VerticalAlignment="Stretch"
+              Opacity="{Binding IsWorkflowDialogVisible, Converter={StaticResource BoolToDoubleConverter}, ConverterParameter='1,0'}"
               IsVisible="{Binding IsWorkflowDialogVisible}"
+              attached:DialogEntranceMotion.IsEnabled="True"
               ZIndex="1001">
             <Border Width="640"
                     MaxHeight="680"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    Background="{StaticResource FrpSurfaceWhiteBrush}"
-                    BorderBrush="{StaticResource FrpBorderDefaultBrush}"
+                    Background="{DynamicResource FrpSurfaceWhiteBrush}"
+                    BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    BoxShadow="{DynamicResource FrpShadowDialog}"
+                    CornerRadius="{DynamicResource FrpRadiusPanel}"
                     ClipToBounds="True">
                 <ContentControl HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"

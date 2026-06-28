@@ -67,11 +67,6 @@ public sealed class RemoteFileTransferService(
                     ? "远程 frps 和 frps.toml 尚未上传。"
                     : "远程部署文件不完整，需要补齐缺失文件。";
 
-            logger.Information(
-                "SFTP remote FRP files presence checked for node {NodeName} using {AuthenticationMode}",
-                request.Node.Name,
-                request.Credential.AuthenticationMode);
-
             return new RemoteFilePresenceResult(
                 request.Node.Name,
                 entries,
@@ -530,6 +525,7 @@ public sealed class RemoteFileTransferService(
     {
         return exception switch
         {
+            TimeoutException => "SFTP 上传超时：远程节点响应过慢，请检查网络和服务器状态。",
             SftpPermissionDeniedException => BuildPermissionFailureMessage(remotePath),
             SftpPathNotFoundException => "SFTP 上传失败：远程目录不存在，或上级目录不可访问。",
             SshConnectionException => "SFTP 上传失败：连接失败，请检查节点连接状态。",
@@ -542,6 +538,7 @@ public sealed class RemoteFileTransferService(
     {
         return exception switch
         {
+            TimeoutException => "SFTP 删除超时：远程节点响应过慢，请检查网络和服务器状态。",
             SftpPermissionDeniedException => BuildDeletePermissionFailureMessage(remotePath),
             SftpPathNotFoundException => "SFTP 删除失败：远程目录不存在，或上级目录不可访问。",
             SshConnectionException => "SFTP 删除失败：连接失败，请检查节点连接状态。",
@@ -554,6 +551,7 @@ public sealed class RemoteFileTransferService(
     {
         return exception switch
         {
+            TimeoutException => "SFTP 检查超时：远程节点响应过慢，请检查网络和服务器状态。",
             SftpPermissionDeniedException => "SFTP 检查失败：远程目录权限不足，无法确认部署文件状态。",
             SftpPathNotFoundException => "SFTP 检查失败：远程目录不存在，或上级目录不可访问。",
             SshConnectionException => "SFTP 检查失败：连接失败，请检查节点连接状态。",

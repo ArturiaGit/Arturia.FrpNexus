@@ -1,59 +1,117 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Style Selector="Border.terminal-panel">
-        <Setter Property="Background" Value="{StaticResource FrpCodePanelBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpInverseSurfaceBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpCodePanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusPanel}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusPanel}" />
+        <Setter Property="BoxShadow" Value="0 2 8 0 #00000024" />
     </Style>
 
     <Style Selector="DockPanel.terminal-header">
-        <Setter Property="Background" Value="{StaticResource FrpTerminalSurfaceBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpTerminalSurfaceBrush}" />
     </Style>
 
     <Style Selector="DockPanel.terminal-footer">
-        <Setter Property="Background" Value="{StaticResource FrpCodePanelGutterBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpCodePanelGutterBrush}" />
     </Style>
 
     <Style Selector="TextBlock.code-muted">
         <Setter Property="FontFamily" Value="{StaticResource Font.Code}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="LineHeight" Value="18" />
-        <Setter Property="Foreground" Value="{StaticResource FrpCodeMutedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpCodeMutedBrush}" />
     </Style>
 
     <Style Selector="Border.log-line">
         <Setter Property="Padding" Value="4,2" />
-        <Setter Property="CornerRadius" Value="{StaticResource FrpRadiusSmall}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Border.log-line:pointerover">
-        <Setter Property="Background" Value="#0DFFFFFF" />
+        <Setter Property="Background" Value="{DynamicResource FrpLogLineHoverBrush}" />
     </Style>
 
     <Style Selector="Border.log-line.warning">
-        <Setter Property="Background" Value="#24D97706" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpLogLineWarningBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusWarningBrush}" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
     </Style>
 
     <Style Selector="Border.log-line.error">
-        <Setter Property="Background" Value="#24DC2626" />
-        <Setter Property="BorderBrush" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FrpLogLineErrorBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpStatusErrorBrush}" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
     </Style>
 
     <Style Selector="TextBlock.log-level">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusInfoBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusInfoBrush}" />
     </Style>
 
     <Style Selector="TextBlock.log-level.warning">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusWarningBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusWarningBrush}" />
     </Style>
 
     <Style Selector="TextBlock.log-level.error">
-        <Setter Property="Foreground" Value="{StaticResource FrpStatusErrorBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpStatusErrorBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.code-command">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Background" Value="#12000000" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpCodeTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+                <BrushTransition Property="BorderBrush"
+                                 Duration="{DynamicResource FrpMotionFastDuration}"
+                                 Easing="{DynamicResource FrpMotionEaseGentleOut}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.code-command:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineBrush}" />
+    </Style>
+
+    <Style Selector="Button.code-command:pressed">
+        <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpCodeMutedBrush}" />
+    </Style>
+
+    <Style Selector="Button.code-command:focus-visible">
+        <Setter Property="BorderBrush" Value="{DynamicResource FrpFocusRingBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Button.code-command PathIcon">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+    </Style>
+
+    <Style Selector="Button.code-command TextBlock">
+        <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
     </Style>
 </Styles>

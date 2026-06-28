@@ -6,13 +6,16 @@ namespace Arturia.FrpNexus.Infrastructure.Releases;
 
 public sealed class GitHubFrpReleaseClient(HttpClient httpClient) : IFrpReleaseClient
 {
-    private const string ReleasesUrl = "https://api.github.com/repos/fatedier/frp/releases";
+    private const string DefaultReleasesUrl = "https://api.github.com/repos/fatedier/frp/releases";
 
-    public async Task<IReadOnlyList<FrpReleaseVersion>> ListVersionsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<FrpReleaseVersion>> ListVersionsAsync(
+        FrpReleaseSourceOptions? sourceOptions = null,
+        CancellationToken cancellationToken = default)
     {
         EnsureHeaders();
 
-        var releases = await httpClient.GetFromJsonAsync<IReadOnlyList<GitHubRelease>>(ReleasesUrl, cancellationToken)
+        var releasesUrl = ResolveReleasesUrl(sourceOptions);
+        var releases = await httpClient.GetFromJsonAsync<IReadOnlyList<GitHubRelease>>(releasesUrl, cancellationToken)
             ?? [];
 
         return releases
@@ -24,11 +27,13 @@ public sealed class GitHubFrpReleaseClient(HttpClient httpClient) : IFrpReleaseC
     public async Task<Stream> DownloadAssetAsync(
         string version,
         string targetRuntime,
+        FrpReleaseSourceOptions? sourceOptions = null,
         CancellationToken cancellationToken = default)
     {
         EnsureHeaders();
 
-        var releases = await httpClient.GetFromJsonAsync<IReadOnlyList<GitHubRelease>>(ReleasesUrl, cancellationToken)
+        var releasesUrl = ResolveReleasesUrl(sourceOptions);
+        var releases = await httpClient.GetFromJsonAsync<IReadOnlyList<GitHubRelease>>(releasesUrl, cancellationToken)
             ?? [];
         var release = releases.FirstOrDefault(item => string.Equals(item.TagName, version, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"未找到 FRP Release：{version}");
@@ -37,6 +42,23 @@ public sealed class GitHubFrpReleaseClient(HttpClient httpClient) : IFrpReleaseC
             ?? throw new InvalidOperationException($"未找到适配 {targetRuntime} 的 FRP Release 资产。");
 
         return await httpClient.GetStreamAsync(asset.BrowserDownloadUrl, cancellationToken);
+    }
+
+    private static string ResolveReleasesUrl(FrpReleaseSourceOptions? sourceOptions)
+    {
+        if (sourceOptions is null
+            || !string.Equals(sourceOptions.SourceKind, "Custom", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultReleasesUrl;
+        }
+
+        if (Uri.TryCreate(sourceOptions.CustomReleasesApiUrl, UriKind.Absolute, out var uri)
+            && uri.Scheme is "http" or "https")
+        {
+            return uri.ToString();
+        }
+
+        throw new InvalidOperationException("自定义 FRP 镜像源地址无效。");
     }
 
     private static bool IsRuntimeAsset(string assetName, string targetRuntime)

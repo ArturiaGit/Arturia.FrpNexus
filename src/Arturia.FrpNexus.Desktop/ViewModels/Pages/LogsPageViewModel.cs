@@ -6,28 +6,47 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arturia.FrpNexus.Application.Abstractions;
 using Arturia.FrpNexus.Core.Models;
+using Arturia.FrpNexus.Desktop.Services;
 using Arturia.FrpNexus.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
-public sealed partial class LogsPageViewModel : PageViewModel
+public sealed partial class LogsPageViewModel : PageViewModel, IActivatablePageViewModel, IDisposable
 {
     private const string AllNodesFilter = "全部节点";
     private const string AllProcessesFilter = "全部进程";
     private const string AllLevelsFilter = "全部级别";
+    private const string LocalNodeFilter = "客户端";
+    private const string LocalProcessFilter = "FrpNexus";
+    private const string FrpcLogPath = "/tmp/frpnexus-frpc.log";
+    private const string FrpsLogPath = "/tmp/frpnexus-frps.log";
+    private static readonly TimeSpan DefaultAutoRefreshInterval = TimeSpan.FromSeconds(2);
 
     private readonly INodeManagementService _nodeManagementService;
     private readonly IRemoteLogService _remoteLogService;
+    private readonly ILocalApplicationLogService _localApplicationLogService;
+    private readonly INodeConnectionSessionService _nodeConnectionSessionService;
+    private readonly IRemoteRuntimeService _remoteRuntimeService;
+    private readonly TimeSpan _autoRefreshInterval;
 
-    private bool _hasAttemptedNodeFilterLoad;
+    private bool _isShowingLocalLogs = true;
+    private bool _isUpdatingRemoteFilters;
+    private bool _isAutoReadingRemoteLogs;
+    private bool _isPageActive;
+    private bool _isDisposed;
+    private int _isAutoRefreshTickRunning;
+    private CancellationTokenSource? _autoRefreshCancellation;
+    private Task? _autoRefreshTask;
+    private RemoteProcessLogOption? _selectedRemoteProcessOption;
+    private IReadOnlyList<RemoteProcessLogOption> _remoteProcessOptions = [];
 
     [ObservableProperty]
-    private string _selectedNodeName = "Web-Server-HK";
+    private string _selectedNodeName = string.Empty;
 
     [ObservableProperty]
-    private string _processName = "frpc";
+    private string _processName = LocalProcessFilter;
 
     [ObservableProperty]
     private string _remoteLogPath = "/tmp/frpnexus-frpc.log";
@@ -45,7 +64,7 @@ public sealed partial class LogsPageViewModel : PageViewModel
     private string _sshPrivateKeyPassphrase = string.Empty;
 
     [ObservableProperty]
-    private string _statusText = "当前显示静态日志样例。";
+    private string _statusText = "点击刷新读取本地 FrpNexus 日志。";
 
     [ObservableProperty]
     private bool _isReadingRemoteLogs;
@@ -54,10 +73,10 @@ public sealed partial class LogsPageViewModel : PageViewModel
     private string _searchText = string.Empty;
 
     [ObservableProperty]
-    private string _selectedNodeFilter = AllNodesFilter;
+    private string _selectedNodeFilter = LocalNodeFilter;
 
     [ObservableProperty]
-    private string _selectedProcessFilter = AllProcessesFilter;
+    private string _selectedProcessFilter = LocalProcessFilter;
 
     [ObservableProperty]
     private string _selectedLevelFilter = AllLevelsFilter;
@@ -68,26 +87,45 @@ public sealed partial class LogsPageViewModel : PageViewModel
     [ObservableProperty]
     private bool _isRemoteCredentialsVisible;
 
-    public LogsPageViewModel(INodeManagementService nodeManagementService, IRemoteLogService remoteLogService)
-        : base("日志", "筛选、搜索并查看远程 FRP 日志输出")
+    [ObservableProperty]
+    private bool _canReadRemoteLogs;
+
+    public LogsPageViewModel(
+        INodeManagementService nodeManagementService,
+        IRemoteLogService remoteLogService,
+        ILocalApplicationLogService localApplicationLogService,
+        INodeConnectionSessionService nodeConnectionSessionService,
+        IRemoteRuntimeService remoteRuntimeService)
+        : this(
+            nodeManagementService,
+            remoteLogService,
+            localApplicationLogService,
+            nodeConnectionSessionService,
+            remoteRuntimeService,
+            null)
+    {
+    }
+
+    public LogsPageViewModel(
+        INodeManagementService nodeManagementService,
+        IRemoteLogService remoteLogService,
+        ILocalApplicationLogService localApplicationLogService,
+        INodeConnectionSessionService nodeConnectionSessionService,
+        IRemoteRuntimeService remoteRuntimeService,
+        TimeSpan? autoRefreshInterval)
+        : base("日志", "筛选、搜索并查看 FRP 与 FrpNexus 日志输出")
     {
         _nodeManagementService = nodeManagementService;
         _remoteLogService = remoteLogService;
-        NodeFilterOptions = [AllNodesFilter];
-        ProcessFilterOptions = [AllProcessesFilter, "frpc", "frps", "nexus_daemon"];
+        _localApplicationLogService = localApplicationLogService;
+        _nodeConnectionSessionService = nodeConnectionSessionService;
+        _remoteRuntimeService = remoteRuntimeService;
+        _autoRefreshInterval = autoRefreshInterval.GetValueOrDefault(DefaultAutoRefreshInterval);
+        NodeFilterOptions = [AllNodesFilter, LocalNodeFilter];
+        ProcessFilterOptions = [AllProcessesFilter, LocalProcessFilter];
         LevelFilterOptions = [AllLevelsFilter, "INFO", "WARN", "ERROR", "DEBUG"];
         VisibleLogs = [];
-        Logs =
-        [
-            new("2026-06-04 14:32:01.102", "INFO", "Web-Server-HK", "frpc", "FrpNexus client daemon started successfully. Version: V2.4.0", FrpNexusStatus.Ready),
-            new("2026-06-04 14:32:01.150", "INFO", "Web-Server-HK", "frpc", "Reading configuration from /etc/frp/frpc.toml", FrpNexusStatus.Ready),
-            new("2026-06-04 14:32:02.045", "INFO", "Web-Server-HK", "frpc", "Connection to control server established.", FrpNexusStatus.Online),
-            new("2026-06-04 14:35:12.880", "WARN", "DB-Node-SH", "frpc", "Proxy [db_backup_sync] connection timeout. Retrying in 5 seconds...", FrpNexusStatus.Warning),
-            new("2026-06-04 14:35:17.882", "WARN", "DB-Node-SH", "frpc", "Proxy [db_backup_sync] connection timeout. Retrying in 10 seconds...", FrpNexusStatus.Warning),
-            new("2026-06-04 14:35:28.105", "ERROR", "DB-Node-SH", "frpc", "Failed to establish proxy [db_backup_sync]. Reason: remote server closed connection unexpectedly. EOF.", FrpNexusStatus.Error),
-            new("2026-06-04 14:36:00.001", "INFO", "Web-Server-HK", "frpc", "Heartbeat sent to control server. Latency: 42ms.", FrpNexusStatus.Ready)
-        ];
-        RefreshFilterOptionsFromLogs();
+        Logs = [];
         ApplyFilters();
     }
 
@@ -102,16 +140,222 @@ public sealed partial class LogsPageViewModel : PageViewModel
     public ObservableCollection<string> LevelFilterOptions { get; }
 
     public string TerminalConnectionText =>
-        SelectedNodeFilter == AllNodesFilter
+        IsAllOrInvalidFilter(SelectedNodeFilter, AllNodesFilter, NodeFilterOptions)
             ? "[Connected: 全部节点]"
             : $"[Connected: {SelectedNodeFilter}]";
 
     public string LinesText => $"Lines: {VisibleLogs.Count:N0}";
 
+    public string LogFileText =>
+        _isShowingLocalLogs
+            ? $"File: {_localApplicationLogService.CurrentLogDirectory}"
+            : $"File: {RemoteLogPath}";
+
+    public string LogModeToggleText => IsRemoteLogMode ? "本地日志" : "远程日志";
+
+    public string LogModeToggleTooltip =>
+        IsRemoteLogMode ? "返回并读取本地 FrpNexus 日志" : "读取远程 FRP 日志";
+
+    public Task RefreshForNavigationAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsAutoRefreshEnabled)
+        {
+            return Task.CompletedTask;
+        }
+
+        return IsRemoteLogMode
+            ? ReadRemoteLogsCoreAsync(clearLogsOnFailure: false, cancellationToken)
+            : LoadLocalLogsAsync(cancellationToken);
+    }
+
+    public async Task OnActivatedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isPageActive = true;
+        if (!IsAutoRefreshEnabled)
+        {
+            return;
+        }
+
+        await RefreshForNavigationIfIdleAsync(cancellationToken);
+        StartAutoRefreshLoop();
+    }
+
+    public void OnDeactivated()
+    {
+        _isPageActive = false;
+        StopAutoRefreshLoop();
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        OnDeactivated();
+    }
+
+    partial void OnIsAutoRefreshEnabledChanged(bool value)
+    {
+        if (_isDisposed || !_isPageActive)
+        {
+            return;
+        }
+
+        if (!value)
+        {
+            StopAutoRefreshLoop();
+            return;
+        }
+
+        _ = RefreshForNavigationAndStartLoopAsync();
+    }
+
+    private async Task RefreshForNavigationAndStartLoopAsync()
+    {
+        try
+        {
+            await RefreshForNavigationIfIdleAsync(CancellationToken.None);
+            StartAutoRefreshLoop();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StartAutoRefreshLoop()
+    {
+        if (_isDisposed
+            || !_isPageActive
+            || !IsAutoRefreshEnabled
+            || _autoRefreshTask is { IsCompleted: false })
+        {
+            return;
+        }
+
+        _autoRefreshCancellation?.Dispose();
+        _autoRefreshCancellation = new CancellationTokenSource();
+        _autoRefreshTask = RunAutoRefreshLoopAsync(_autoRefreshCancellation.Token);
+    }
+
+    private void StopAutoRefreshLoop()
+    {
+        var cancellation = _autoRefreshCancellation;
+        _autoRefreshCancellation = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+        cancellation.Dispose();
+        _autoRefreshTask = null;
+    }
+
+    private async Task RunAutoRefreshLoopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(_autoRefreshInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (_isDisposed || !_isPageActive || !IsAutoRefreshEnabled)
+                {
+                    continue;
+                }
+
+                await RefreshForNavigationIfIdleAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task RefreshForNavigationIfIdleAsync(CancellationToken cancellationToken)
+    {
+        if (Interlocked.Exchange(ref _isAutoRefreshTickRunning, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            await RefreshForNavigationAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isAutoRefreshTickRunning, 0);
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadLocalLogsAsync(CancellationToken cancellationToken = default)
+    {
+        IsReadingRemoteLogs = true;
+        StatusText = "正在读取本地 FrpNexus 日志...";
+
+        try
+        {
+            var logs = await _localApplicationLogService.ReadRecentLogsAsync(200, cancellationToken);
+            _isShowingLocalLogs = true;
+            NotifyLogModeToggleChanged();
+            ReplaceLogs(logs);
+            IsRemoteCredentialsVisible = false;
+            NotifyLogModeToggleChanged();
+            StatusText = Logs.Count == 0
+                ? "本地日志暂无警告或错误。"
+                : $"已读取 {Logs.Count} 行本地日志。";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "本地日志读取已取消。";
+        }
+        catch (Exception ex)
+        {
+            StatusText = ViewModelErrorText.ForUser("本地日志读取", ex);
+        }
+        finally
+        {
+            IsReadingRemoteLogs = false;
+        }
+    }
+
     [RelayCommand]
     private async Task ReadRemoteLogsAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureNodeFilterOptionsLoadedAsync(cancellationToken);
+        await ReadRemoteLogsCoreAsync(clearLogsOnFailure: false, cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task RefreshLogsAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsRemoteLogMode)
+        {
+            await ReadRemoteLogsCoreAsync(clearLogsOnFailure: false, cancellationToken);
+            return;
+        }
+
+        await LoadLocalLogsAsync(cancellationToken);
+    }
+
+    private async Task ReadRemoteLogsCoreAsync(bool clearLogsOnFailure, CancellationToken cancellationToken)
+    {
+        if (IsRemoteCredentialsVisible && _remoteProcessOptions.Count == 0)
+        {
+            await LoadRemoteLogTargetsAsync(cancellationToken);
+            return;
+        }
 
         var request = await TryCreateRequestAsync(cancellationToken);
         if (request is null)
@@ -119,22 +363,21 @@ public sealed partial class LogsPageViewModel : PageViewModel
             return;
         }
 
+        var isRemoteModeRequest = IsRemoteLogMode;
         IsReadingRemoteLogs = true;
         StatusText = $"正在读取 {request.Node.Name} 的远程日志...";
 
         try
         {
             var logs = await _remoteLogService.ReadRecentLogsAsync(request, cancellationToken);
-            Logs.Clear();
-            foreach (var log in logs)
-            {
-                Logs.Add(log);
-            }
-
-            RefreshFilterOptionsFromLogs();
-            ApplyFilters();
+            _isShowingLocalLogs = false;
+            NotifyLogModeToggleChanged();
+            ReplaceLogs(logs);
             StatusText = $"已读取 {Logs.Count} 行远程日志。";
-            IsRemoteCredentialsVisible = false;
+            if (!isRemoteModeRequest)
+            {
+                IsRemoteCredentialsVisible = false;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -142,6 +385,13 @@ public sealed partial class LogsPageViewModel : PageViewModel
         }
         catch (Exception ex)
         {
+            if (clearLogsOnFailure)
+            {
+                Logs.Clear();
+                ApplyFilters();
+                OnPropertyChanged(nameof(LogFileText));
+            }
+
             StatusText = ViewModelErrorText.ForUser("远程日志读取", ex);
         }
         finally
@@ -160,45 +410,219 @@ public sealed partial class LogsPageViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void ToggleRemoteCredentials()
+    private async Task ToggleRemoteCredentialsAsync(CancellationToken cancellationToken = default)
     {
-        IsRemoteCredentialsVisible = !IsRemoteCredentialsVisible;
+        if (IsRemoteLogMode)
+        {
+            await SwitchToLocalLogModeAsync(cancellationToken);
+            return;
+        }
+
+        IsRemoteCredentialsVisible = true;
+        NotifyLogModeToggleChanged();
+        await LoadRemoteLogTargetsAsync(cancellationToken);
     }
 
-    private async Task EnsureNodeFilterOptionsLoadedAsync(CancellationToken cancellationToken)
+    private async Task SwitchToLocalLogModeAsync(CancellationToken cancellationToken)
     {
-        if (_hasAttemptedNodeFilterLoad)
+        _isShowingLocalLogs = true;
+        IsRemoteCredentialsVisible = false;
+        NotifyLogModeToggleChanged();
+        CanReadRemoteLogs = false;
+        _remoteProcessOptions = [];
+        _selectedRemoteProcessOption = null;
+        await LoadLocalLogsAsync(cancellationToken);
+    }
+
+    private async Task LoadRemoteLogTargetsAsync(CancellationToken cancellationToken)
+    {
+        var activeSessions = _nodeConnectionSessionService
+            .ListActiveSessions()
+            .Where(session => session.State == NodeConnectionSessionState.Online)
+            .Select(session => session.NodeName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _isShowingLocalLogs = false;
+        NotifyLogModeToggleChanged();
+        _isUpdatingRemoteFilters = true;
+        SelectedNodeFilter = ReplaceFilterOptions(NodeFilterOptions, AllNodesFilter, activeSessions, SelectedNodeFilter);
+        _isUpdatingRemoteFilters = false;
+        if (activeSessions.Length == 0)
+        {
+            SelectedNodeName = string.Empty;
+            ReplaceRemoteProcessOptions([]);
+            StatusText = "请先在节点页连接一个节点。";
+            return;
+        }
+
+        if (IsAllOrInvalidFilter(SelectedNodeFilter, AllNodesFilter, NodeFilterOptions))
+        {
+            _isUpdatingRemoteFilters = true;
+            SelectedNodeFilter = activeSessions[0];
+            _isUpdatingRemoteFilters = false;
+        }
+
+        SelectedNodeName = SelectedNodeFilter;
+        await RefreshRemoteProcessesForSelectedNodeAsync(autoReadDefaultProcess: true, cancellationToken);
+    }
+
+    private async Task RefreshRemoteProcessesForSelectedNodeAsync(bool autoReadDefaultProcess, CancellationToken cancellationToken)
+    {
+        if (IsAllOrInvalidFilter(SelectedNodeFilter, AllNodesFilter, NodeFilterOptions))
+        {
+            ReplaceRemoteProcessOptions([]);
+            return;
+        }
+
+        var node = await _nodeManagementService.GetNodeAsync(SelectedNodeFilter, cancellationToken);
+        if (node is null)
+        {
+            ReplaceRemoteProcessOptions([]);
+            StatusText = $"未找到节点 {SelectedNodeFilter}，请先在节点页保存节点资料。";
+            return;
+        }
+
+        var credential = _nodeConnectionSessionService.GetConnectedCredential(node.Name);
+        if (credential is null)
+        {
+            ReplaceRemoteProcessOptions([]);
+            StatusText = "节点 SSH 会话已断开，请先重新连接节点。";
+            return;
+        }
+
+        StatusText = $"正在刷新 {node.Name} 的 FRP 进程...";
+        IReadOnlyList<RuntimeProcess> processes;
+        try
+        {
+            processes = await _remoteRuntimeService.GetProcessesAsync(
+                new RemoteRuntimeQueryRequest(node, credential),
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "远程 FRP 进程刷新已取消。";
+            return;
+        }
+        catch (Exception ex)
+        {
+            ReplaceRemoteProcessOptions([]);
+            StatusText = ViewModelErrorText.ForUser("远程 FRP 进程刷新", ex);
+            return;
+        }
+
+        var options = processes
+            .Where(process => process.Status == FrpNexusStatus.Running)
+            .Where(process => string.Equals(process.ProcessKind, "frpc", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase))
+            .Select(RemoteProcessLogOption.FromProcess)
+            .OrderBy(option => option.ProcessKind, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(option => option.ProcessId, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        ReplaceRemoteProcessOptions(options);
+        StatusText = options.Length == 0
+            ? "未发现该节点正在运行的 frpc 或 frps 进程。"
+            : $"已发现 {options.Length} 个远程 FRP 进程。";
+        if (autoReadDefaultProcess && options.Length > 0)
+        {
+            await AutoReadSelectedRemoteLogsAsync(cancellationToken);
+        }
+    }
+
+    private void ReplaceRemoteProcessOptions(IReadOnlyList<RemoteProcessLogOption> options)
+    {
+        _remoteProcessOptions = options;
+        _selectedRemoteProcessOption = null;
+
+        _isUpdatingRemoteFilters = true;
+        ProcessFilterOptions.Clear();
+        ProcessFilterOptions.Add(AllProcessesFilter);
+        foreach (var option in options)
+        {
+            ProcessFilterOptions.Add(option.DisplayName);
+        }
+
+        SelectedProcessFilter = options.Count > 0 ? options[0].DisplayName : AllProcessesFilter;
+        ApplySelectedRemoteProcess(SelectedProcessFilter);
+        _isUpdatingRemoteFilters = false;
+        CanReadRemoteLogs = options.Count > 0;
+    }
+
+    private async Task AutoReadSelectedRemoteLogsAsync(CancellationToken cancellationToken)
+    {
+        if (_isAutoReadingRemoteLogs || !CanReadRemoteLogs)
         {
             return;
         }
 
-        _hasAttemptedNodeFilterLoad = true;
-
+        _isAutoReadingRemoteLogs = true;
         try
         {
-            var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
-            var names = nodes
-                .Select(node => node.Name)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Order(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+            await ReadRemoteLogsCoreAsync(clearLogsOnFailure: true, cancellationToken);
+        }
+        finally
+        {
+            _isAutoReadingRemoteLogs = false;
+        }
+    }
 
-            ReplaceFilterOptions(NodeFilterOptions, AllNodesFilter, names);
-        }
-        catch (OperationCanceledException)
+    private void ReplaceLogs(IReadOnlyList<LogEntry> logs)
+    {
+        Logs.Clear();
+        foreach (var log in logs)
         {
-            throw;
+            Logs.Add(log);
         }
-        catch
-        {
-            RefreshNodeFilterOptionsFromLogs();
-        }
+
+        RefreshFilterOptionsFromLogs();
+        ApplyFilters();
+        OnPropertyChanged(nameof(LogFileText));
     }
 
     private async Task<RemoteLogReadRequest?> TryCreateRequestAsync(CancellationToken cancellationToken)
     {
-        if (SelectedNodeFilter != AllNodesFilter)
+        if (IsRemoteCredentialsVisible)
+        {
+            if (SelectedNodeFilter == AllNodesFilter || string.IsNullOrWhiteSpace(SelectedNodeFilter))
+            {
+                StatusText = "请先选择一个已连接节点。";
+                return null;
+            }
+
+            _selectedRemoteProcessOption ??= _remoteProcessOptions.FirstOrDefault(
+                option => string.Equals(option.DisplayName, SelectedProcessFilter, StringComparison.OrdinalIgnoreCase));
+            if (_selectedRemoteProcessOption is null)
+            {
+                StatusText = "请先选择一个正在运行的 frpc 或 frps 进程。";
+                return null;
+            }
+
+            var remoteNode = await _nodeManagementService.GetNodeAsync(SelectedNodeFilter, cancellationToken);
+            if (remoteNode is null)
+            {
+                StatusText = $"未找到节点 {SelectedNodeFilter}，请先在节点页保存节点资料。";
+                return null;
+            }
+
+            var connectedCredential = _nodeConnectionSessionService.GetConnectedCredential(remoteNode.Name);
+            if (connectedCredential is null)
+            {
+                StatusText = "节点 SSH 会话已断开，请先重新连接节点。";
+                return null;
+            }
+
+            return new RemoteLogReadRequest(
+                remoteNode,
+                connectedCredential,
+                _selectedRemoteProcessOption.ProcessKind,
+                _selectedRemoteProcessOption.LogPath);
+        }
+
+        if (SelectedNodeFilter != AllNodesFilter
+            && SelectedNodeFilter != LocalNodeFilter)
         {
             SelectedNodeName = SelectedNodeFilter;
         }
@@ -253,7 +677,7 @@ public sealed partial class LogsPageViewModel : PageViewModel
             node,
             credential,
             string.IsNullOrWhiteSpace(ProcessName) ? "frpc" : ProcessName.Trim(),
-            string.IsNullOrWhiteSpace(RemoteLogPath) ? "/tmp/frpnexus-frpc.log" : RemoteLogPath.Trim());
+            string.IsNullOrWhiteSpace(RemoteLogPath) ? FrpcLogPath : RemoteLogPath.Trim());
     }
 
     partial void OnSearchTextChanged(string value)
@@ -263,6 +687,12 @@ public sealed partial class LogsPageViewModel : PageViewModel
 
     partial void OnSelectedNodeFilterChanged(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SelectedNodeFilter = AllNodesFilter;
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(value) && value != AllNodesFilter)
         {
             SelectedNodeName = value;
@@ -270,20 +700,49 @@ public sealed partial class LogsPageViewModel : PageViewModel
 
         ApplyFilters();
         OnPropertyChanged(nameof(TerminalConnectionText));
+
+        if (IsRemoteCredentialsVisible && !_isUpdatingRemoteFilters)
+        {
+            _ = RefreshRemoteProcessesForSelectedNodeAsync(autoReadDefaultProcess: true, CancellationToken.None);
+        }
     }
 
     partial void OnSelectedProcessFilterChanged(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SelectedProcessFilter = AllProcessesFilter;
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(value) && value != AllProcessesFilter)
         {
-            ProcessName = value;
+            ApplySelectedRemoteProcess(value);
         }
 
         ApplyFilters();
+        OnPropertyChanged(nameof(LogFileText));
+        if (IsRemoteCredentialsVisible
+            && !_isUpdatingRemoteFilters
+            && _selectedRemoteProcessOption is not null)
+        {
+            _ = AutoReadSelectedRemoteLogsAsync(CancellationToken.None);
+        }
+    }
+
+    partial void OnRemoteLogPathChanged(string value)
+    {
+        OnPropertyChanged(nameof(LogFileText));
     }
 
     partial void OnSelectedLevelFilterChanged(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SelectedLevelFilter = AllLevelsFilter;
+            return;
+        }
+
         ApplyFilters();
     }
 
@@ -302,19 +761,20 @@ public sealed partial class LogsPageViewModel : PageViewModel
 
     private bool IsVisibleLog(LogEntry log)
     {
-        if (SelectedNodeFilter != AllNodesFilter
+        if (!IsAllOrInvalidFilter(SelectedNodeFilter, AllNodesFilter, NodeFilterOptions)
             && !string.Equals(log.NodeName, SelectedNodeFilter, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (SelectedProcessFilter != AllProcessesFilter
-            && !string.Equals(log.ProcessName, SelectedProcessFilter, StringComparison.OrdinalIgnoreCase))
+        var selectedProcessName = _selectedRemoteProcessOption?.ProcessKind ?? SelectedProcessFilter;
+        if (!IsAllOrInvalidFilter(SelectedProcessFilter, AllProcessesFilter, ProcessFilterOptions)
+            && !string.Equals(log.ProcessName, selectedProcessName, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (SelectedLevelFilter != AllLevelsFilter
+        if (!IsAllOrInvalidFilter(SelectedLevelFilter, AllLevelsFilter, LevelFilterOptions)
             && !string.Equals(log.Level, SelectedLevelFilter, StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -335,24 +795,79 @@ public sealed partial class LogsPageViewModel : PageViewModel
 
     private void RefreshFilterOptionsFromLogs()
     {
+        if (_isShowingLocalLogs)
+        {
+            RefreshLocalFilterOptionsFromLogs();
+            return;
+        }
+
+        if (_remoteProcessOptions.Count > 0)
+        {
+            return;
+        }
+
         RefreshNodeFilterOptionsFromLogs();
-        ReplaceFilterOptions(
+        SelectedProcessFilter = ReplaceFilterOptions(
             ProcessFilterOptions,
             AllProcessesFilter,
-            Logs.Select(log => log.ProcessName)
-                .Concat(["frpc", "frps", "nexus_daemon"])
-                .Where(value => !string.IsNullOrWhiteSpace(value)));
+            Logs.Select(log => log.ProcessName).Where(value => !string.IsNullOrWhiteSpace(value)),
+            SelectedProcessFilter);
     }
 
     private void RefreshNodeFilterOptionsFromLogs()
     {
+        SelectedNodeFilter = ReplaceFilterOptions(
+            NodeFilterOptions,
+            AllNodesFilter,
+            Logs.Select(log => log.NodeName).Where(value => !string.IsNullOrWhiteSpace(value)),
+            SelectedNodeFilter);
+    }
+
+    private void RefreshLocalFilterOptionsFromLogs()
+    {
         ReplaceFilterOptions(
             NodeFilterOptions,
             AllNodesFilter,
-            Logs.Select(log => log.NodeName).Where(value => !string.IsNullOrWhiteSpace(value)));
+            Logs.Select(log => log.NodeName)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Append(LocalNodeFilter),
+            LocalNodeFilter);
+        SelectedNodeFilter = LocalNodeFilter;
+
+        ReplaceFilterOptions(
+            ProcessFilterOptions,
+            AllProcessesFilter,
+            Logs.Select(log => log.ProcessName)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Append(LocalProcessFilter),
+            LocalProcessFilter);
+        SelectedProcessFilter = LocalProcessFilter;
     }
 
-    private static void ReplaceFilterOptions(ObservableCollection<string> options, string allOption, IEnumerable<string> values)
+    private bool IsRemoteLogMode => IsRemoteCredentialsVisible || !_isShowingLocalLogs;
+
+    private void NotifyLogModeToggleChanged()
+    {
+        OnPropertyChanged(nameof(LogModeToggleText));
+        OnPropertyChanged(nameof(LogModeToggleTooltip));
+    }
+
+    private void ApplySelectedRemoteProcess(string value)
+    {
+        _selectedRemoteProcessOption = _remoteProcessOptions.FirstOrDefault(
+            option => string.Equals(option.DisplayName, value, StringComparison.OrdinalIgnoreCase));
+        ProcessName = _selectedRemoteProcessOption?.ProcessKind ?? value;
+        if (_selectedRemoteProcessOption is not null)
+        {
+            RemoteLogPath = _selectedRemoteProcessOption.LogPath;
+        }
+    }
+
+    private static string ReplaceFilterOptions(
+        ObservableCollection<string> options,
+        string allOption,
+        IEnumerable<string> values,
+        string currentSelection)
     {
         var selectedValues = values
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -365,6 +880,17 @@ public sealed partial class LogsPageViewModel : PageViewModel
         {
             options.Add(value);
         }
+
+        return IsAllOrInvalidFilter(currentSelection, allOption, options)
+            ? allOption
+            : currentSelection;
+    }
+
+    private static bool IsAllOrInvalidFilter(string selectedValue, string allOption, ObservableCollection<string> options)
+    {
+        return string.IsNullOrWhiteSpace(selectedValue)
+            || string.Equals(selectedValue, allOption, StringComparison.OrdinalIgnoreCase)
+            || !options.Any(option => string.Equals(option, selectedValue, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool Contains(string value, string query)
@@ -403,5 +929,28 @@ public sealed partial class LogsPageViewModel : PageViewModel
     {
         SshSessionPassword = string.Empty;
         SshPrivateKeyPassphrase = string.Empty;
+    }
+
+    private sealed record RemoteProcessLogOption(
+        string DisplayName,
+        string NodeName,
+        string ProcessKind,
+        string ProcessId,
+        string LogPath)
+    {
+        public static RemoteProcessLogOption FromProcess(RuntimeProcess process)
+        {
+            var processKind = string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase)
+                ? "frps"
+                : "frpc";
+            var processId = string.IsNullOrWhiteSpace(process.ProcessId) ? "-" : process.ProcessId;
+
+            return new RemoteProcessLogOption(
+                $"{processKind} · PID {processId}",
+                process.NodeName,
+                processKind,
+                processId,
+                processKind == "frps" ? FrpsLogPath : FrpcLogPath);
+        }
     }
 }

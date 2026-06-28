@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Serilog;
 
@@ -24,11 +25,6 @@ public sealed class RemoteRuntimeService(
             request.Node.Name,
             processes,
             cancellationToken);
-
-        logger.Information(
-            "Remote runtime status read for node {NodeName}: {ProcessCount} processes",
-            request.Node.Name,
-            processes.Count);
 
         return processes;
     }
@@ -103,7 +99,7 @@ public sealed class RemoteRuntimeService(
                 request,
                 FrpNexusStatus.Error,
                 completedAt,
-                BuildCommandFailureMessage(exception.Message),
+                BuildCommandFailureMessage(exception),
                 cancellationToken);
         }
     }
@@ -180,7 +176,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             string.IsNullOrWhiteSpace(uptime) ? "-" : uptime,
-            "-");
+            "-",
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static RuntimeProcess? ParseLegacyProcess(string nodeName, string line)
@@ -214,7 +211,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             "-",
-            "-");
+            "-",
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static RuntimeProcess? ParsePsEfProcess(string nodeName, string line)
@@ -242,7 +240,8 @@ public sealed class RemoteRuntimeService(
             FrpNexusStatus.Running,
             processId,
             LooksLikeElapsedTime(startOrTime) ? startOrTime : "-",
-            "-");
+            "-",
+            LogTextSanitizer.RedactSecrets(command));
     }
 
     private static string ResolveProcessKind(string command)
@@ -295,7 +294,9 @@ public sealed class RemoteRuntimeService(
     {
         return string.IsNullOrWhiteSpace(message)
             ? "未返回详细错误。"
-            : message.Replace(Environment.NewLine, " ", StringComparison.Ordinal).Trim();
+            : LogTextSanitizer
+                .RedactSecrets(message.Replace(Environment.NewLine, " ", StringComparison.Ordinal))
+                .Trim();
     }
 
     private static string BuildCommandFailureMessage(RemoteCommandResult result)
@@ -312,6 +313,13 @@ public sealed class RemoteRuntimeService(
         }
 
         return $"远程命令执行失败：{SanitizeMessage(detail)}";
+    }
+
+    private static string BuildCommandFailureMessage(Exception exception)
+    {
+        return exception is TimeoutException
+            ? "远程命令执行超时：远程节点响应过慢，请检查网络和服务器状态。"
+            : BuildCommandFailureMessage(exception.Message);
     }
 
     private static string BuildReadableDiagnostic(RemoteCommandResult result)

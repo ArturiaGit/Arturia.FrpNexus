@@ -15,7 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Arturia.FrpNexus.Desktop.ViewModels.Pages;
 
-public sealed partial class TunnelsPageViewModel : PageViewModel
+public sealed partial class TunnelsPageViewModel : PageViewModel, IDisposable
 {
     public const string DefaultLocalAddress = "127.0.0.1";
     public const string DefaultLocalPort = "8080";
@@ -29,10 +29,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
     private readonly IRuntimeRecordService _runtimeRecordService;
     private readonly IFilePickerService _filePickerService;
     private readonly HashSet<string> _availableNodeNames = new(System.StringComparer.OrdinalIgnoreCase);
-    private readonly CancellationTokenSource _localFrpcStatusPollingCancellation = new();
+    private CancellationTokenSource? _localFrpcStatusPollingCancellation;
     private bool _isDeleteConfirmationPending;
     private string? _editingOriginalName;
     private Task? _localFrpcStatusPollingTask;
+    private bool _isDisposed;
 
     [ObservableProperty]
     private string _tunnelCountText = "共 0 条记录";
@@ -145,6 +146,19 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
         _ = LoadTunnelsAsync();
         StartLocalFrpcStatusPolling();
+    }
+
+    internal bool IsLocalFrpcStatusPollingActiveForTest => _localFrpcStatusPollingTask is { IsCompleted: false };
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        StopLocalFrpcStatusPolling();
     }
 
     public ObservableCollection<TunnelProfile> Tunnels { get; }
@@ -471,6 +485,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     partial void OnSelectedClientNodeNameChanged(string value)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _ = RefreshLocalFrpcConfigurationAsync();
         _ = RefreshLocalFrpcStatusFromProcessAsync();
     }
@@ -515,6 +534,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     private void ApplyFilters()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         var rows = Tunnels.AsEnumerable();
         var search = SearchText.Trim();
 
@@ -741,6 +765,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     private async Task RefreshLocalFrpcConfigurationAsync(CancellationToken cancellationToken = default)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
         {
             LocalFrpcConfigPath = string.Empty;
@@ -758,21 +787,40 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     private void StartLocalFrpcStatusPolling()
     {
-        if (_localFrpcStatusPollingTask is not null)
+        if (_isDisposed || _localFrpcStatusPollingTask is not null)
         {
             return;
         }
 
+        _localFrpcStatusPollingCancellation = new CancellationTokenSource();
         _localFrpcStatusPollingTask = PollLocalFrpcStatusAsync(_localFrpcStatusPollingCancellation.Token);
+    }
+
+    private void StopLocalFrpcStatusPolling()
+    {
+        var cts = _localFrpcStatusPollingCancellation;
+        if (cts is null)
+        {
+            return;
+        }
+
+        _localFrpcStatusPollingCancellation = null;
+        cts.Cancel();
+        cts.Dispose();
     }
 
     private async Task PollLocalFrpcStatusAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        while (!_isDisposed && !cancellationToken.IsCancellationRequested)
         {
             try
             {
                 await Task.Delay(LocalFrpcStatusPollIntervalMilliseconds, cancellationToken);
+                if (_isDisposed)
+                {
+                    break;
+                }
+
                 await RefreshLocalFrpcStatusFromProcessAsync(cancellationToken);
             }
             catch (OperationCanceledException)
@@ -784,6 +832,11 @@ public sealed partial class TunnelsPageViewModel : PageViewModel
 
     internal async Task RefreshLocalFrpcStatusFromProcessAsync(CancellationToken cancellationToken = default)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(SelectedClientNodeName))
         {
             RefreshLocalFrpcClientState();

@@ -9,93 +9,21 @@
         <converters:MetricIconConverter x:Key="MetricIconConverter" />
     </UserControl.Resources>
 
-    <UserControl.Styles>
-        <Style Selector="ToggleButton.log-auto-refresh">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="20" />
-            <Setter Property="MinHeight" Value="20" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource FrpSurfaceVariantBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpSurfaceVariantBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Opacity" Value="1" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{TemplateBinding CornerRadius}">
-                        <Ellipse x:Name="PART_Knob"
-                                 Width="16"
-                                 Height="16"
-                                 Margin="2,2,14,2"
-                                 HorizontalAlignment="Left"
-                                 VerticalAlignment="Center"
-                                 Fill="{DynamicResource FrpSurfaceWhiteBrush}">
-                            <Ellipse.Transitions>
-                                <Transitions>
-                                    <ThicknessTransition Property="Margin" Duration="0:0:0.16" />
-                                </Transitions>
-                            </Ellipse.Transitions>
-                        </Ellipse>
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:checked">
-            <Setter Property="Background" Value="{DynamicResource FrpPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryBrush}" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:checked /template/ Ellipse#PART_Knob">
-            <Setter Property="Margin" Value="14,2,2,2" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:pointerover">
-            <Setter Property="Background" Value="{DynamicResource FrpSurfaceDimBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineVariantBrush}" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:pressed">
-            <Setter Property="Background" Value="{DynamicResource FrpSurfaceHighBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpOutlineVariantBrush}" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:checked:pointerover">
-            <Setter Property="Background" Value="{DynamicResource FrpPrimaryHoverBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryHoverBrush}" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:checked:pressed">
-            <Setter Property="Background" Value="{DynamicResource FrpPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpPrimaryBrush}" />
-        </Style>
-
-        <Style Selector="ToggleButton.log-auto-refresh:disabled">
-            <Setter Property="Background" Value="{DynamicResource FrpSurfaceLowBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpBorderDefaultBrush}" />
-            <Setter Property="Opacity" Value="0.55" />
-        </Style>
-    </UserControl.Styles>
-
     <Grid RowDefinitions="Auto,*"
           RowSpacing="12"
           MinHeight="0">
-        <Border Classes="command-bar">
-            <Grid RowDefinitions="Auto,Auto"
-                  RowSpacing="4">
-                <WrapPanel Grid.Row="0"
-                           Orientation="Horizontal"
-                           VerticalAlignment="Center">
-                    <Grid Width="256"
-                          Height="34"
-                          Margin="0,0,12,8">
+        <Border Classes="dense-command-bar">
+            <Grid RowDefinitions="Auto,Auto,Auto"
+                  RowSpacing="8">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto"
+                      ColumnSpacing="10"
+                      MinHeight="34">
+                    <Grid Classes="search-box"
+                          MinWidth="220">
                         <TextBox Classes="stitch-input"
                                  Padding="36,0,12,0"
                                  VerticalContentAlignment="Center"
-                                 PlaceholderText="搜索日志内容..."
+                                 PlaceholderText="搜索日志内容"
                                  Text="{Binding SearchText}" />
                         <PathIcon Width="18"
                                   Height="18"
@@ -107,110 +35,153 @@
                                   Data="{Binding Source=search, Converter={StaticResource MetricIconConverter}}" />
                     </Grid>
 
-                    <Border Width="1"
-                            Height="24"
-                            Margin="0,5,12,8"
-                            Background="{StaticResource FrpBorderDefaultBrush}" />
-
-                    <StackPanel Orientation="Horizontal"
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
                                 Spacing="8"
-                                Margin="0,0,12,8"
                                 VerticalAlignment="Center">
                         <TextBlock Classes="group-label"
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource FrpTextSecondaryBrush}"
-                                   Text="节点:" />
+                                   Text="节点" />
                         <ComboBox Classes="stitch-input"
-                                  Width="132"
+                                  Width="136"
                                   ItemsSource="{Binding NodeFilterOptions}"
                                   SelectedItem="{Binding SelectedNodeFilter}" />
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal"
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
                                 Spacing="8"
-                                Margin="0,0,12,8"
                                 VerticalAlignment="Center">
                         <TextBlock Classes="group-label"
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource FrpTextSecondaryBrush}"
-                                   Text="进程:" />
+                                   Text="进程" />
                         <ComboBox Classes="stitch-input"
-                                  Width="132"
+                                  Width="136"
                                   ItemsSource="{Binding ProcessFilterOptions}"
                                   SelectedItem="{Binding SelectedProcessFilter}" />
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal"
+                    <StackPanel Grid.Column="3"
+                                Orientation="Horizontal"
                                 Spacing="8"
-                                Margin="0,0,12,8"
                                 VerticalAlignment="Center">
                         <TextBlock Classes="group-label"
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource FrpTextSecondaryBrush}"
-                                   Text="级别:" />
+                                   Text="级别" />
                         <ComboBox Classes="stitch-input"
                                   Width="120"
                                   ItemsSource="{Binding LevelFilterOptions}"
                                   SelectedItem="{Binding SelectedLevelFilter}" />
                     </StackPanel>
-                </WrapPanel>
+                </Grid>
 
-                <WrapPanel Grid.Row="1"
-                           Orientation="Horizontal"
-                           VerticalAlignment="Center">
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="10"
+                      MinHeight="32">
                     <StackPanel Orientation="Horizontal"
                                 Spacing="8"
-                                Margin="0,0,12,0"
                                 VerticalAlignment="Center">
                         <ToggleButton Classes="log-auto-refresh"
+                                      AutomationProperties.Name="自动刷新日志"
                                       IsChecked="{Binding IsAutoRefreshEnabled}" />
                         <TextBlock VerticalAlignment="Center"
                                    Text="自动刷新" />
                     </StackPanel>
 
-                    <Border Width="1"
-                            Height="24"
-                            Margin="0,4,12,4"
-                            Background="{StaticResource FrpBorderDefaultBrush}" />
+                    <TextBlock Grid.Column="1"
+                               Classes="helper"
+                               VerticalAlignment="Center"
+                               Text="{Binding StatusText}"
+                               TextTrimming="CharacterEllipsis" />
 
-                    <Button Classes="secondary stitch-command"
-                            MinHeight="32"
-                            Height="32"
-                            Margin="0,0,8,0">
-                        <ToolTip.Tip>
-                            <ToolTip Classes="stitch-tooltip"
-                                     Placement="Top"
-                                     VerticalOffset="-6"
-                                     Content="复制日志" />
-                        </ToolTip.Tip>
-                        <StackPanel Orientation="Horizontal"
-                                    Spacing="6">
-                            <PathIcon Width="16"
-                                      Height="16"
-                                      Data="{Binding Source=content_copy, Converter={StaticResource MetricIconConverter}}" />
-                            <TextBlock Text="复制" />
-                        </StackPanel>
-                    </Button>
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                HorizontalAlignment="Right">
+                        <Button Classes="secondary stitch-command"
+                                AutomationProperties.Name="刷新当前日志"
+                                MinHeight="32"
+                                Height="32"
+                                Command="{Binding RefreshLogsCommand}">
+                            <ToolTip.Tip>
+                                <ToolTip Classes="stitch-tooltip"
+                                         Placement="Top"
+                                         VerticalOffset="-6"
+                                         Content="刷新当前日志" />
+                            </ToolTip.Tip>
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="刷新" />
+                            </StackPanel>
+                        </Button>
 
-                    <Button Classes="secondary stitch-command danger"
-                            MinHeight="32"
-                            Height="32"
-                            Command="{Binding ClearLogsCommand}">
-                        <ToolTip.Tip>
-                            <ToolTip Classes="stitch-tooltip"
-                                     Placement="Top"
-                                     VerticalOffset="-6"
-                                     Content="清空日志" />
-                        </ToolTip.Tip>
-                        <StackPanel Orientation="Horizontal"
-                                    Spacing="6">
-                            <PathIcon Width="16"
-                                      Height="16"
-                                      Data="{Binding Source=delete, Converter={StaticResource MetricIconConverter}}" />
-                            <TextBlock Text="清空" />
-                        </StackPanel>
-                    </Button>
-                </WrapPanel>
+                        <Button Classes="secondary stitch-command"
+                                AutomationProperties.Name="{Binding LogModeToggleText}"
+                                MinHeight="32"
+                                Height="32"
+                                Command="{Binding ToggleRemoteCredentialsCommand}">
+                            <ToolTip.Tip>
+                                <ToolTip Classes="stitch-tooltip"
+                                         Placement="Top"
+                                         VerticalOffset="-6"
+                                         Content="{Binding LogModeToggleTooltip}" />
+                            </ToolTip.Tip>
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=terminal, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="{Binding LogModeToggleText}" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="secondary stitch-command danger"
+                                AutomationProperties.Name="清空日志"
+                                MinHeight="32"
+                                Height="32"
+                                Command="{Binding ClearLogsCommand}">
+                            <ToolTip.Tip>
+                                <ToolTip Classes="stitch-tooltip"
+                                         Placement="Top"
+                                         VerticalOffset="-6"
+                                         Content="清空日志" />
+                            </ToolTip.Tip>
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                                <PathIcon Width="16"
+                                          Height="16"
+                                          Data="{Binding Source=delete, Converter={StaticResource MetricIconConverter}}" />
+                                <TextBlock Text="清空" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="2"
+                        Classes="status-callout info"
+                        Padding="10,6"
+                        IsVisible="{Binding IsRemoteCredentialsVisible}">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="8">
+                        <PathIcon Width="16"
+                                  Height="16"
+                                  VerticalAlignment="Center"
+                                  Classes="status-callout-icon info"
+                                  Data="{Binding Source=folder, Converter={StaticResource MetricIconConverter}}" />
+                        <TextBlock Grid.Column="1"
+                                   Classes="helper code"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding RemoteLogPath}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
@@ -267,7 +238,7 @@
                                Margin="12,0"
                                VerticalAlignment="Center"
                                Foreground="{StaticResource FrpCodeMutedBrush}"
-                               Text="File: frpc_client_daemon.log" />
+                               Text="{Binding LogFileText}" />
                     <StackPanel DockPanel.Dock="Right"
                                 Orientation="Horizontal"
                                 Spacing="16"

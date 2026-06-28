@@ -13,24 +13,18 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run<IReadOnlyList<RemoteDirectoryEntry>>(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var directories = client
+        return ExecuteWithResultAsync(
+            node,
+            credential,
+            "SFTP 目录读取",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client => (IReadOnlyList<RemoteDirectoryEntry>)client
                 .ListDirectory(remotePath)
                 .Where(item => item.IsDirectory && item.Name is not "." and not "..")
                 .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(item => new RemoteDirectoryEntry(item.Name, CombineRemotePath(remotePath, item.Name)))
-                .ToArray();
-
-            client.Disconnect();
-            return directories;
-        }, cancellationToken);
+                .ToArray(),
+            cancellationToken);
     }
 
     public Task CreateDirectoryAsync(
@@ -39,21 +33,19 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!client.Exists(remotePath))
+        return ExecuteAsync(
+            node,
+            credential,
+            "SFTP 目录创建",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client =>
             {
-                client.CreateDirectory(remotePath);
-            }
-
-            client.Disconnect();
-        }, cancellationToken);
+                if (!client.Exists(remotePath))
+                {
+                    client.CreateDirectory(remotePath);
+                }
+            },
+            cancellationToken);
     }
 
     public Task EnsureDirectoryAsync(
@@ -62,24 +54,23 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            foreach (var segmentPath in EnumerateDirectorySegments(remotePath))
+        return ExecuteAsync(
+            node,
+            credential,
+            "SFTP 目录准备",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!client.Exists(segmentPath))
+                foreach (var segmentPath in EnumerateDirectorySegments(remotePath))
                 {
-                    client.CreateDirectory(segmentPath);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!client.Exists(segmentPath))
+                    {
+                        client.CreateDirectory(segmentPath);
+                    }
                 }
-            }
-
-            client.Disconnect();
-        }, cancellationToken);
+            },
+            cancellationToken);
     }
 
     public Task UploadFileAsync(
@@ -89,17 +80,13 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            client.UploadFile(content, remotePath, canOverride: true);
-            client.Disconnect();
-        }, cancellationToken);
+        return ExecuteAsync(
+            node,
+            credential,
+            "SFTP 文件上传",
+            SshNetOperationPolicy.SftpUploadTimeout,
+            client => client.UploadFile(content, remotePath, canOverride: true),
+            cancellationToken);
     }
 
     public Task<bool> FileExistsAsync(
@@ -108,18 +95,13 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var exists = client.Exists(remotePath);
-            client.Disconnect();
-            return exists;
-        }, cancellationToken);
+        return ExecuteWithResultAsync(
+            node,
+            credential,
+            "SFTP 文件检查",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client => client.Exists(remotePath),
+            cancellationToken);
     }
 
     public Task DeleteFileAsync(
@@ -128,17 +110,13 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string remotePath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
-            client.Connect();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            client.DeleteFile(remotePath);
-            client.Disconnect();
-        }, cancellationToken);
+        return ExecuteAsync(
+            node,
+            credential,
+            "SFTP 文件删除",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client => client.DeleteFile(remotePath),
+            cancellationToken);
     }
 
     public Task RenameFileAsync(
@@ -148,17 +126,98 @@ public sealed class SshNetSftpClientAdapter : ISftpClientAdapter
         string destinationPath,
         CancellationToken cancellationToken = default)
     {
-        return Task.Run(() =>
+        return ExecuteAsync(
+            node,
+            credential,
+            "SFTP 文件重命名",
+            SshNetOperationPolicy.SftpOperationTimeout,
+            client => client.RenameFile(sourcePath, destinationPath),
+            cancellationToken);
+    }
+
+    private static Task ExecuteAsync(
+        NodeProfile node,
+        SshCredentialReference credential,
+        string operationName,
+        TimeSpan timeout,
+        Action<SftpClient> operation,
+        CancellationToken cancellationToken)
+    {
+        return SshNetOperationPolicy.RunAsync(
+            operationName,
+            timeout,
+            () =>
+            {
+                using var client = CreateConnectedClient(node, credential, timeout, cancellationToken);
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    operation(client);
+                }
+                finally
+                {
+                    Disconnect(client);
+                }
+            },
+            cancellationToken);
+    }
+
+    private static Task<T> ExecuteWithResultAsync<T>(
+        NodeProfile node,
+        SshCredentialReference credential,
+        string operationName,
+        TimeSpan timeout,
+        Func<SftpClient, T> operation,
+        CancellationToken cancellationToken)
+    {
+        return SshNetOperationPolicy.RunAsync(
+            operationName,
+            timeout,
+            () =>
+            {
+                using var client = CreateConnectedClient(node, credential, timeout, cancellationToken);
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return operation(client);
+                }
+                finally
+                {
+                    Disconnect(client);
+                }
+            },
+            cancellationToken);
+    }
+
+    private static SftpClient CreateConnectedClient(
+        NodeProfile node,
+        SshCredentialReference credential,
+        TimeSpan operationTimeout,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
+        client.OperationTimeout = operationTimeout;
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var client = new SftpClient(SshConnectionInfoFactory.Create(node, credential, "SFTP"));
             client.Connect();
-
             cancellationToken.ThrowIfCancellationRequested();
-            client.RenameFile(sourcePath, destinationPath);
+            return client;
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
+    }
+
+    private static void Disconnect(SftpClient client)
+    {
+        if (client.IsConnected)
+        {
             client.Disconnect();
-        }, cancellationToken);
+        }
     }
 
     private static IEnumerable<string> EnumerateDirectorySegments(string remotePath)

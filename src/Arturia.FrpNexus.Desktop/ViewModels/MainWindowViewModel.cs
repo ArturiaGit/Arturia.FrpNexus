@@ -17,15 +17,21 @@ using PageViewModelBase = Arturia.FrpNexus.Desktop.ViewModels.Pages.PageViewMode
 
 namespace Arturia.FrpNexus.Desktop.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
+    private readonly INavigationRequestService _navigationRequestService;
     private readonly INodeConnectionSessionService _nodeConnectionSessionService;
+    private readonly INodeManagementService _nodeManagementService;
+    private readonly IRemoteRuntimeService _remoteRuntimeService;
     private readonly ILocalFrpcProcessService _localFrpcProcessService;
     private readonly IFrpLifecycleStateService _frpLifecycleStateService;
+    private readonly IRemoteFrpsRetentionService _remoteFrpsRetentionService;
     private readonly IConfirmationDialogService _confirmationDialogService;
+    private readonly IOnboardingDialogService _onboardingDialogService;
     private readonly IModalOverlayService _modalOverlayService;
     private readonly IModalDialogHostService _modalDialogHostService;
     private bool _isCloseConfirmed;
+    private bool _isDisposed;
 
     [ObservableProperty]
     private NavigationItem _selectedNavigationItem;
@@ -40,16 +46,25 @@ public partial class MainWindowViewModel : ViewModelBase
         SettingsPageViewModel settingsPage,
         INavigationRequestService navigationRequestService,
         INodeConnectionSessionService nodeConnectionSessionService,
+        INodeManagementService nodeManagementService,
+        IRemoteRuntimeService remoteRuntimeService,
         ILocalFrpcProcessService localFrpcProcessService,
         IFrpLifecycleStateService frpLifecycleStateService,
+        IRemoteFrpsRetentionService remoteFrpsRetentionService,
         IConfirmationDialogService confirmationDialogService,
+        IOnboardingDialogService onboardingDialogService,
         IModalOverlayService modalOverlayService,
         IModalDialogHostService modalDialogHostService)
     {
+        _navigationRequestService = navigationRequestService;
         _nodeConnectionSessionService = nodeConnectionSessionService;
+        _nodeManagementService = nodeManagementService;
+        _remoteRuntimeService = remoteRuntimeService;
         _localFrpcProcessService = localFrpcProcessService;
         _frpLifecycleStateService = frpLifecycleStateService;
+        _remoteFrpsRetentionService = remoteFrpsRetentionService;
         _confirmationDialogService = confirmationDialogService;
+        _onboardingDialogService = onboardingDialogService;
         _modalOverlayService = modalOverlayService;
         _modalDialogHostService = modalDialogHostService;
         _modalOverlayService.PropertyChanged += OnModalOverlayServicePropertyChanged;
@@ -69,7 +84,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _selectedNavigationItem = NavigationItems[0];
         _selectedNavigationItem.IsSelected = true;
-        navigationRequestService.NavigationRequested += (_, pageKey) => NavigateToPageKey(pageKey);
+        _navigationRequestService.NavigationRequested += OnNavigationRequested;
     }
 
     public ObservableCollection<NavigationItem> NavigationItems { get; }
@@ -90,12 +105,56 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsConfirmationDialogVisible => CurrentModalDialog is ConfirmationDialogViewModel;
 
-    public bool IsWorkflowDialogVisible => IsModalDialogVisible && !IsConfirmationDialogVisible;
+    public bool IsFrpCoreDownloadOptionsDialogVisible => CurrentModalDialog is FrpCoreDownloadOptionsDialogViewModel;
+
+    public bool IsOnboardingDialogVisible => CurrentModalDialog is OnboardingDisclaimerViewModel;
+
+    public bool IsWorkflowDialogVisible => IsModalDialogVisible
+        && !IsConfirmationDialogVisible
+        && !IsFrpCoreDownloadOptionsDialogVisible
+        && !IsOnboardingDialogVisible;
 
     public object? CurrentModalDialog => _modalDialogHostService.CurrentDialog;
 
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        await _onboardingDialogService.ShowIfRequiredAsync(cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        _isDisposed = true;
+        _navigationRequestService.NavigationRequested -= OnNavigationRequested;
+        _modalOverlayService.PropertyChanged -= OnModalOverlayServicePropertyChanged;
+        _modalDialogHostService.PropertyChanged -= OnModalDialogHostServicePropertyChanged;
+        DeactivatePage(CurrentPage);
+
+        foreach (var disposablePage in NavigationItems
+            .Select(item => item.Page)
+            .Distinct()
+            .OfType<IDisposable>())
+        {
+            disposablePage.Dispose();
+        }
+    }
+
     partial void OnSelectedNavigationItemChanged(NavigationItem value)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         foreach (var item in NavigationItems)
         {
             item.IsSelected = ReferenceEquals(item, value);
@@ -108,10 +167,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void Navigate(NavigationItem? item)
     {
-        if (item is not null)
+        if (!_isDisposed && item is not null)
         {
+            if (!ReferenceEquals(SelectedNavigationItem, item))
+            {
+                DeactivatePage(SelectedNavigationItem.Page);
+            }
+
             SelectedNavigationItem = item;
-            _ = RefreshCurrentPageAsync(item.Page);
+            _ = ActivateOrRefreshPageAsync(item.Page);
         }
     }
 
@@ -129,6 +193,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return true;
         }
 
+        var remoteFrpsSnapshots = GetRunningRemoteFrpsSnapshots();
+        if (remoteFrpsSnapshots.Count > 0)
+        {
+            return await ConfirmCloseWithRemoteFrpsAsync(remoteFrpsSnapshots, cancellationToken);
+        }
+
         var confirmed = await _confirmationDialogService.ShowAsync(
             new ConfirmationDialogRequest(
                 "仍有 FRP 进程在运行",
@@ -143,6 +213,178 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         return confirmed;
+    }
+
+    private async Task<bool> ConfirmCloseWithRemoteFrpsAsync(
+        IReadOnlyList<RemoteFrpsLifecycleSnapshot> remoteFrpsSnapshots,
+        CancellationToken cancellationToken)
+    {
+        var choice = await _confirmationDialogService.ShowChoiceAsync(
+            new ConfirmationDialogChoiceRequest(
+                "远程 frps 仍在运行",
+                "检测到远程 frps 仍在运行。你可以停止 frps 后关闭，也可以保留远程 frps 继续运行并在下次连接同一节点时接入状态。",
+                "停止 frps 并关闭",
+                "保持 frps 运行并关闭",
+                "返回处理",
+                "warning"),
+            cancellationToken);
+
+        if (choice == ConfirmationDialogResult.Cancel)
+        {
+            return false;
+        }
+
+        if (choice == ConfirmationDialogResult.Secondary)
+        {
+            foreach (var snapshot in remoteFrpsSnapshots)
+            {
+                await _remoteFrpsRetentionService.SaveAsync(
+                    new RemoteFrpsRetentionRecord(
+                        snapshot.NodeName,
+                        DateTimeOffset.UtcNow,
+                        "kept-running",
+                        snapshot.ConfigPath),
+                    cancellationToken);
+            }
+
+            _isCloseConfirmed = true;
+            return true;
+        }
+
+        var failures = await StopRemoteFrpsSnapshotsAsync(remoteFrpsSnapshots, cancellationToken);
+        if (failures.Count == 0)
+        {
+            _isCloseConfirmed = true;
+            return true;
+        }
+
+        var stillClose = await _confirmationDialogService.ShowAsync(
+            new ConfirmationDialogRequest(
+                "停止 frps 失败",
+                $"以下节点的远程 frps 未能停止：{string.Join("；", failures)}。可以仍然关闭 FrpNexus，远程 frps 将继续运行。",
+                "仍然关闭",
+                "返回处理",
+                "error"),
+            cancellationToken);
+        if (stillClose)
+        {
+            _isCloseConfirmed = true;
+        }
+
+        return stillClose;
+    }
+
+    private async Task<IReadOnlyList<string>> StopRemoteFrpsSnapshotsAsync(
+        IReadOnlyList<RemoteFrpsLifecycleSnapshot> snapshots,
+        CancellationToken cancellationToken)
+    {
+        var failures = new List<string>();
+        var nodes = await _nodeManagementService.ListNodesAsync(cancellationToken);
+
+        foreach (var snapshot in snapshots)
+        {
+            var node = nodes.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, snapshot.NodeName, StringComparison.OrdinalIgnoreCase));
+            if (node is null)
+            {
+                failures.Add($"{snapshot.NodeName}: 未找到节点配置");
+                continue;
+            }
+
+            var credential = _nodeConnectionSessionService.GetConnectedCredential(snapshot.NodeName);
+            if (credential is null)
+            {
+                failures.Add($"{snapshot.NodeName}: 当前 SSH 会话凭据不可用");
+                continue;
+            }
+
+            var processes = await _remoteRuntimeService.GetProcessesAsync(
+                new RemoteRuntimeQueryRequest(node, credential),
+                cancellationToken);
+            var match = SelectRemoteFrpsProcess(processes, snapshot.ConfigPath);
+            if (match.Process is null)
+            {
+                failures.Add($"{snapshot.NodeName}: {match.Message}");
+                continue;
+            }
+
+            var result = await _remoteRuntimeService.StopAsync(
+                new RemoteRuntimeCommandRequest(
+                    node,
+                    credential,
+                    match.Process.Name,
+                    "frps",
+                    BuildKillProcessCommand(match.Process.ProcessId)),
+                cancellationToken);
+            if (result.Status == FrpNexusStatus.Error)
+            {
+                failures.Add($"{snapshot.NodeName}: {result.Message}");
+                continue;
+            }
+
+            _frpLifecycleStateService.UpdateRemoteFrpsState(
+                snapshot.NodeName,
+                isSshOnline: true,
+                FrpNexusStatus.Stopped,
+                snapshot.ConfigPath);
+            await _remoteFrpsRetentionService.ClearAsync(snapshot.NodeName, cancellationToken);
+        }
+
+        return failures;
+    }
+
+    private static (RuntimeProcess? Process, string Message) SelectRemoteFrpsProcess(
+        IReadOnlyList<RuntimeProcess> processes,
+        string configPath)
+    {
+        var frpsProcesses = processes
+            .Where(process => string.Equals(process.ProcessKind, "frps", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (frpsProcesses.Length == 0)
+        {
+            return (null, "frps 未运行");
+        }
+
+        var matchedByConfig = frpsProcesses
+            .Where(process => CommandUsesConfigPath(process.CommandLine, configPath))
+            .ToArray();
+        if (matchedByConfig.Length == 1)
+        {
+            return (matchedByConfig[0], string.Empty);
+        }
+
+        if (matchedByConfig.Length > 1)
+        {
+            return (null, "发现多个 frps 使用同一配置，无法唯一匹配");
+        }
+
+        return frpsProcesses.Length == 1
+            ? (frpsProcesses[0], string.Empty)
+            : (null, "发现多个 frps，无法唯一匹配当前配置");
+    }
+
+    private static bool CommandUsesConfigPath(string commandLine, string expectedConfigPath)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine) || string.IsNullOrWhiteSpace(expectedConfigPath))
+        {
+            return false;
+        }
+
+        var normalizedCommand = NormalizeLinuxPathForCommandMatch(commandLine);
+        var normalizedExpectedPath = NormalizeLinuxPathForCommandMatch(expectedConfigPath);
+        return normalizedCommand.Contains(normalizedExpectedPath, StringComparison.Ordinal);
+    }
+
+    private static string NormalizeLinuxPathForCommandMatch(string value)
+    {
+        return value.Trim().Trim('"', '\'').Replace("\\ ", " ", StringComparison.Ordinal);
+    }
+
+    private static string BuildKillProcessCommand(string processId)
+    {
+        return int.TryParse(processId, out var pid) && pid > 0
+            ? $"kill {pid} && sleep 1; if kill -0 {pid} 2>/dev/null; then echo 'frps 未停止'; exit 1; fi"
+            : "echo 'frps PID 无效'; exit 1";
     }
 
     private async Task<IReadOnlyList<string>> CollectLifecycleRisksAsync(CancellationToken cancellationToken)
@@ -166,14 +408,28 @@ public partial class MainWindowViewModel : ViewModelBase
             risks.Add("ssh");
         }
 
-        if (_frpLifecycleStateService
-            .ListRemoteFrpsSnapshots()
-            .Any(snapshot => snapshot.IsSshOnline && snapshot.FrpsStatus == FrpNexusStatus.Running))
+        if (GetRunningRemoteFrpsSnapshots().Count > 0)
         {
             risks.Add("remote-frps");
         }
 
         return risks;
+    }
+
+    private IReadOnlyList<RemoteFrpsLifecycleSnapshot> GetRunningRemoteFrpsSnapshots()
+    {
+        return _frpLifecycleStateService
+            .ListRemoteFrpsSnapshots()
+            .Where(snapshot => snapshot.IsSshOnline && snapshot.FrpsStatus == FrpNexusStatus.Running)
+            .ToArray();
+    }
+
+    private void OnNavigationRequested(object? sender, string pageKey)
+    {
+        if (!_isDisposed)
+        {
+            NavigateToPageKey(pageKey);
+        }
     }
 
     private void NavigateToPageKey(string pageKey)
@@ -185,6 +441,24 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Navigate(item);
         }
+    }
+
+    private static void DeactivatePage(PageViewModelBase page)
+    {
+        if (page is IActivatablePageViewModel activatablePage)
+        {
+            activatablePage.OnDeactivated();
+        }
+    }
+
+    private static Task ActivateOrRefreshPageAsync(PageViewModelBase page)
+    {
+        if (page is IActivatablePageViewModel activatablePage)
+        {
+            return activatablePage.OnActivatedAsync();
+        }
+
+        return RefreshCurrentPageAsync(page);
     }
 
     private static Task RefreshCurrentPageAsync(PageViewModelBase page)
@@ -213,6 +487,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(IsModalDialogVisible));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
+            OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
+            OnPropertyChanged(nameof(IsOnboardingDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
 
@@ -221,6 +497,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(CurrentModalDialog));
             OnPropertyChanged(nameof(IsConfirmationDialogVisible));
+            OnPropertyChanged(nameof(IsFrpCoreDownloadOptionsDialogVisible));
+            OnPropertyChanged(nameof(IsOnboardingDialogVisible));
             OnPropertyChanged(nameof(IsWorkflowDialogVisible));
         }
     }

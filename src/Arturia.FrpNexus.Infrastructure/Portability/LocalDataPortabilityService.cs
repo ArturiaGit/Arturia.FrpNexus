@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
+using Arturia.FrpNexus.Core.Models;
 
 namespace Arturia.FrpNexus.Infrastructure.Portability;
 
@@ -28,7 +30,7 @@ public sealed class LocalDataPortabilityService(
             await nodeManagementService.ListNodesAsync(cancellationToken),
             await tunnelManagementService.ListTunnelsAsync(cancellationToken),
             await configurationVersionService.ListConfigurationsAsync(cancellationToken),
-            await runtimeRecordService.ListRuntimeProcessesAsync(cancellationToken),
+            SanitizeRuntimeProcesses(await runtimeRecordService.ListRuntimeProcessesAsync(cancellationToken)),
             await deploymentRecordService.ListDeploymentRecordsAsync(cancellationToken));
     }
 
@@ -90,12 +92,27 @@ public sealed class LocalDataPortabilityService(
 
         foreach (var process in snapshot.RuntimeProcesses)
         {
-            await runtimeRecordService.SaveRuntimeProcessAsync(process, cancellationToken);
+            await runtimeRecordService.SaveRuntimeProcessAsync(SanitizeRuntimeProcess(process), cancellationToken);
         }
 
         foreach (var record in snapshot.DeploymentRecords)
         {
             await deploymentRecordService.SaveDeploymentRecordAsync(record, cancellationToken);
         }
+    }
+
+    private static IReadOnlyList<RuntimeProcess> SanitizeRuntimeProcesses(IReadOnlyList<RuntimeProcess> processes)
+    {
+        return processes
+            .Select(SanitizeRuntimeProcess)
+            .ToArray();
+    }
+
+    private static RuntimeProcess SanitizeRuntimeProcess(RuntimeProcess process)
+    {
+        return process with
+        {
+            CommandLine = LogTextSanitizer.RedactSecrets(process.CommandLine)
+        };
     }
 }

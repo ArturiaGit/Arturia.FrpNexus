@@ -44,3 +44,17 @@ desktop.ini
 *.swp
 *.swo
 ~$*
+
+# Local-only project material
+AGENTS.md
+docs/
+tests/
+scripts/
+stitch_frpnexus_design_system/
+DESIGN.md
+FrpNexus_Product_Plan_v1.0.md
+FrpNexus_UIUX_Design_Brief_v1.0.md
+FrpNexus(Arturia)_UIUX产品设计简报_v1.0.md
+PROJECT_PLAN.md
+SPC.md
+新建 文本文档.txt

@@ -15,40 +15,11 @@
             <Setter Property="BorderThickness" Value="0,0,0,1" />
         </Style>
 
-        <Style Selector="Button.code-command">
-            <Setter Property="MinHeight" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource FrpCodeTextBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FrpInverseSurfaceBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{DynamicResource FrpRadiusSmall}" />
-        </Style>
-
-        <Style Selector="Button.code-command:pointerover">
-            <Setter Property="Background" Value="{DynamicResource FrpInverseSurfaceBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
-        </Style>
-
-        <Style Selector="Button.code-command:pressed">
-            <Setter Property="Background" Value="#394044" />
-            <Setter Property="Foreground" Value="{DynamicResource FrpInverseTextBrush}" />
-        </Style>
-
-        <Style Selector="Button.code-command PathIcon">
-            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
-        </Style>
-
-        <Style Selector="Button.code-command TextBlock">
-            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
-        </Style>
-
         <Style Selector="TextBlock.toml-line-number">
             <Setter Property="FontFamily" Value="{DynamicResource Font.Code}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="LineHeight" Value="18" />
-            <Setter Property="Foreground" Value="#4A5568" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpCodeLineNumberBrush}" />
             <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
 
@@ -60,7 +31,7 @@
         </Style>
 
         <Style Selector="TextBlock.toml-token.key">
-            <Setter Property="Foreground" Value="#8F3A2C" />
+            <Setter Property="Foreground" Value="{DynamicResource FrpCodeKeyBrush}" />
             <Setter Property="FontWeight" Value="Medium" />
         </Style>
 
@@ -78,33 +49,31 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="360,*"
-          ColumnSpacing="16">
-        <Border Classes="panel"
+    <Grid ColumnDefinitions="300,*"
+          ColumnSpacing="14">
+        <Border Classes="inspector-panel"
+                Width="300"
+                Margin="0"
                 ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <Border Padding="16,12"
-                        Background="{DynamicResource FrpSurfaceWhiteBrush}"
-                        BorderBrush="{DynamicResource FrpBorderDefaultBrush}"
-                        BorderThickness="0,0,0,1">
-                    <StackPanel Spacing="2">
+                <Border Classes="inspector-header">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="inspector-kicker"
+                                   Text="配置来源" />
                         <TextBlock Classes="section-title"
                                    Text="frpc.toml 只读预览" />
                         <TextBlock Classes="helper"
-                                   Text="预览内容来自节点地址和已启用隧道，不在此页编辑或上传。" />
+                                   Text="选择节点后预览会自动更新。" />
                     </StackPanel>
                 </Border>
 
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Margin="16"
-                                Spacing="18">
-                        <StackPanel Spacing="8">
+                                Spacing="14">
+                        <StackPanel Spacing="7">
                             <Border Classes="config-section-header">
                                 <TextBlock Classes="group-label" Text="目标节点" />
                             </Border>
-                            <TextBlock Classes="helper"
-                                       TextWrapping="Wrap"
-                                       Text="选择节点后自动生成该节点的本地 frpc.toml 预览。" />
                             <ComboBox Classes="stitch-input"
                                       ItemsSource="{Binding TargetNodes}"
                                       SelectedItem="{Binding SelectedTargetNode}">
@@ -118,78 +87,69 @@
                                        Text="{Binding TargetNodeCountText}" />
                         </StackPanel>
 
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="7">
                             <Border Classes="config-section-header">
                                 <TextBlock Classes="group-label" Text="已启用隧道来源" />
                             </Border>
+                            <TextBlock Classes="helper"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding ClientConfigSourceText}" />
                             <Border Classes="subtle-panel"
-                                    Padding="12">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Classes="helper"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding ClientConfigSourceText}" />
-                                    <TextBlock Classes="helper"
-                                               Text="{Binding ClientTunnelCountText}" />
-                                    <ItemsControl ItemsSource="{Binding ClientTunnels}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid ColumnDefinitions="*,Auto"
-                                                      ColumnSpacing="8"
-                                                      MinHeight="24">
-                                                    <TextBlock Text="{Binding Name}"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1"
-                                                               Classes="helper code"
-                                                               Text="{Binding RemoteEndpoint}"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <Button Classes="secondary stitch-command"
-                                            HorizontalAlignment="Left"
-                                            MinHeight="32"
-                                            Height="32"
+                                    Padding="10">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="8">
+                                    <TextBlock Classes="group-label"
+                                               Text="{Binding ClientTunnelCountText}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="1"
+                                            Classes="icon-secondary"
+                                            AutomationProperties.Name="刷新隧道来源"
+                                            ToolTip.Tip="刷新来源"
                                             Command="{Binding RefreshClientTunnelsCommand}">
-                                        <StackPanel Orientation="Horizontal"
-                                                    Spacing="6">
-                                            <PathIcon Width="16"
-                                                      Height="16"
-                                                      Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
-                                            <TextBlock Text="刷新来源" />
-                                        </StackPanel>
+                                        <PathIcon Width="16"
+                                                  Height="16"
+                                                  Data="{Binding Source=refresh, Converter={StaticResource MetricIconConverter}}" />
                                     </Button>
-                                </StackPanel>
+                                </Grid>
                             </Border>
+                            <ItemsControl ItemsSource="{Binding ClientTunnels}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              ColumnSpacing="8"
+                                              MinHeight="24">
+                                            <TextBlock Text="{Binding Name}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1"
+                                                       Classes="helper code"
+                                                       Text="{Binding RemoteEndpoint}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
 
-                        <Border Classes="subtle-panel"
-                                Padding="12">
-                            <StackPanel Spacing="6">
-                                <TextBlock Classes="group-label"
-                                           Text="当前状态" />
-                                <TextBlock Classes="helper"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding StatusText}" />
-                                <TextBlock Classes="helper"
-                                           Foreground="{DynamicResource Brush.Error}"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding ErrorText}" />
-                            </StackPanel>
+                        <Border Classes="status-callout info"
+                                Padding="10,8">
+                            <TextBlock Classes="helper"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding StatusText}" />
                         </Border>
+                        <TextBlock Classes="helper"
+                                   Foreground="{DynamicResource Brush.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding ErrorText}" />
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
         </Border>
 
         <Border Grid.Column="1"
-                Background="{DynamicResource FrpCodePanelBackgroundBrush}"
-                BorderBrush="{DynamicResource FrpInverseSurfaceBrush}"
-                BorderThickness="1"
-                CornerRadius="{DynamicResource FrpRadiusPanel}"
+                Classes="editor-shell"
                 ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
-                <Border MinHeight="52"
+                <Border MinHeight="56"
                         Padding="16,0"
                         Background="{DynamicResource FrpTerminalSurfaceBrush}"
                         BorderBrush="{DynamicResource FrpInverseSurfaceBrush}"
@@ -208,6 +168,13 @@
                             <TextBlock Classes="section-title"
                                        Foreground="{DynamicResource FrpInverseTextBrush}"
                                        Text="frpc.toml 预览" />
+                            <Border Classes="protocol-badge"
+                                    Background="#182563EB"
+                                    BorderBrush="{DynamicResource FrpStatusInfoBrush}">
+                                <TextBlock Classes="protocol-text"
+                                           Foreground="{DynamicResource FrpInverseTextBrush}"
+                                           Text="只读" />
+                            </Border>
                         </StackPanel>
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"

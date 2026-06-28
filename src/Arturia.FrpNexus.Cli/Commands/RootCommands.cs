@@ -7,10 +7,10 @@ namespace Arturia.FrpNexus.Cli.Commands;
 
 internal sealed class RootCommands(IAvalonDaemon daemon, ITunnelProfileRepository profileRepository, IFrpNexusSettingsStore settingsStore)
 {
-    [Command("run", Description = "从 LiteDB profile 以前台模式启动当前 CLI 进程管理的 frpc client。")]
+    [Command("run", Description = "从 SQLite profile 以前台模式启动当前 CLI 进程管理的 frpc client。")]
     public async Task<int> Run(
         [Argument(Description = "要启动的隧道 profile Id。")] string profileId,
-        [Option(Description = "frpc binary 路径；优先级高于 LiteDB settings.frpcPath 和 FRPNEXUS_FRPC_PATH。")] string? frpcPath = null,
+        [Option(Description = "frpc binary 路径；优先级高于 SQLite settings.frpcPath 和 FRPNEXUS_FRPC_PATH。")] string? frpcPath = null,
         [Option(Description = "保留 OS temp/FrpNexus 下生成的临时 TOML 配置。")]
         bool keepGeneratedConfig = false)
     {
@@ -72,12 +72,12 @@ internal sealed class RootCommands(IAvalonDaemon daemon, ITunnelProfileRepositor
         Console.WriteLine("  daemon stop                        说明 Phase 6 不支持跨进程 daemon 停止");
         Console.WriteLine("  tunnel preview                     输出 Phase 6 TCP/UDP FRP TOML 预览");
         Console.WriteLine("  tunnel validate                    执行 Phase 6 TCP/UDP validation");
-        Console.WriteLine("  config show                        显示 LiteDB 持久化配置");
-        Console.WriteLine("  profile list                       列出 LiteDB 持久化 profiles");
+        Console.WriteLine("  config show                        显示 SQLite 持久化配置");
+        Console.WriteLine("  profile list                       列出 SQLite 持久化 profiles");
         Console.WriteLine("  service status       显示 InvisibleAirService mock 状态");
         Console.WriteLine();
-        Console.WriteLine("run profile 来源: LiteDB tunnel_profiles。找不到 profile 时失败，不 fallback 到默认 profile。");
-        Console.WriteLine("frpc 路径解析顺序: --frpc-path -> LiteDB settings.frpcPath -> FRPNEXUS_FRPC_PATH。Phase 8B 不搜索 PATH，不自动下载 frpc。");
+        Console.WriteLine("run profile 来源: SQLite tunnel_profiles。找不到 profile 时失败，不 fallback 到默认 profile。");
+        Console.WriteLine("frpc 路径解析顺序: --frpc-path -> SQLite settings.frpcPath -> FRPNEXUS_FRPC_PATH。Phase 8B 不搜索 PATH，不自动下载 frpc。");
     }
 
     private async Task WaitUntilStoppedByCtrlC()

@@ -16,19 +16,23 @@
           attached:DismissOnOutsidePointerPressed.DismissCommand="{Binding CancelEditCommand}">
         <Grid RowDefinitions="Auto,Auto,*"
               RowSpacing="12">
-            <Grid ColumnDefinitions="Auto,*"
+            <Border Classes="dense-command-bar">
+            <Grid Classes="page-toolbar"
+                  ColumnDefinitions="Auto,*"
                   ColumnSpacing="12">
                 <StackPanel Orientation="Horizontal"
                             Spacing="8"
                             VerticalAlignment="Center">
-                    <Grid Width="240"
+                    <Grid Classes="search-box"
+                          Width="240"
                           Height="34">
                         <TextBox Classes="stitch-input"
                                  Padding="36,0,12,0"
                                  VerticalContentAlignment="Center"
-                                 PlaceholderText="搜索隧道..."
+                                 PlaceholderText="搜索隧道"
                                  Text="{Binding SearchText}" />
-                        <PathIcon Width="18"
+                        <PathIcon Classes="command-icon"
+                                  Width="18"
                                   Height="18"
                                   Margin="12,0,0,0"
                                   HorizontalAlignment="Left"
@@ -51,16 +55,18 @@
                     <StackPanel Orientation="Horizontal"
                                 Spacing="6"
                                 HorizontalAlignment="Center">
-                        <PathIcon Width="18"
+                        <PathIcon Classes="command-icon"
+                                  Width="18"
                                   Height="18"
                                   Data="{Binding Source=add, Converter={StaticResource MetricIconConverter}}" />
                         <TextBlock Text="新建隧道" />
                     </StackPanel>
                 </Button>
             </Grid>
+            </Border>
 
             <Border Grid.Row="1"
-                    Classes="panel"
+                    Classes="section-surface"
                     Padding="12">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                       ColumnDefinitions="Auto,160,Auto,*,Auto,Auto,Auto"
@@ -171,7 +177,8 @@
                         <Grid ColumnDefinitions="48,1.8*,0.9*,1.5*,1*,1.5*,1.25*,96"
                               ColumnSpacing="12"
                               Margin="0,0,12,0">
-                            <CheckBox HorizontalAlignment="Center"
+                            <CheckBox Classes="stitch-check"
+                                      HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       IsHitTestVisible="False" />
                             <TextBlock Grid.Column="1"
@@ -234,7 +241,8 @@
                                                         HorizontalAlignment="Left"
                                                         Background="{StaticResource FrpPrimaryBrush}"
                                                         IsVisible="{Binding IsSelected}" />
-                                                <CheckBox HorizontalAlignment="Center"
+                                                <CheckBox Classes="stitch-check"
+                                                          HorizontalAlignment="Center"
                                                           VerticalAlignment="Center"
                                                           IsChecked="{Binding IsSelected}"
                                                           IsHitTestVisible="False" />
@@ -251,7 +259,8 @@
                                                             Orientation="Horizontal"
                                                             Spacing="8"
                                                             VerticalAlignment="Center">
-                                                    <PathIcon Width="18"
+                                                    <PathIcon Classes="command-icon"
+                                                              Width="18"
                                                               Height="18"
                                                               Foreground="{StaticResource FrpTextSecondaryBrush}"
                                                               Data="{Binding Source=dns, Converter={StaticResource MetricIconConverter}}" />
@@ -324,7 +333,8 @@
                                                                      VerticalOffset="-6"
                                                                      Content="编辑" />
                                                         </ToolTip.Tip>
-                                                        <PathIcon Width="16"
+                                                        <PathIcon Classes="small-command-icon"
+                                                                  Width="16"
                                                                   Height="16"
                                                                   Data="{Binding Source=edit, Converter={StaticResource MetricIconConverter}}" />
                                                     </Button>
@@ -341,7 +351,8 @@
                                                                      VerticalOffset="-6"
                                                                      Content="{Binding RuntimeActionLabel}" />
                                                         </ToolTip.Tip>
-                                                        <PathIcon Width="16"
+                                                        <PathIcon Classes="small-command-icon"
+                                                                  Width="16"
                                                                   Height="16"
                                                                   Data="{Binding RuntimeActionIcon, Converter={StaticResource MetricIconConverter}}" />
                                                     </Button>
@@ -383,7 +394,8 @@
                                         Height="28"
                                         MinHeight="28"
                                         IsEnabled="False">
-                                    <PathIcon Width="16"
+                                    <PathIcon Classes="small-command-icon"
+                                              Width="16"
                                               Height="16"
                                               Data="{Binding Source=chevron_left, Converter={StaticResource MetricIconConverter}}" />
                                 </Button>
@@ -395,7 +407,8 @@
                                         Height="28"
                                         MinHeight="28"
                                         IsEnabled="False">
-                                    <PathIcon Width="16"
+                                    <PathIcon Classes="small-command-icon"
+                                              Width="16"
                                               Height="16"
                                               Data="{Binding Source=chevron_right, Converter={StaticResource MetricIconConverter}}" />
                                 </Button>
@@ -407,27 +420,27 @@
         </Grid>
 
         <Border x:Name="EditorPanel"
-                Width="320"
+                Width="336"
+                Margin="14,0,0,0"
                 HorizontalAlignment="Right"
-                Classes="panel"
+                Classes="inspector-panel side-panel"
                 ClipToBounds="True"
                 IsVisible="{Binding IsEditorOpen}">
             <Grid RowDefinitions="Auto,*,Auto">
-                <Border Padding="16"
-                        Background="{StaticResource FrpSurfaceLowBrush}"
-                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
-                        BorderThickness="0,0,0,1">
-                    <StackPanel>
+                <Border Classes="inspector-header">
+                    <StackPanel Spacing="3">
+                        <TextBlock Classes="inspector-kicker"
+                                   Text="隧道 Inspector" />
                         <TextBlock Classes="section-title"
                                    Text="{Binding EditorTitle}" />
                         <TextBlock Classes="helper"
-                                   Margin="0,4,0,0"
-                                   Text="仅保存本地 SQLite 记录，不执行远程部署。" />
+                                   Text="仅保存本地记录，不执行远程部署。" />
                     </StackPanel>
                 </Border>
 
                 <ScrollViewer Grid.Row="1">
-                    <StackPanel Margin="16"
+                    <StackPanel Classes="form-section"
+                                Margin="16"
                                 Spacing="12">
                         <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal"
@@ -507,10 +520,7 @@
                 </ScrollViewer>
 
                 <Border Grid.Row="2"
-                        Padding="16,12"
-                        Background="{StaticResource FrpSurfaceWhiteBrush}"
-                        BorderBrush="{StaticResource FrpBorderDefaultBrush}"
-                        BorderThickness="0,1,0,0">
+                        Classes="inspector-footer">
                     <Grid ColumnDefinitions="Auto,*,Auto">
                         <Button Grid.Column="0"
                                 Classes="danger stitch-command"

@@ -6,13 +6,11 @@ namespace Arturia.FrpNexus.Infrastructure.Settings;
 public sealed class SqliteSettingsService(
     ISqliteConnectionFactory connectionFactory,
     ISqliteDatabaseInitializer databaseInitializer,
-    IFrpNexusDatabasePathProvider databasePathProvider) : ISettingsService
+    IFrpNexusDatabasePathProvider databasePathProvider,
+    ILocalStoragePathSettingsService pathSettingsService) : ISettingsService
 {
-    private const string ThemeKey = "theme";
-    private const string LanguageKey = "language";
     private const string FrpDownloadSourceKey = "frp_download_source";
-    private const string CoreDirectoryKey = "core_directory";
-    private const string ConfigDirectoryKey = "config_directory";
+    private const string CustomFrpDownloadSourceUrlKey = "frp_custom_download_source_url";
     private const string LogDirectoryKey = "log_directory";
 
     public async Task<FrpNexusSettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken = default)
@@ -34,16 +32,15 @@ public sealed class SqliteSettingsService(
         }
 
         var defaults = CreateDefaultSettings();
+        var pathSettings = pathSettingsService.GetSettings();
 
         return defaults with
         {
-            Theme = GetValue(values, ThemeKey, defaults.Theme),
-            Language = GetValue(values, LanguageKey, defaults.Language),
             FrpDownloadSource = GetValue(values, FrpDownloadSourceKey, defaults.FrpDownloadSource),
-            CoreDirectory = GetValue(values, CoreDirectoryKey, defaults.CoreDirectory),
-            ConfigDirectory = GetValue(values, ConfigDirectoryKey, defaults.ConfigDirectory),
-            LogDirectory = GetValue(values, LogDirectoryKey, defaults.LogDirectory),
-            SqliteDatabasePath = databasePathProvider.GetDatabasePath()
+            CustomFrpDownloadSourceUrl = GetValue(values, CustomFrpDownloadSourceUrlKey, defaults.CustomFrpDownloadSourceUrl),
+            LogDirectory = pathSettings.LogDirectory,
+            SqliteDatabasePath = databasePathProvider.GetDatabasePath(),
+            SqliteDatabaseDirectory = pathSettings.SqliteDatabaseDirectory
         };
     }
 
@@ -56,11 +53,8 @@ public sealed class SqliteSettingsService(
 
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        await UpsertAsync(connection, ThemeKey, settings.Theme, cancellationToken);
-        await UpsertAsync(connection, LanguageKey, settings.Language, cancellationToken);
         await UpsertAsync(connection, FrpDownloadSourceKey, settings.FrpDownloadSource, cancellationToken);
-        await UpsertAsync(connection, CoreDirectoryKey, settings.CoreDirectory, cancellationToken);
-        await UpsertAsync(connection, ConfigDirectoryKey, settings.ConfigDirectory, cancellationToken);
+        await UpsertAsync(connection, CustomFrpDownloadSourceUrlKey, settings.CustomFrpDownloadSourceUrl, cancellationToken);
         await UpsertAsync(connection, LogDirectoryKey, settings.LogDirectory, cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
@@ -68,17 +62,14 @@ public sealed class SqliteSettingsService(
 
     public FrpNexusSettingsSnapshot CreateDefaultSettings()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var root = Path.Combine(localAppData, "Arturia", "FrpNexus");
+        var pathSettings = pathSettingsService.GetSettings();
 
         return new FrpNexusSettingsSnapshot(
-            "Light",
-            "zh-CN",
             "GitHub Releases",
-            Path.Combine(root, "core"),
-            Path.Combine(root, "configs"),
-            Path.Combine(root, "logs"),
-            databasePathProvider.GetDatabasePath());
+            pathSettings.LogDirectory,
+            databasePathProvider.GetDatabasePath(),
+            string.Empty,
+            pathSettings.SqliteDatabaseDirectory);
     }
 
     private static string GetValue(IReadOnlyDictionary<string, string> values, string key, string defaultValue)

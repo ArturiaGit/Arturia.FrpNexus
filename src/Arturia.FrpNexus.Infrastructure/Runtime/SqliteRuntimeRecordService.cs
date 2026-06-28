@@ -1,4 +1,5 @@
 using Arturia.FrpNexus.Application.Abstractions;
+using Arturia.FrpNexus.Core.Logging;
 using Arturia.FrpNexus.Core.Models;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 
@@ -25,7 +26,8 @@ public sealed class SqliteRuntimeRecordService(
                    status,
                    process_id,
                    uptime,
-                   listen_address
+                   listen_address,
+                   command_line
             FROM runtime_processes
             ORDER BY node_name, name;
             """;
@@ -56,7 +58,8 @@ public sealed class SqliteRuntimeRecordService(
                    status,
                    process_id,
                    uptime,
-                   listen_address
+                   listen_address,
+                   command_line
             FROM runtime_processes
             WHERE name = $name;
             """;
@@ -127,7 +130,8 @@ public sealed class SqliteRuntimeRecordService(
                 status,
                 process_id,
                 uptime,
-                listen_address
+                listen_address,
+                command_line
             )
             VALUES (
                 $name,
@@ -136,7 +140,8 @@ public sealed class SqliteRuntimeRecordService(
                 $status,
                 $process_id,
                 $uptime,
-                $listen_address
+                $listen_address,
+                $command_line
             )
             ON CONFLICT(name) DO UPDATE SET
                 node_name = excluded.node_name,
@@ -144,7 +149,8 @@ public sealed class SqliteRuntimeRecordService(
                 status = excluded.status,
                 process_id = excluded.process_id,
                 uptime = excluded.uptime,
-                listen_address = excluded.listen_address;
+                listen_address = excluded.listen_address,
+                command_line = excluded.command_line;
             """;
 
         command.Parameters.AddWithValue("$name", process.Name);
@@ -154,6 +160,7 @@ public sealed class SqliteRuntimeRecordService(
         command.Parameters.AddWithValue("$process_id", process.ProcessId);
         command.Parameters.AddWithValue("$uptime", process.Uptime);
         command.Parameters.AddWithValue("$listen_address", process.ListenAddress);
+        command.Parameters.AddWithValue("$command_line", LogTextSanitizer.RedactSecrets(process.CommandLine));
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -197,7 +204,8 @@ public sealed class SqliteRuntimeRecordService(
             ParseStatus(reader.GetString(3)),
             reader.GetString(4),
             reader.GetString(5),
-            reader.GetString(6));
+            reader.GetString(6),
+            reader.GetString(7));
     }
 
     private static FrpNexusStatus ParseStatus(string value)

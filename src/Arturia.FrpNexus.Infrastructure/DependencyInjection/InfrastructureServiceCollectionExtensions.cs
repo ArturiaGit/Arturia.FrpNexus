@@ -3,6 +3,7 @@ using Arturia.FrpNexus.Infrastructure.Configurations;
 using Arturia.FrpNexus.Infrastructure.Credentials;
 using Arturia.FrpNexus.Infrastructure.Deployments;
 using Arturia.FrpNexus.Infrastructure.Logs;
+using Arturia.FrpNexus.Infrastructure.Maintenance;
 using Arturia.FrpNexus.Infrastructure.Nodes;
 using Arturia.FrpNexus.Infrastructure.Persistence;
 using Arturia.FrpNexus.Infrastructure.Portability;
@@ -21,10 +22,12 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddFrpNexusInfrastructure(this IServiceCollection services)
     {
+        services.AddSingleton<ILocalStoragePathSettingsService, JsonLocalStoragePathSettingsService>();
         services.AddSingleton<IFrpNexusDatabasePathProvider, FrpNexusDatabasePathProvider>();
         services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
         services.AddSingleton<ISqliteDatabaseInitializer, SqliteDatabaseInitializer>();
         services.AddSingleton<ISettingsService, SqliteSettingsService>();
+        services.AddSingleton<IOnboardingStateService, SqliteOnboardingStateService>();
         services.AddSingleton<ILocalFrpcConfigurationService, SqliteLocalFrpcConfigurationService>();
         services.AddSingleton<INodeManagementService, SqliteNodeManagementService>();
         services.AddSingleton<ITunnelManagementService, SqliteTunnelManagementService>();
@@ -32,6 +35,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRuntimeRecordService, SqliteRuntimeRecordService>();
         services.AddSingleton<IDeploymentRecordService, SqliteDeploymentRecordService>();
         services.AddSingleton<ILocalDataPortabilityService, LocalDataPortabilityService>();
+        services.AddSingleton<ILocalCacheMaintenanceService, LocalCacheMaintenanceService>();
 #pragma warning disable CA1416
         services.AddSingleton<INodeCredentialSecretService>(_ => CreateNodeCredentialSecretService());
 #pragma warning restore CA1416
