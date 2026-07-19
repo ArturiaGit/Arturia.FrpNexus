@@ -8,6 +8,44 @@
 
 FrpNexus 面向个人开发者、自托管用户和轻量运维场景，把 FRP 的下载、部署、配置、启动、日志查看和基础诊断整合进一个清晰的桌面应用。
 
+## 界面预览
+
+### 仪表盘
+
+集中查看节点、隧道、FRP 进程和近期运行状态。
+
+![FrpNexus 仪表盘运行界面](docs/images/readme/dashboard.png)
+
+### 节点
+
+管理远程 Linux 节点，并查看 SSH、frps 和部署状态。
+
+![FrpNexus 节点管理运行界面](docs/images/readme/nodes.png)
+
+### 隧道
+
+管理 TCP、UDP、HTTP 和 HTTPS 隧道及本地 frpc 配置。
+
+![FrpNexus 隧道管理运行界面](docs/images/readme/tunnels.png)
+
+### 配置预览
+
+根据节点和已启用隧道生成并检查 `frpc.toml`。
+
+![FrpNexus TOML 配置预览运行界面](docs/images/readme/configurations.png)
+
+### 日志
+
+集中查看本地与远程 FRP 日志，辅助定位运行问题。
+
+![FrpNexus 日志查看运行界面](docs/images/readme/logs.png)
+
+### 设置
+
+管理 FRP 下载、安全认证、本地数据和应用偏好。
+
+![FrpNexus 设置运行界面](docs/images/readme/settings.png)
+
 ## 快速开始
 
 从 [GitHub Releases](https://github.com/ArturiaGit/Arturia.FrpNexus/releases) 选择最新预览版。
